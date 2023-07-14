@@ -1,7 +1,8 @@
 # tinysql 简单关系型数据库（基于CMU 15-455课程）
-- [x] Disk Manager磁盘分页管理
+- [x] 磁盘分页管理
 - [x] LRU-K缓存淘汰算法
-- [ ] Buffer Pool Manager缓存管理
+- [ ] 可扩展哈希表
+- [ ] 缓冲池管理
 
 
 ## 参考

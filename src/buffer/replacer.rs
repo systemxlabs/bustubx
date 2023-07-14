@@ -100,6 +100,8 @@ impl LRUKReplacer {
             } else if !set_evictable && evictable {
                 self.current_size -= 1;
             }
+        } else {
+            panic!("frame not found")
         }
     }
 
