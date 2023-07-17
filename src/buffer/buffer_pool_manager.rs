@@ -212,4 +212,47 @@ mod tests {
 
         remove_file("./test.db").unwrap();
     }
+
+
+    #[test]
+    pub fn test_buffer_pool_manager_unpin_page() {
+        let _ = remove_file("./test.db");
+
+        let disk_manager = DiskManager::new("./test.db".to_string());
+        let mut buffer_pool_manager = BufferPoolManager::new(3, disk_manager);
+
+        let page_id = buffer_pool_manager.new_page().unwrap();
+        let page_id = buffer_pool_manager.new_page().unwrap();
+        let page_id = buffer_pool_manager.new_page().unwrap();
+        let page_id = buffer_pool_manager.new_page();
+        assert_eq!(page_id, None);
+
+        buffer_pool_manager.unpin_page(0, true);
+        let page_id = buffer_pool_manager.new_page();
+        assert_eq!(page_id, Some(3));
+
+        remove_file("./test.db").unwrap();
+    }
+
+    #[test]
+    pub fn test_buffer_pool_manager_fetch_page() {
+        let _ = remove_file("./test.db");
+
+        let disk_manager = DiskManager::new("./test.db".to_string());
+        let mut buffer_pool_manager = BufferPoolManager::new(3, disk_manager);
+
+        let page_id = buffer_pool_manager.new_page().unwrap();
+        let page_id = buffer_pool_manager.new_page().unwrap();
+        let page_id = buffer_pool_manager.new_page().unwrap();
+        buffer_pool_manager.unpin_page(0, true);
+        buffer_pool_manager.unpin_page(1, false);
+        let page_id = buffer_pool_manager.new_page();
+
+        let page = buffer_pool_manager.fetch_page(0);
+        assert!(page.is_some());
+        assert_eq!(page.unwrap().page_id, 0);
+
+        remove_file("./test.db").unwrap();
+    }
+
 }
