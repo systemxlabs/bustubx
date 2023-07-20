@@ -1,2 +1,2 @@
-pub mod buffer_pool_manager;
+pub mod buffer_pool;
 pub mod replacer;

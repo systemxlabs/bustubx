@@ -181,16 +181,15 @@ impl BufferPoolManager {
 }
 
 mod tests {
-    use crate::{
-        buffer::buffer_pool_manager::BufferPoolManager, storage::disk_manager::DiskManager,
-    };
+    use crate::{buffer::buffer_pool::BufferPoolManager, storage::disk_manager::DiskManager};
     use std::fs::remove_file;
 
     #[test]
     pub fn test_buffer_pool_manager_new_page() {
-        let _ = remove_file("./test.db");
+        let db_path = "./test_new_page.db";
+        let _ = remove_file(db_path);
 
-        let disk_manager = DiskManager::new("./test.db".to_string());
+        let disk_manager = DiskManager::new(db_path.to_string());
         let mut buffer_pool_manager = BufferPoolManager::new(3, disk_manager);
         let page_id = buffer_pool_manager.new_page().unwrap();
         assert_eq!(page_id, 0);
@@ -210,15 +209,15 @@ mod tests {
         let page_id = buffer_pool_manager.new_page().unwrap();
         assert_eq!(page_id, 3);
 
-        remove_file("./test.db").unwrap();
+        let _ = remove_file(db_path);
     }
-
 
     #[test]
     pub fn test_buffer_pool_manager_unpin_page() {
-        let _ = remove_file("./test.db");
+        let db_path = "./test_new_page.db";
+        let _ = remove_file(db_path);
 
-        let disk_manager = DiskManager::new("./test.db".to_string());
+        let disk_manager = DiskManager::new(db_path.to_string());
         let mut buffer_pool_manager = BufferPoolManager::new(3, disk_manager);
 
         let page_id = buffer_pool_manager.new_page().unwrap();
@@ -231,14 +230,15 @@ mod tests {
         let page_id = buffer_pool_manager.new_page();
         assert_eq!(page_id, Some(3));
 
-        remove_file("./test.db").unwrap();
+        let _ = remove_file(db_path);
     }
 
     #[test]
     pub fn test_buffer_pool_manager_fetch_page() {
-        let _ = remove_file("./test.db");
+        let db_path = "./test_new_page.db";
+        let _ = remove_file(db_path);
 
-        let disk_manager = DiskManager::new("./test.db".to_string());
+        let disk_manager = DiskManager::new(db_path.to_string());
         let mut buffer_pool_manager = BufferPoolManager::new(3, disk_manager);
 
         let page_id = buffer_pool_manager.new_page().unwrap();
@@ -252,7 +252,6 @@ mod tests {
         assert!(page.is_some());
         assert_eq!(page.unwrap().page_id, 0);
 
-        remove_file("./test.db").unwrap();
+        let _ = remove_file(db_path);
     }
-
 }

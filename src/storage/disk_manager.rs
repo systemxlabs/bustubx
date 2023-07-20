@@ -53,6 +53,7 @@ impl DiskManager {
         self.db_file.write_all(data).unwrap();
     }
 
+    // TODO 使用bitmap管理
     pub fn allocate_page(&mut self) -> PageId {
         let page_id = self.next_page_id;
         self.next_page_id += 1;

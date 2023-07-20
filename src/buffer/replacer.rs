@@ -1,6 +1,6 @@
 use std::collections::{HashMap, LinkedList};
 
-use super::buffer_pool_manager::FrameId;
+use super::buffer_pool::FrameId;
 
 pub struct LRUKNode {
     frame_id: FrameId,
