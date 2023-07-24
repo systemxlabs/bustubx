@@ -2,7 +2,7 @@ use super::column::Column;
 
 #[derive(Debug, Clone)]
 pub struct Schema {
-    pub columns: Vec<Column>,
+    columns: Vec<Column>,
 }
 impl Schema {
     pub fn new(mut columns: Vec<Column>) -> Self {
@@ -37,5 +37,9 @@ impl Schema {
 
     pub fn fixed_len(&self) -> usize {
         self.columns.iter().map(|c| c.fixed_len).sum()
+    }
+
+    pub fn column_count(&self) -> usize {
+        self.columns.len()
     }
 }

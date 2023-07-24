@@ -14,7 +14,9 @@ pub const LEAF_PAGE_HEADER_SIZE: usize = 4 + 4 + 4 + 4;
 
 #[derive(Debug)]
 pub enum BPlusTreePage {
+    // B+树内部节点页
     Internal(BPlusTreeInternalPage),
+    // B+树叶子节点页
     Leaf(BPlusTreeLeafPage),
 }
 impl BPlusTreePage {
@@ -34,6 +36,12 @@ impl BPlusTreePage {
         match self {
             Self::Internal(page) => page.to_bytes(),
             Self::Leaf(page) => page.to_bytes(),
+        }
+    }
+    pub fn is_leaf(&self) -> bool {
+        match self {
+            Self::Internal(_) => false,
+            Self::Leaf(_) => true,
         }
     }
 }
@@ -81,6 +89,7 @@ pub struct BPlusTreeInternalPage {
     pub page_type: BPlusTreePageType,
     pub current_size: u32,
     pub max_size: u32,
+    // 第一个key为空，n个key对应n+1个value
     array: Vec<InternalKV>,
 }
 impl BPlusTreeInternalPage {
@@ -104,12 +113,38 @@ impl BPlusTreeInternalPage {
     pub fn value_at(&self, index: usize) -> PageId {
         self.array[index].1
     }
-    pub fn insert(&mut self, key: Tuple, page_id: PageId) {
+    pub fn insert(&mut self, key: Tuple, page_id: PageId, key_schema: &Schema) {
         assert!(self.current_size < self.max_size, "Internal page is full");
         self.array.push((key, page_id));
         self.current_size += 1;
-        // TODO sort
+        self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
     }
+
+    // 查找key对应的page_id
+    // TODO 增加测试用例
+    pub fn look_up(&self, key: &Tuple, key_schema: &Schema) -> PageId {
+        // 第一个key为空，所以从1开始
+        let mut start = 1;
+        let mut end = self.current_size - 1;
+        while start < end {
+            let mid = (start + end) / 2;
+            let compare_res = key.compare(&self.array[mid as usize].0, key_schema);
+            if compare_res == std::cmp::Ordering::Equal {
+                return self.array[mid as usize].1;
+            } else if compare_res == std::cmp::Ordering::Less {
+                end = mid - 1;
+            } else {
+                start = mid + 1;
+            }
+        }
+        let compare_res = key.compare(&self.array[start as usize].0, key_schema);
+        if compare_res == std::cmp::Ordering::Less {
+            return self.array[start as usize - 1].1;
+        } else {
+            return self.array[start as usize].1;
+        }
+    }
+
     pub fn from_bytes(raw: &[u8; TINYSQL_PAGE_SIZE], key_schema: &Schema) -> Self {
         let page_type = BPlusTreePageType::from_bytes(&raw[0..4].try_into().unwrap());
         let current_size = u32::from_be_bytes(raw[4..8].try_into().unwrap());
@@ -232,11 +267,33 @@ impl BPlusTreeLeafPage {
     pub fn key_at(&self, index: usize) -> &Tuple {
         &self.array[index].0
     }
-    pub fn insert(&mut self, key: Tuple, rid: Rid) {
+    pub fn insert(&mut self, key: Tuple, rid: Rid, key_schema: &Schema) {
         assert!(self.current_size < self.max_size, "Leaf page is full");
         self.array.push((key, rid));
         self.current_size += 1;
-        // TODO sort
+        self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
+    }
+
+    // 查找key对应的rid
+    // TODO 增加测试用例
+    pub fn look_up(&self, key: &Tuple, key_schema: &Schema) -> Option<Rid> {
+        let mut start: i32 = 0;
+        let mut end: i32 = self.current_size as i32 - 1;
+        while start < end {
+            let mid = (start + end) / 2;
+            let compare_res = key.compare(&self.array[mid as usize].0, key_schema);
+            if compare_res == std::cmp::Ordering::Equal {
+                return Some(self.array[mid as usize].1);
+            } else if compare_res == std::cmp::Ordering::Less {
+                end = mid - 1;
+            } else {
+                start = mid + 1;
+            }
+        }
+        if key.compare(&self.array[start as usize].0, key_schema) == std::cmp::Ordering::Equal {
+            return Some(self.array[start as usize].1);
+        }
+        None
     }
 }
 
@@ -262,8 +319,16 @@ mod tests {
             Column::new("a".to_string(), DataType::SmallInt, 0),
         ]);
         let mut ori_page = BPlusTreeInternalPage::new(5);
-        ori_page.insert(Tuple::new(Rid::new(1, 1), vec![1, 1, 1]), 1);
-        ori_page.insert(Tuple::new(Rid::new(2, 2), vec![2, 2, 2]), 2);
+        ori_page.insert(
+            Tuple::new_with_rid(Rid::new(1, 1), vec![1, 1, 1]),
+            1,
+            &key_schema,
+        );
+        ori_page.insert(
+            Tuple::new_with_rid(Rid::new(2, 2), vec![2, 2, 2]),
+            2,
+            &key_schema,
+        );
         assert_eq!(ori_page.current_size, 2);
 
         let bytes = ori_page.to_bytes();
@@ -285,8 +350,8 @@ mod tests {
             Column::new("a".to_string(), DataType::SmallInt, 0),
         ]);
         let mut ori_page = BPlusTreeLeafPage::new(5);
-        ori_page.insert(Tuple::new(Rid::INVALID_RID, vec![1, 1, 1]), Rid::new(1, 1));
-        ori_page.insert(Tuple::new(Rid::INVALID_RID, vec![2, 2, 2]), Rid::new(2, 2));
+        ori_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
+        ori_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
         assert_eq!(ori_page.current_size, 2);
 
         let bytes = ori_page.to_bytes();
@@ -299,5 +364,137 @@ mod tests {
         assert_eq!(new_page.array[0].1, Rid::new(1, 1));
         assert_eq!(new_page.array[1].0.data, vec![2, 2, 2]);
         assert_eq!(new_page.array[1].1, Rid::new(2, 2));
+    }
+
+    #[test]
+    pub fn test_internal_page_insert() {
+        let key_schema = Schema::new(vec![
+            Column::new("a".to_string(), DataType::TinyInt, 0),
+            Column::new("b".to_string(), DataType::SmallInt, 0),
+        ]);
+        let mut internal_page = BPlusTreeInternalPage::new(3);
+        internal_page.insert(Tuple::new(vec![2, 2, 2]), 2, &key_schema);
+        internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
+        internal_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
+        assert_eq!(internal_page.current_size, 3);
+        assert_eq!(internal_page.array[0].0.data, vec![0, 0, 0]);
+        assert_eq!(internal_page.array[0].1, 0);
+        assert_eq!(internal_page.array[1].0.data, vec![1, 1, 1]);
+        assert_eq!(internal_page.array[1].1, 1);
+        assert_eq!(internal_page.array[2].0.data, vec![2, 2, 2]);
+        assert_eq!(internal_page.array[2].1, 2);
+    }
+
+    #[test]
+    pub fn test_leaf_page_insert() {
+        let key_schema = Schema::new(vec![
+            Column::new("a".to_string(), DataType::TinyInt, 0),
+            Column::new("b".to_string(), DataType::SmallInt, 0),
+        ]);
+        let mut leaf_page = BPlusTreeLeafPage::new(3);
+        leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
+        leaf_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
+        leaf_page.insert(Tuple::new(vec![3, 3, 3]), Rid::new(3, 3), &key_schema);
+        assert_eq!(leaf_page.current_size, 3);
+        assert_eq!(leaf_page.array[0].0.data, vec![1, 1, 1]);
+        assert_eq!(leaf_page.array[0].1, Rid::new(1, 1));
+        assert_eq!(leaf_page.array[1].0.data, vec![2, 2, 2]);
+        assert_eq!(leaf_page.array[1].1, Rid::new(2, 2));
+        assert_eq!(leaf_page.array[2].0.data, vec![3, 3, 3]);
+        assert_eq!(leaf_page.array[2].1, Rid::new(3, 3));
+    }
+
+    #[test]
+    pub fn test_internal_page_look_up() {
+        let key_schema = Schema::new(vec![
+            Column::new("a".to_string(), DataType::TinyInt, 0),
+            Column::new("b".to_string(), DataType::SmallInt, 0),
+        ]);
+        let mut internal_page = BPlusTreeInternalPage::new(5);
+        internal_page.insert(Tuple::new(vec![2, 2, 2]), 2, &key_schema);
+        internal_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
+        internal_page.insert(Tuple::new(vec![3, 3, 3]), 3, &key_schema);
+        internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
+        internal_page.insert(Tuple::new(vec![4, 4, 4]), 4, &key_schema);
+
+        assert_eq!(
+            internal_page.look_up(&Tuple::new(vec![0, 0, 0]), &key_schema),
+            0
+        );
+        assert_eq!(
+            internal_page.look_up(&Tuple::new(vec![3, 3, 3]), &key_schema),
+            3
+        );
+        assert_eq!(
+            internal_page.look_up(&Tuple::new(vec![5, 5, 5]), &key_schema),
+            4
+        );
+
+        let mut internal_page = BPlusTreeInternalPage::new(2);
+        internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
+        internal_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
+
+        assert_eq!(
+            internal_page.look_up(&Tuple::new(vec![0, 0, 0]), &key_schema),
+            0
+        );
+        assert_eq!(
+            internal_page.look_up(&Tuple::new(vec![1, 1, 1]), &key_schema),
+            1
+        );
+        assert_eq!(
+            internal_page.look_up(&Tuple::new(vec![2, 2, 2]), &key_schema),
+            1
+        );
+    }
+
+    #[test]
+    pub fn test_leaf_page_look_up() {
+        let key_schema = Schema::new(vec![
+            Column::new("a".to_string(), DataType::TinyInt, 0),
+            Column::new("b".to_string(), DataType::SmallInt, 0),
+        ]);
+        let mut leaf_page = BPlusTreeLeafPage::new(5);
+        leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
+        leaf_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
+        leaf_page.insert(Tuple::new(vec![3, 3, 3]), Rid::new(3, 3), &key_schema);
+        leaf_page.insert(Tuple::new(vec![5, 5, 5]), Rid::new(5, 5), &key_schema);
+        leaf_page.insert(Tuple::new(vec![4, 4, 4]), Rid::new(4, 4), &key_schema);
+        assert_eq!(
+            leaf_page.look_up(&Tuple::new(vec![0, 0, 0]), &key_schema),
+            None
+        );
+        assert_eq!(
+            leaf_page.look_up(&Tuple::new(vec![2, 2, 2]), &key_schema),
+            Some(Rid::new(2, 2))
+        );
+        assert_eq!(
+            leaf_page.look_up(&Tuple::new(vec![3, 3, 3]), &key_schema),
+            Some(Rid::new(3, 3))
+        );
+        assert_eq!(
+            leaf_page.look_up(&Tuple::new(vec![6, 6, 6]), &key_schema),
+            None
+        );
+
+        let mut leaf_page = BPlusTreeLeafPage::new(2);
+        leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
+        leaf_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
+        assert_eq!(
+            leaf_page.look_up(&Tuple::new(vec![0, 0, 0]), &key_schema),
+            None
+        );
+        assert_eq!(
+            leaf_page.look_up(&Tuple::new(vec![1, 1, 1]), &key_schema),
+            Some(Rid::new(1, 1))
+        );
+        assert_eq!(
+            leaf_page.look_up(&Tuple::new(vec![2, 2, 2]), &key_schema),
+            Some(Rid::new(2, 2))
+        );
+        assert_eq!(
+            leaf_page.look_up(&Tuple::new(vec![3, 3, 3]), &key_schema),
+            None
+        );
     }
 }
