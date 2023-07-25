@@ -98,70 +98,65 @@ impl BPlusTreeIndex {
             BPlusTreeLeafPage::from_bytes(&page.data, &self.index_metadata.key_schema);
         leaf_page.insert(key.clone(), rid, &self.index_metadata.key_schema);
 
-        if leaf_page.is_full() {
-            // leaf page已满，分裂
-            let mut curr_page = BPlusTreePage::Leaf(leaf_page);
-            let mut curr_page_id = leaf_page_id;
+        let mut curr_page = BPlusTreePage::Leaf(leaf_page);
+        let mut curr_page_id = leaf_page_id;
 
-            while curr_page.is_full() {
-                // 向右分裂出一个新page
-                let internalkv = self.split(&mut curr_page, &mut context);
-                self.buffer_pool_manager
-                    .write_page(curr_page_id, curr_page.to_bytes());
-                self.buffer_pool_manager.unpin_page(curr_page_id, true);
-
-                if let Some(page_id) = context.read_set.pop_front() {
-                    // 更新父节点
-                    let page = self
-                        .buffer_pool_manager
-                        .fetch_page(page_id)
-                        .expect("Page can not be fetched");
-                    let mut tree_page =
-                        BPlusTreePage::from_bytes(&page.data, &self.index_metadata.key_schema);
-                    self.buffer_pool_manager.unpin_page(page_id, false);
-                    tree_page.insert_internalkv(internalkv, &self.index_metadata.key_schema);
-
-                    curr_page = tree_page;
-                    curr_page_id = page_id;
-                } else if curr_page_id == self.root_page_id {
-                    // new 一个新的root page
-                    let new_root_page = self
-                        .buffer_pool_manager
-                        .new_page()
-                        .expect("can not new root page");
-                    let new_root_page_id = new_root_page.page_id;
-                    let mut new_internal_page =
-                        BPlusTreeInternalPage::new(self.internal_max_size as u32);
-
-                    // internal page第一个kv对的key为空
-                    new_internal_page.insert(
-                        Tuple::empty(self.index_metadata.key_schema.fixed_len()),
-                        self.root_page_id,
-                        &self.index_metadata.key_schema,
-                    );
-                    new_internal_page.insert(
-                        internalkv.0,
-                        internalkv.1,
-                        &self.index_metadata.key_schema,
-                    );
-                    new_root_page.data = new_internal_page.to_bytes();
-                    self.buffer_pool_manager.unpin_page(new_root_page_id, true);
-
-                    // 更新root page id
-                    self.root_page_id = new_root_page_id;
-
-                    curr_page = BPlusTreePage::Internal(new_internal_page);
-                    curr_page_id = new_root_page_id;
-                }
-            }
-
+        // leaf page已满则分裂
+        while curr_page.is_full() {
+            // 向右分裂出一个新page
+            let internalkv = self.split(&mut curr_page);
             self.buffer_pool_manager
                 .write_page(curr_page_id, curr_page.to_bytes());
             self.buffer_pool_manager.unpin_page(curr_page_id, true);
-        } else {
-            page.data = leaf_page.to_bytes();
-            self.buffer_pool_manager.unpin_page(leaf_page_id, true);
+
+            if let Some(page_id) = context.read_set.pop_front() {
+                // 更新父节点
+                let page = self
+                    .buffer_pool_manager
+                    .fetch_page(page_id)
+                    .expect("Page can not be fetched");
+                let mut tree_page =
+                    BPlusTreePage::from_bytes(&page.data, &self.index_metadata.key_schema);
+                self.buffer_pool_manager.unpin_page(page_id, false);
+                tree_page.insert_internalkv(internalkv, &self.index_metadata.key_schema);
+
+                curr_page = tree_page;
+                curr_page_id = page_id;
+            } else if curr_page_id == self.root_page_id {
+                // new 一个新的root page
+                let new_root_page = self
+                    .buffer_pool_manager
+                    .new_page()
+                    .expect("can not new root page");
+                let new_root_page_id = new_root_page.page_id;
+                let mut new_internal_page =
+                    BPlusTreeInternalPage::new(self.internal_max_size as u32);
+
+                // internal page第一个kv对的key为空
+                new_internal_page.insert(
+                    Tuple::empty(self.index_metadata.key_schema.fixed_len()),
+                    self.root_page_id,
+                    &self.index_metadata.key_schema,
+                );
+                new_internal_page.insert(
+                    internalkv.0,
+                    internalkv.1,
+                    &self.index_metadata.key_schema,
+                );
+                new_root_page.data = new_internal_page.to_bytes();
+                self.buffer_pool_manager.unpin_page(new_root_page_id, true);
+
+                // 更新root page id
+                self.root_page_id = new_root_page_id;
+
+                curr_page = BPlusTreePage::Internal(new_internal_page);
+                curr_page_id = new_root_page_id;
+            }
         }
+
+        self.buffer_pool_manager
+            .write_page(curr_page_id, curr_page.to_bytes());
+        self.buffer_pool_manager.unpin_page(curr_page_id, true);
         return true;
     }
 
@@ -253,7 +248,8 @@ impl BPlusTreeIndex {
         }
     }
 
-    fn split(&mut self, page: &mut BPlusTreePage, context: &mut Context) -> InternalKV {
+    // 分裂page
+    fn split(&mut self, page: &mut BPlusTreePage) -> InternalKV {
         match page {
             BPlusTreePage::Leaf(leaf_page) => {
                 let new_page = self
@@ -301,6 +297,7 @@ impl BPlusTreeIndex {
         unimplemented!()
     }
 
+    // 查找子树最小的leafKV
     fn find_min_leafkv(&mut self, page_id: PageId) -> LeafKV {
         let curr_page = self
             .buffer_pool_manager
@@ -423,12 +420,12 @@ mod tests {
         assert_eq!(index.root_page_id, 2);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
         index.insert(&Tuple::new(vec![5, 5, 5]), Rid::new(5, 5));
-        assert_eq!(index.buffer_pool_manager.replacer.size(), 7);
         assert_eq!(
             index.get(&Tuple::new(vec![5, 5, 5])).unwrap(),
             Rid::new(5, 5)
         );
         assert_eq!(index.root_page_id, 6);
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 7);
 
         let _ = remove_file(db_path);
     }
