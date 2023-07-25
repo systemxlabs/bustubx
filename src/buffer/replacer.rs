@@ -2,6 +2,7 @@ use std::collections::{HashMap, LinkedList};
 
 use super::buffer_pool::FrameId;
 
+#[derive(Debug)]
 pub struct LRUKNode {
     frame_id: FrameId,
     k: usize,
@@ -33,7 +34,7 @@ pub struct LRUKReplacer {
     // 可置换的frame数上限
     replacer_size: usize,
     k: usize,
-    node_store: HashMap<FrameId, LRUKNode>,
+    pub node_store: HashMap<FrameId, LRUKNode>,
     // 当前时间戳（从0递增）
     current_timestamp: u64,
 }

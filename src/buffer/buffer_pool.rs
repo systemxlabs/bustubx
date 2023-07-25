@@ -1,8 +1,11 @@
 use std::collections::{HashMap, VecDeque};
 
-use crate::storage::{
-    disk_manager::DiskManager,
-    page::{Page, PageId},
+use crate::{
+    common::config::TINYSQL_PAGE_SIZE,
+    storage::{
+        disk_manager::DiskManager,
+        page::{Page, PageId},
+    },
 };
 
 use super::replacer::LRUKReplacer;
@@ -12,7 +15,7 @@ pub type FrameId = u32;
 pub struct BufferPoolManager {
     pool: Vec<Page>,
     // LRU-K置换算法
-    replacer: LRUKReplacer,
+    pub replacer: LRUKReplacer,
     disk_manager: DiskManager,
     // 缓冲池中的页号与frame号的映射
     page_table: HashMap<PageId, FrameId>,
@@ -78,7 +81,7 @@ impl BufferPoolManager {
     }
 
     // 从缓冲池中获取指定页
-    pub fn fetch_page(&mut self, page_id: PageId) -> Option<&Page> {
+    pub fn fetch_page(&mut self, page_id: PageId) -> Option<&mut Page> {
         if self.page_table.contains_key(&page_id) {
             let frame_id = self.page_table[&page_id];
             let page = &mut self.pool[frame_id as usize];
@@ -112,7 +115,16 @@ impl BufferPoolManager {
             self.replacer.record_access(frame_id);
             self.replacer.set_evictable(frame_id, false);
 
-            return Some(&self.pool[frame_id as usize]);
+            return Some(&mut self.pool[frame_id as usize]);
+        }
+    }
+
+    pub fn write_page(&mut self, page_id: PageId, data: [u8; TINYSQL_PAGE_SIZE]) {
+        if self.page_table.contains_key(&page_id) {
+            let frame_id = self.page_table[&page_id];
+            let page = &mut self.pool[frame_id as usize];
+            page.data = data;
+            page.is_dirty = true;
         }
     }
 

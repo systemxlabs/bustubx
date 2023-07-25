@@ -12,7 +12,7 @@ use crate::{
 pub const INTERNAL_PAGE_HEADER_SIZE: usize = 4 + 4 + 4;
 pub const LEAF_PAGE_HEADER_SIZE: usize = 4 + 4 + 4 + 4;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BPlusTreePage {
     // B+树内部节点页
     Internal(BPlusTreeInternalPage),
@@ -42,6 +42,18 @@ impl BPlusTreePage {
         match self {
             Self::Internal(_) => false,
             Self::Leaf(_) => true,
+        }
+    }
+    pub fn is_full(&self) -> bool {
+        match self {
+            Self::Internal(page) => page.is_full(),
+            Self::Leaf(page) => page.is_full(),
+        }
+    }
+    pub fn insert_internalkv(&mut self, internalkv: InternalKV, key_schema: &Schema) {
+        match self {
+            Self::Internal(page) => page.insert(internalkv.0, internalkv.1, key_schema),
+            Self::Leaf(_) => panic!("Leaf page cannot insert InternalKV"),
         }
     }
 }
@@ -84,13 +96,13 @@ pub type LeafKV = (Tuple, Rid);
  * | PageType (4) | CurrentSize (4) | MaxSize (4) |
  * ----------------------------------------------------------------------------
  */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BPlusTreeInternalPage {
     pub page_type: BPlusTreePageType,
     pub current_size: u32,
     pub max_size: u32,
     // 第一个key为空，n个key对应n+1个value
-    array: Vec<InternalKV>,
+    pub array: Vec<InternalKV>,
 }
 impl BPlusTreeInternalPage {
     pub fn new(max_size: u32) -> Self {
@@ -114,10 +126,23 @@ impl BPlusTreeInternalPage {
         self.array[index].1
     }
     pub fn insert(&mut self, key: Tuple, page_id: PageId, key_schema: &Schema) {
-        assert!(self.current_size < self.max_size, "Internal page is full");
         self.array.push((key, page_id));
         self.current_size += 1;
         self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
+    }
+    pub fn batch_insert(&mut self, kvs: Vec<InternalKV>, key_schema: &Schema) {
+        let kvs_len = kvs.len();
+        self.array.extend(kvs);
+        self.current_size += kvs_len as u32;
+        self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
+    }
+    pub fn is_full(&self) -> bool {
+        self.current_size > self.max_size
+    }
+    pub fn split_off(&mut self) -> Vec<InternalKV> {
+        let new_array = self.array.split_off(self.current_size as usize / 2);
+        self.current_size -= new_array.len() as u32;
+        return new_array;
     }
 
     // 查找key对应的page_id
@@ -197,13 +222,13 @@ impl BPlusTreeInternalPage {
  * | PageType (4) | CurrentSize (4) | MaxSize (4) | NextPageId (4)
  *  ---------------------------------------------------------------------
  */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BPlusTreeLeafPage {
     pub page_type: BPlusTreePageType,
     pub current_size: u32,
     pub max_size: u32,
     pub next_page_id: PageId,
-    array: Vec<LeafKV>,
+    pub array: Vec<LeafKV>,
 }
 impl BPlusTreeLeafPage {
     pub fn new(max_size: u32) -> Self {
@@ -267,11 +292,27 @@ impl BPlusTreeLeafPage {
     pub fn key_at(&self, index: usize) -> &Tuple {
         &self.array[index].0
     }
+    pub fn kv_at(&self, index: usize) -> &LeafKV {
+        &self.array[index]
+    }
+    pub fn is_full(&self) -> bool {
+        self.current_size > self.max_size
+    }
     pub fn insert(&mut self, key: Tuple, rid: Rid, key_schema: &Schema) {
-        assert!(self.current_size < self.max_size, "Leaf page is full");
         self.array.push((key, rid));
         self.current_size += 1;
         self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
+    }
+    pub fn batch_insert(&mut self, kvs: Vec<LeafKV>, key_schema: &Schema) {
+        let kvs_len = kvs.len();
+        self.array.extend(kvs);
+        self.current_size += kvs_len as u32;
+        self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
+    }
+    pub fn split_off(&mut self) -> Vec<LeafKV> {
+        let new_array = self.array.split_off(self.current_size as usize / 2);
+        self.current_size -= new_array.len() as u32;
+        return new_array;
     }
 
     // 查找key对应的rid
