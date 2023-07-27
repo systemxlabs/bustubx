@@ -100,6 +100,7 @@ pub type LeafKV = (Tuple, Rid);
 pub struct BPlusTreeInternalPage {
     pub page_type: BPlusTreePageType,
     pub current_size: u32,
+    // 能存放的最大kv数
     pub max_size: u32,
     // 第一个key为空，n个key对应n+1个value
     pub array: Vec<InternalKV>,
@@ -125,6 +126,11 @@ impl BPlusTreeInternalPage {
     pub fn value_at(&self, index: usize) -> PageId {
         self.array[index].1
     }
+    pub fn values(&self) -> Vec<PageId> {
+        self.array.iter().map(|kv| kv.1).collect()
+    }
+
+    // TODO 可以通过二分查找来插入
     pub fn insert(&mut self, key: Tuple, page_id: PageId, key_schema: &Schema) {
         self.array.push((key, page_id));
         self.current_size += 1;
@@ -146,7 +152,6 @@ impl BPlusTreeInternalPage {
     }
 
     // 查找key对应的page_id
-    // TODO 增加测试用例
     pub fn look_up(&self, key: &Tuple, key_schema: &Schema) -> PageId {
         // 第一个key为空，所以从1开始
         let mut start = 1;
@@ -209,6 +214,27 @@ impl BPlusTreeInternalPage {
         }
         buf
     }
+
+    pub fn print_page(&self, key_schema: &Schema) {
+        println!(
+            "{:?}, size: {}/{}",
+            self.page_type, self.current_size, self.max_size
+        );
+        print!("array: ");
+        for i in 0..self.current_size {
+            print!(
+                "{:?} => {}{}",
+                self.array[i as usize].0.data,
+                self.array[i as usize].1,
+                if i == self.current_size - 1 {
+                    ""
+                } else {
+                    " , "
+                }
+            );
+        }
+        println!("");
+    }
 }
 
 /**
@@ -226,6 +252,7 @@ impl BPlusTreeInternalPage {
 pub struct BPlusTreeLeafPage {
     pub page_type: BPlusTreePageType,
     pub current_size: u32,
+    // 能存放的最大kv数
     pub max_size: u32,
     pub next_page_id: PageId,
     pub array: Vec<LeafKV>,
@@ -286,29 +313,37 @@ impl BPlusTreeLeafPage {
     pub fn size(&self) -> usize {
         self.current_size as usize
     }
+
     pub fn min_size(&self) -> usize {
         self.max_size as usize / 2
     }
+
     pub fn key_at(&self, index: usize) -> &Tuple {
         &self.array[index].0
     }
+
     pub fn kv_at(&self, index: usize) -> &LeafKV {
         &self.array[index]
     }
+
     pub fn is_full(&self) -> bool {
         self.current_size > self.max_size
     }
+
+    // TODO 可以通过二分查找来插入
     pub fn insert(&mut self, key: Tuple, rid: Rid, key_schema: &Schema) {
         self.array.push((key, rid));
         self.current_size += 1;
         self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
     }
+
     pub fn batch_insert(&mut self, kvs: Vec<LeafKV>, key_schema: &Schema) {
         let kvs_len = kvs.len();
         self.array.extend(kvs);
         self.current_size += kvs_len as u32;
         self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
     }
+
     pub fn split_off(&mut self) -> Vec<LeafKV> {
         let new_array = self.array.split_off(self.current_size as usize / 2);
         self.current_size -= new_array.len() as u32;
@@ -316,7 +351,6 @@ impl BPlusTreeLeafPage {
     }
 
     // 查找key对应的rid
-    // TODO 增加测试用例
     pub fn look_up(&self, key: &Tuple, key_schema: &Schema) -> Option<Rid> {
         let mut start: i32 = 0;
         let mut end: i32 = self.current_size as i32 - 1;
@@ -335,6 +369,28 @@ impl BPlusTreeLeafPage {
             return Some(self.array[start as usize].1);
         }
         None
+    }
+
+    pub fn print_page(&self, key_schema: &Schema) {
+        println!(
+            "{:?}, size: {}/{}, , next_page_id: {}",
+            self.page_type, self.current_size, self.max_size, self.next_page_id
+        );
+        print!("array: ");
+        for i in 0..self.current_size {
+            print!(
+                "{:?} => {}-{}{}",
+                self.array[i as usize].0.data,
+                self.array[i as usize].1.page_id,
+                self.array[i as usize].1.slot_num,
+                if i == self.current_size - 1 {
+                    ""
+                } else {
+                    " , "
+                }
+            );
+        }
+        println!("")
     }
 }
 

@@ -102,6 +102,7 @@ impl BPlusTreeIndex {
         let mut curr_page_id = leaf_page_id;
 
         // leaf page已满则分裂
+        // TODO 可以考虑先分裂再插入，防止越界，可以更多地利用空间
         while curr_page.is_full() {
             // 向右分裂出一个新page
             let internalkv = self.split(&mut curr_page);
@@ -324,6 +325,49 @@ impl BPlusTreeIndex {
             }
         }
     }
+
+    pub fn print_tree(&mut self) {
+        if self.is_empty() {
+            println!("Empty tree.");
+            return;
+        }
+        // 层序遍历
+        let mut curr_queue = VecDeque::new();
+        curr_queue.push_back(self.root_page_id);
+
+        let mut level_index = 1;
+        loop {
+            if curr_queue.is_empty() {
+                break;
+            }
+            let mut next_queue = VecDeque::new();
+            // 打印当前层
+            println!("B+树第{}层: ", level_index);
+            while let Some(page_id) = curr_queue.pop_front() {
+                let page = self
+                    .buffer_pool_manager
+                    .fetch_page(page_id)
+                    .expect("Page can not be fetched");
+                let curr_page =
+                    BPlusTreePage::from_bytes(&page.data, &self.index_metadata.key_schema);
+                self.buffer_pool_manager.unpin_page(page_id, false);
+                match curr_page {
+                    BPlusTreePage::Internal(internal_page) => {
+                        internal_page.print_page(&self.index_metadata.key_schema);
+                        println!("");
+                        next_queue.extend(internal_page.values());
+                    }
+                    BPlusTreePage::Leaf(leaf_page) => {
+                        leaf_page.print_page(&self.index_metadata.key_schema);
+                        println!("");
+                    }
+                }
+            }
+            println!("");
+            level_index += 1;
+            curr_queue = next_queue;
+        }
+    }
 }
 
 mod tests {
@@ -426,6 +470,8 @@ mod tests {
         );
         assert_eq!(index.root_page_id, 6);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 7);
+
+        index.print_tree();
 
         let _ = remove_file(db_path);
     }
