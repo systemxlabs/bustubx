@@ -215,13 +215,17 @@ impl BPlusTreeInternalPage {
         buf
     }
 
-    pub fn print_page(&self, key_schema: &Schema) {
+    pub fn print_page(&self, page_id: PageId, key_schema: &Schema) {
         println!(
-            "{:?}, size: {}/{}",
-            self.page_type, self.current_size, self.max_size
+            "{:?}, page_id: {}, size: {}/{}",
+            self.page_type, page_id, self.current_size, self.max_size
         );
         print!("array: ");
         for i in 0..self.current_size {
+            if i == 0 {
+                print!("null => {} , ", self.array[i as usize].1);
+                continue;
+            }
             print!(
                 "{:?} => {}{}",
                 self.array[i as usize].0.data,
@@ -371,10 +375,10 @@ impl BPlusTreeLeafPage {
         None
     }
 
-    pub fn print_page(&self, key_schema: &Schema) {
+    pub fn print_page(&self, page_id: PageId, key_schema: &Schema) {
         println!(
-            "{:?}, size: {}/{}, , next_page_id: {}",
-            self.page_type, self.current_size, self.max_size, self.next_page_id
+            "{:?}, page_id: {}, size: {}/{}, , next_page_id: {}",
+            self.page_type, page_id, self.current_size, self.max_size, self.next_page_id
         );
         print!("array: ");
         for i in 0..self.current_size {

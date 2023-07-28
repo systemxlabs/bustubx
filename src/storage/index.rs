@@ -353,12 +353,12 @@ impl BPlusTreeIndex {
                 self.buffer_pool_manager.unpin_page(page_id, false);
                 match curr_page {
                     BPlusTreePage::Internal(internal_page) => {
-                        internal_page.print_page(&self.index_metadata.key_schema);
+                        internal_page.print_page(page_id, &self.index_metadata.key_schema);
                         println!("");
                         next_queue.extend(internal_page.values());
                     }
                     BPlusTreePage::Leaf(leaf_page) => {
-                        leaf_page.print_page(&self.index_metadata.key_schema);
+                        leaf_page.print_page(page_id, &self.index_metadata.key_schema);
                         println!("");
                     }
                 }
@@ -470,8 +470,6 @@ mod tests {
         );
         assert_eq!(index.root_page_id, 6);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 7);
-
-        index.print_tree();
 
         let _ = remove_file(db_path);
     }

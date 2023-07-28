@@ -23,7 +23,7 @@ impl DiskManager {
             .unwrap()
             .len()
             .div_euclid(TINYSQL_PAGE_SIZE as u64) as PageId;
-        println!("Initialized next_page_id: {}", next_page_id);
+        println!("Initialized disk_manager next_page_id: {}", next_page_id);
         Self {
             db_path,
             db_file,
