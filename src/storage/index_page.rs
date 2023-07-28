@@ -50,10 +50,25 @@ impl BPlusTreePage {
             Self::Leaf(page) => page.is_full(),
         }
     }
+    pub fn is_underflow(&self, is_root: bool) -> bool {
+        if is_root {
+            return false;
+        }
+        match self {
+            Self::Internal(page) => page.size() < page.min_size(),
+            Self::Leaf(page) => page.size() < page.min_size(),
+        }
+    }
     pub fn insert_internalkv(&mut self, internalkv: InternalKV, key_schema: &Schema) {
         match self {
             Self::Internal(page) => page.insert(internalkv.0, internalkv.1, key_schema),
             Self::Leaf(_) => panic!("Leaf page cannot insert InternalKV"),
+        }
+    }
+    pub fn can_borrow(&self) -> bool {
+        match self {
+            Self::Internal(page) => page.size() > page.min_size(),
+            Self::Leaf(page) => page.size() > page.min_size(),
         }
     }
 }
@@ -130,6 +145,25 @@ impl BPlusTreeInternalPage {
         self.array.iter().map(|kv| kv.1).collect()
     }
 
+    pub fn sibling_page_ids(&self, page_id: PageId) -> (Option<PageId>, Option<PageId>) {
+        let index = self.array.iter().position(|x| x.1 == page_id);
+        if let Some(index) = index {
+            return (
+                if index == 0 {
+                    None
+                } else {
+                    Some(self.array[index - 1].1)
+                },
+                if index == self.current_size as usize - 1 {
+                    None
+                } else {
+                    Some(self.array[index + 1].1)
+                },
+            );
+        }
+        return (None, None);
+    }
+
     // TODO 可以通过二分查找来插入
     pub fn insert(&mut self, key: Tuple, page_id: PageId, key_schema: &Schema) {
         if self.current_size == 0 && !key.is_zero() {
@@ -187,20 +221,88 @@ impl BPlusTreeInternalPage {
         return;
     }
 
+    pub fn delete_page_id(&mut self, page_id: PageId) {
+        if self.current_size == 0 {
+            return;
+        }
+        for i in 0..self.current_size {
+            if self.array[i as usize].1 == page_id {
+                if i == 0 {
+                    self.array.remove(0);
+                    self.current_size -= 1;
+                    // 把第一个key置空
+                    self.array[0].0 = Tuple::empty(self.array[0].0.data.len());
+                } else {
+                    self.array.remove(i as usize);
+                    self.current_size -= 1;
+                }
+                // 删除后，如果只剩下一个空key，那么删除
+                if self.current_size == 1 {
+                    self.array.remove(0);
+                    self.current_size -= 1;
+                }
+                return;
+            }
+        }
+    }
+
     pub fn is_full(&self) -> bool {
         self.current_size > self.max_size
     }
 
-    pub fn split_off(&mut self) -> Vec<InternalKV> {
-        let new_array = self.array.split_off(self.current_size as usize / 2);
+    pub fn split_off(&mut self, at: usize) -> Vec<InternalKV> {
+        let new_array = self.array.split_off(at);
         self.current_size -= new_array.len() as u32;
         return new_array;
+    }
+
+    pub fn reverse_split_off(&mut self, at: usize) -> Vec<InternalKV> {
+        let mut new_array = Vec::new();
+        for _ in 0..=at {
+            new_array.push(self.array.remove(0));
+        }
+        self.current_size -= new_array.len() as u32;
+        return new_array;
+    }
+
+    pub fn replace_key(&mut self, old_key: &Tuple, new_key: Tuple, key_schema: &Schema) {
+        let key_index = self.key_index(old_key, key_schema);
+        if let Some(index) = key_index {
+            self.array[index].0 = new_key;
+        }
+    }
+
+    pub fn key_index(&self, key: &Tuple, key_schema: &Schema) -> Option<usize> {
+        if self.current_size == 0 {
+            return None;
+        }
+        // 第一个key为空，所以从1开始
+        let mut start: i32 = 1;
+        let mut end: i32 = self.current_size as i32 - 1;
+        while start < end {
+            let mid = (start + end) / 2;
+            let compare_res = key.compare(&self.array[mid as usize].0, key_schema);
+            if compare_res == std::cmp::Ordering::Equal {
+                return Some(mid as usize);
+            } else if compare_res == std::cmp::Ordering::Less {
+                end = mid - 1;
+            } else {
+                start = mid + 1;
+            }
+        }
+        if key.compare(&self.array[start as usize].0, key_schema) == std::cmp::Ordering::Equal {
+            return Some(start as usize);
+        }
+        return None;
     }
 
     // 查找key对应的page_id
     pub fn look_up(&self, key: &Tuple, key_schema: &Schema) -> PageId {
         // 第一个key为空，所以从1开始
         let mut start = 1;
+        if self.current_size == 0 {
+            println!("look_up empty page");
+        }
         let mut end = self.current_size - 1;
         while start < end {
             let mid = (start + end) / 2;
@@ -249,14 +351,18 @@ impl BPlusTreeInternalPage {
         buf[0..4].copy_from_slice(&self.page_type.to_bytes());
         buf[4..8].copy_from_slice(&self.current_size.to_be_bytes());
         buf[8..12].copy_from_slice(&self.max_size.to_be_bytes());
-        let key_size = self.array[0].0.data.len();
-        let value_size = size_of::<PageId>();
-        let kv_size = key_size + value_size;
-        for i in 0..self.current_size {
-            let start = 12 + i as usize * kv_size;
-            let end = 12 + (i + 1) as usize * kv_size;
-            buf[start..start + key_size].copy_from_slice(&self.array[i as usize].0.to_bytes());
-            buf[start + key_size..end].copy_from_slice(&self.array[i as usize].1.to_be_bytes());
+        if self.current_size == 0 {
+            buf[12..TINYSQL_PAGE_SIZE].fill(0);
+        } else {
+            let key_size = self.array[0].0.data.len();
+            let value_size = size_of::<PageId>();
+            let kv_size = key_size + value_size;
+            for i in 0..self.current_size {
+                let start = 12 + i as usize * kv_size;
+                let end = 12 + (i + 1) as usize * kv_size;
+                buf[start..start + key_size].copy_from_slice(&self.array[i as usize].0.to_bytes());
+                buf[start + key_size..end].copy_from_slice(&self.array[i as usize].1.to_be_bytes());
+            }
         }
         buf
     }
@@ -348,14 +454,18 @@ impl BPlusTreeLeafPage {
         buf[4..8].copy_from_slice(&self.current_size.to_be_bytes());
         buf[8..12].copy_from_slice(&self.max_size.to_be_bytes());
         buf[12..16].copy_from_slice(&self.next_page_id.to_be_bytes());
-        let key_size = self.array[0].0.data.len();
-        let value_size = size_of::<Rid>();
-        let kv_size = key_size + value_size;
-        for i in 0..self.current_size {
-            let start = 16 + i as usize * kv_size;
-            let end = 16 + (i + 1) as usize * kv_size;
-            buf[start..start + key_size].copy_from_slice(&self.array[i as usize].0.to_bytes());
-            buf[start + key_size..end].copy_from_slice(&self.array[i as usize].1.to_bytes());
+        if self.current_size == 0 {
+            buf[16..TINYSQL_PAGE_SIZE].fill(0);
+        } else {
+            let key_size = self.array[0].0.data.len();
+            let value_size = size_of::<Rid>();
+            let kv_size = key_size + value_size;
+            for i in 0..self.current_size {
+                let start = 16 + i as usize * kv_size;
+                let end = 16 + (i + 1) as usize * kv_size;
+                buf[start..start + key_size].copy_from_slice(&self.array[i as usize].0.to_bytes());
+                buf[start + key_size..end].copy_from_slice(&self.array[i as usize].1.to_bytes());
+            }
         }
         buf
     }
@@ -394,8 +504,17 @@ impl BPlusTreeLeafPage {
         self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
     }
 
-    pub fn split_off(&mut self) -> Vec<LeafKV> {
-        let new_array = self.array.split_off(self.current_size as usize / 2);
+    pub fn split_off(&mut self, at: usize) -> Vec<LeafKV> {
+        let new_array = self.array.split_off(at);
+        self.current_size -= new_array.len() as u32;
+        return new_array;
+    }
+
+    pub fn reverse_split_off(&mut self, at: usize) -> Vec<LeafKV> {
+        let mut new_array = Vec::new();
+        for _ in 0..=at {
+            new_array.push(self.array.remove(0));
+        }
         self.current_size -= new_array.len() as u32;
         return new_array;
     }
