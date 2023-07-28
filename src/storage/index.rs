@@ -162,6 +162,19 @@ impl BPlusTreeIndex {
     }
 
     pub fn delete(&mut self, key: &Tuple, rid: Rid) {
+        if self.is_empty() {
+            return;
+        }
+        let mut context = Context::new(self.root_page_id);
+        // 找到leaf page
+        let leaf_page_id = self.find_leaf_page(key, &mut context);
+        let page = self
+            .buffer_pool_manager
+            .fetch_page(leaf_page_id)
+            .expect("Leaf page can not be fetched");
+        let mut leaf_page =
+            BPlusTreeLeafPage::from_bytes(&page.data, &self.index_metadata.key_schema);
+
         unimplemented!()
     }
 

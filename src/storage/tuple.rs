@@ -32,6 +32,9 @@ impl Tuple {
             data,
         }
     }
+    pub fn is_zero(&self) -> bool {
+        self.data.iter().all(|&x| x == 0)
+    }
     pub fn to_bytes(&self) -> Vec<u8> {
         self.data.clone()
     }
