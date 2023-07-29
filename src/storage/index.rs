@@ -384,9 +384,13 @@ impl BPlusTreeIndex {
                     };
                     self.buffer_pool_manager
                         .write_page(left_sibling_page_id, left_sibling_tree_page.to_bytes());
-                    // 删除当前页，更新当前页为左兄弟页
+
+                    // 删除当前页
                     let deleted_page_id = curr_page_id;
+                    self.buffer_pool_manager.unpin_page(deleted_page_id, false);
                     self.buffer_pool_manager.delete_page(deleted_page_id);
+
+                    // 更新当前页为左兄弟页
                     curr_page_id = left_sibling_page_id;
                     curr_page = left_sibling_tree_page;
 
@@ -409,7 +413,7 @@ impl BPlusTreeIndex {
                         self.buffer_pool_manager.delete_page(parent_page_id);
                     } else {
                         parent_page.data = parent_internal_page.to_bytes();
-                        self.buffer_pool_manager.unpin_page(parent_page_id, true);
+                        self.buffer_pool_manager.unpin_page(curr_page_id, true);
                         curr_page = BPlusTreePage::Internal(parent_internal_page);
                         curr_page_id = parent_page_id;
                     }
@@ -456,8 +460,10 @@ impl BPlusTreeIndex {
                     };
                     self.buffer_pool_manager
                         .write_page(curr_page_id, curr_page.to_bytes());
+
                     // 删除右兄弟页
                     let deleted_page_id = right_sibling_page_id;
+                    self.buffer_pool_manager.unpin_page(deleted_page_id, false);
                     self.buffer_pool_manager.delete_page(deleted_page_id);
 
                     // 更新父节点
@@ -479,7 +485,7 @@ impl BPlusTreeIndex {
                         self.buffer_pool_manager.delete_page(parent_page_id);
                     } else {
                         parent_page.data = parent_internal_page.to_bytes();
-                        self.buffer_pool_manager.unpin_page(parent_page_id, true);
+                        self.buffer_pool_manager.unpin_page(curr_page_id, true);
                         curr_page = BPlusTreePage::Internal(parent_internal_page);
                         curr_page_id = parent_page_id;
                     }
@@ -559,7 +565,6 @@ impl BPlusTreeIndex {
                     // 释放上一页
                     self.buffer_pool_manager.unpin_page(curr_page_id, false);
                     // 查找下一页
-                    println!("curr_page_id: {}", curr_page_id);
                     let next_page_id = internal_page.look_up(key, &self.index_metadata.key_schema);
                     let next_page = self
                         .buffer_pool_manager
@@ -735,16 +740,16 @@ impl BPlusTreeIndex {
                 match curr_page {
                     BPlusTreePage::Internal(internal_page) => {
                         internal_page.print_page(page_id, &self.index_metadata.key_schema);
-                        println!("");
+                        println!();
                         next_queue.extend(internal_page.values());
                     }
                     BPlusTreePage::Leaf(leaf_page) => {
                         leaf_page.print_page(page_id, &self.index_metadata.key_schema);
-                        println!("");
+                        println!();
                     }
                 }
             }
-            println!("");
+            println!();
             level_index += 1;
             curr_queue = next_queue;
         }
@@ -823,6 +828,7 @@ mod tests {
         );
         assert_eq!(index.root_page_id, 0);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
+
         index.insert(&Tuple::new(vec![2, 2, 2]), Rid::new(2, 2));
         assert_eq!(
             index.get(&Tuple::new(vec![2, 2, 2])).unwrap(),
@@ -830,6 +836,7 @@ mod tests {
         );
         assert_eq!(index.root_page_id, 0);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
+
         index.insert(&Tuple::new(vec![3, 3, 3]), Rid::new(3, 3));
         assert_eq!(
             index.get(&Tuple::new(vec![3, 3, 3])).unwrap(),
@@ -837,6 +844,7 @@ mod tests {
         );
         assert_eq!(index.root_page_id, 2);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 3);
+
         index.insert(&Tuple::new(vec![4, 4, 4]), Rid::new(4, 4));
         assert_eq!(
             index.get(&Tuple::new(vec![4, 4, 4])).unwrap(),
@@ -844,6 +852,7 @@ mod tests {
         );
         assert_eq!(index.root_page_id, 2);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
+
         index.insert(&Tuple::new(vec![5, 5, 5]), Rid::new(5, 5));
         assert_eq!(
             index.get(&Tuple::new(vec![5, 5, 5])).unwrap(),
@@ -883,32 +892,64 @@ mod tests {
         index.insert(&Tuple::new(vec![8, 8, 8]), Rid::new(8, 8));
         index.insert(&Tuple::new(vec![9, 9, 9]), Rid::new(9, 9));
         index.insert(&Tuple::new(vec![10, 10, 10]), Rid::new(10, 10));
-
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 5);
+        assert_eq!(index.root_page_id, 2);
         index.print_tree();
 
         index.delete(&Tuple::new(vec![1, 1, 1]));
+        assert_eq!(index.root_page_id, 2);
         assert_eq!(index.get(&Tuple::new(vec![1, 1, 1])), None);
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
+
         index.delete(&Tuple::new(vec![3, 3, 3]));
+        assert_eq!(index.root_page_id, 2);
         assert_eq!(index.get(&Tuple::new(vec![3, 3, 3])), None);
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
+
         index.delete(&Tuple::new(vec![5, 5, 5]));
+        assert_eq!(index.root_page_id, 2);
         assert_eq!(index.get(&Tuple::new(vec![5, 5, 5])), None);
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
+
         index.delete(&Tuple::new(vec![7, 7, 7]));
+        assert_eq!(index.root_page_id, 2);
         assert_eq!(index.get(&Tuple::new(vec![7, 7, 7])), None);
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
+
         index.delete(&Tuple::new(vec![9, 9, 9]));
+        assert_eq!(index.root_page_id, 2);
         assert_eq!(index.get(&Tuple::new(vec![9, 9, 9])), None);
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 3);
+
         index.delete(&Tuple::new(vec![10, 10, 10]));
+        assert_eq!(index.root_page_id, 2);
         assert_eq!(index.get(&Tuple::new(vec![10, 10, 10])), None);
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 3);
+
         index.delete(&Tuple::new(vec![8, 8, 8]));
-        index.print_tree();
+        assert_eq!(index.root_page_id, 0);
         assert_eq!(index.get(&Tuple::new(vec![8, 8, 8])), None);
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
+
         index.delete(&Tuple::new(vec![6, 6, 6]));
+        assert_eq!(index.root_page_id, 0);
         assert_eq!(index.get(&Tuple::new(vec![6, 6, 6])), None);
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
+
         index.delete(&Tuple::new(vec![4, 4, 4]));
+        assert_eq!(index.root_page_id, 0);
         assert_eq!(index.get(&Tuple::new(vec![4, 4, 4])), None);
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
+
         index.delete(&Tuple::new(vec![2, 2, 2]));
+        assert_eq!(index.root_page_id, 0);
         assert_eq!(index.get(&Tuple::new(vec![2, 2, 2])), None);
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
+
         index.delete(&Tuple::new(vec![2, 2, 2]));
+        assert_eq!(index.root_page_id, 0);
         assert_eq!(index.get(&Tuple::new(vec![2, 2, 2])), None);
+        assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
         let _ = remove_file(db_path);
     }

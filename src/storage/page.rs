@@ -20,4 +20,10 @@ impl Page {
             is_dirty: false,
         }
     }
+    pub fn destroy(&mut self) {
+        self.page_id = 0;
+        self.data = [0; TINYSQL_PAGE_SIZE];
+        self.pin_count = 0;
+        self.is_dirty = false;
+    }
 }

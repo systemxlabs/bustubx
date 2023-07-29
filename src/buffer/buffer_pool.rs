@@ -174,14 +174,14 @@ impl BufferPoolManager {
             return true;
         }
         let frame_id = self.page_table[&page_id];
-        let page = &self.pool[frame_id as usize];
+        let page = &mut self.pool[frame_id as usize];
         if page.pin_count > 0 {
             // 页被固定，无法删除
             return false;
         }
 
         // 从缓冲池中删除
-        self.pool.remove(frame_id as usize);
+        page.destroy();
         self.page_table.remove(&page_id);
         self.free_list.push_back(frame_id);
         self.replacer.remove(frame_id);
@@ -253,16 +253,45 @@ mod tests {
         let disk_manager = DiskManager::new(db_path.to_string());
         let mut buffer_pool_manager = BufferPoolManager::new(3, disk_manager);
 
-        let page_id = buffer_pool_manager.new_page().unwrap();
-        let page_id = buffer_pool_manager.new_page().unwrap();
-        let page_id = buffer_pool_manager.new_page().unwrap();
+        let page = buffer_pool_manager.new_page().unwrap();
         buffer_pool_manager.unpin_page(0, true);
+        let page = buffer_pool_manager.new_page().unwrap();
         buffer_pool_manager.unpin_page(1, false);
-        let page_id = buffer_pool_manager.new_page();
+        let page = buffer_pool_manager.new_page().unwrap();
+        buffer_pool_manager.unpin_page(2, false);
 
         let page = buffer_pool_manager.fetch_page(0);
         assert!(page.is_some());
         assert_eq!(page.unwrap().page_id, 0);
+
+        let _ = remove_file(db_path);
+    }
+
+    #[test]
+    pub fn test_buffer_pool_manager_delete_page() {
+        let db_path = "./test_delete_page.db";
+        let _ = remove_file(db_path);
+
+        let disk_manager = DiskManager::new(db_path.to_string());
+        let mut buffer_pool_manager = BufferPoolManager::new(3, disk_manager);
+
+        let page_id = buffer_pool_manager.new_page().unwrap();
+        buffer_pool_manager.unpin_page(0, true);
+        let page_id = buffer_pool_manager.new_page().unwrap();
+        buffer_pool_manager.unpin_page(1, true);
+        let page_id = buffer_pool_manager.new_page().unwrap();
+        buffer_pool_manager.unpin_page(2, false);
+
+        let res = buffer_pool_manager.delete_page(0);
+        assert!(res);
+        assert_eq!(buffer_pool_manager.pool.len(), 3);
+        assert_eq!(buffer_pool_manager.free_list.len(), 1);
+        assert_eq!(buffer_pool_manager.replacer.size(), 2);
+        assert_eq!(buffer_pool_manager.page_table.len(), 2);
+
+        let page = buffer_pool_manager.fetch_page(1);
+        assert!(page.is_some());
+        assert_eq!(page.unwrap().page_id, 1);
 
         let _ = remove_file(db_path);
     }
