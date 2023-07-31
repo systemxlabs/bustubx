@@ -69,6 +69,7 @@ impl BPlusTreeIndex {
         leaf_max_size: u32,
         internal_max_size: u32,
     ) -> Self {
+        // TODO 计算页容量是否能存放下这么多的kv对
         Self {
             index_metadata,
             buffer_pool_manager,

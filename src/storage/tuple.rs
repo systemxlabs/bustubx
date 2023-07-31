@@ -1,4 +1,15 @@
-use crate::{catalog::schema::Schema, common::rid::Rid, dbtype::value::Value};
+use crate::{
+    catalog::schema::Schema,
+    common::{config::TransactionId, rid::Rid},
+    dbtype::value::Value,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TupleMeta {
+    pub insert_txn_id: TransactionId,
+    pub delete_txn_id: TransactionId,
+    pub is_deleted: bool,
+}
 
 #[derive(Debug, Clone)]
 pub struct Tuple {
