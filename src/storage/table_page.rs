@@ -31,8 +31,9 @@ pub struct TablePage {
     pub num_deleted_tuples: u16,
     // (offset, size, meta)
     pub tuple_info: Vec<(u16, u16, TupleMeta)>,
+    // 整个页原始数据
     // TODO 可以通过memmove、memcpy优化，参考bustub
-    pub data: Vec<u8>,
+    pub data: [u8; TINYSQL_PAGE_SIZE],
 }
 impl TablePage {
     pub fn new(next_page_id: PageId) -> Self {
@@ -41,7 +42,7 @@ impl TablePage {
             num_tuples: 0,
             num_deleted_tuples: 0,
             tuple_info: Vec::with_capacity(TINYSQL_PAGE_SIZE / TABLE_PAGE_TUPLE_INFO_SIZE),
-            data: vec![0; TINYSQL_PAGE_SIZE],
+            data: [0; TINYSQL_PAGE_SIZE],
         }
     }
 
@@ -52,6 +53,9 @@ impl TablePage {
         } else {
             TINYSQL_PAGE_SIZE as u16
         };
+        if slot_end_offset < tuple.data.len() as u16 {
+            return None;
+        }
         let tuple_offset = slot_end_offset - tuple.data.len() as u16;
         let min_tuple_offset = TABLE_PAGE_HEADER_SIZE as u16
             + (self.num_tuples as u16 + 1) * TABLE_PAGE_TUPLE_INFO_SIZE as u16;
@@ -164,12 +168,20 @@ impl TablePage {
             let is_deleted = if meta.is_deleted { 1u32 } else { 0u32 };
             bytes[offset + 12..offset + 16].copy_from_slice(&is_deleted.to_be_bytes());
         }
+        bytes[TABLE_PAGE_HEADER_SIZE + self.num_tuples as usize * TABLE_PAGE_TUPLE_INFO_SIZE..]
+            .copy_from_slice(
+                &self.data[TABLE_PAGE_HEADER_SIZE
+                    + self.num_tuples as usize * TABLE_PAGE_TUPLE_INFO_SIZE..],
+            );
         bytes
     }
 }
 
 mod tests {
-    use crate::{common::config::TINYSQL_PAGE_SIZE, storage::tuple::Tuple};
+    use crate::{
+        common::{config::TINYSQL_PAGE_SIZE, rid::Rid},
+        storage::tuple::Tuple,
+    };
 
     #[test]
     pub fn test_table_page_insert() {
@@ -260,9 +272,9 @@ mod tests {
             delete_txn_id: 0,
             is_deleted: false,
         };
-        let tuple_id = table_page.insert_tuple(&meta, &Tuple::new(vec![1, 1, 1]));
-        let tuple_id = table_page.insert_tuple(&meta, &Tuple::new(vec![2, 2, 2]));
-        let tuple_id = table_page.insert_tuple(&meta, &Tuple::new(vec![3, 3, 3]));
+        let tuple_id1 = table_page.insert_tuple(&meta, &Tuple::new(vec![1, 1, 1]));
+        let tuple_id2 = table_page.insert_tuple(&meta, &Tuple::new(vec![2, 2, 2]));
+        let tuple_id3 = table_page.insert_tuple(&meta, &Tuple::new(vec![3, 3, 3]));
 
         let bytes = table_page.to_bytes();
         let table_page2 = super::TablePage::from_bytes(&bytes);
@@ -285,5 +297,9 @@ mod tests {
         );
         assert_eq!(table_page2.tuple_info[2].1, 3);
         assert_eq!(table_page2.tuple_info[2].2, meta);
+
+        let (tuple_meta, tuple) = table_page2.get_tuple(&Rid::new(0, tuple_id2.unwrap() as u32));
+        assert_eq!(tuple_meta, meta);
+        assert_eq!(tuple.data, vec![2, 2, 2]);
     }
 }

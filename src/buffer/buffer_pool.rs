@@ -12,6 +12,7 @@ use super::replacer::LRUKReplacer;
 
 pub type FrameId = u32;
 
+#[derive(Debug)]
 pub struct BufferPoolManager {
     pool: Vec<Page>,
     // LRU-K置换算法

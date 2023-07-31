@@ -28,6 +28,7 @@ impl LRUKNode {
     }
 }
 
+#[derive(Debug)]
 pub struct LRUKReplacer {
     // 当前可置换的frame数
     current_size: usize,
