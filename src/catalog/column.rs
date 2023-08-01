@@ -1,3 +1,5 @@
+use sqlparser::ast::ColumnDef;
+
 // 列定义
 #[derive(Debug, Clone)]
 pub struct Column {
@@ -19,6 +21,12 @@ impl Column {
             variable_len,
             column_offset: 0,
         }
+    }
+
+    pub fn from_sqlparser_column(column_def: &ColumnDef) -> Self {
+        let column_name = column_def.name.to_string();
+        let column_type = DataType::from_sqlparser_data_type(&column_def.data_type);
+        Self::new(column_name, column_type, 0)
     }
 
     pub fn is_inlined(&self) -> bool {
@@ -49,6 +57,21 @@ impl DataType {
             // TODO 指针大小，暂时跟bustub保持一致
             DataType::Varchar => 12,
             DataType::Timestamp => 8,
+        }
+    }
+
+    pub fn from_sqlparser_data_type(data_type: &sqlparser::ast::DataType) -> Self {
+        match data_type {
+            sqlparser::ast::DataType::Boolean => DataType::Boolean,
+            sqlparser::ast::DataType::TinyInt(_) => DataType::TinyInt,
+            sqlparser::ast::DataType::SmallInt(_) => DataType::SmallInt,
+            sqlparser::ast::DataType::Int(_) => DataType::Integer,
+            sqlparser::ast::DataType::BigInt(_) => DataType::BigInt,
+            sqlparser::ast::DataType::Decimal { .. } => DataType::Decimal,
+            sqlparser::ast::DataType::Char(_) => DataType::Varchar,
+            sqlparser::ast::DataType::Varchar(_) => DataType::Varchar,
+            sqlparser::ast::DataType::Timestamp(_, _) => DataType::Timestamp,
+            _ => unimplemented!(),
         }
     }
 }
