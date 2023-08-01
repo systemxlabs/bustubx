@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    binder::{statement::BoundStatement, Binder},
+    binder::{statement::BoundStatement, Binder, BinderContext},
     buffer::buffer_pool::BufferPoolManager,
     catalog::{catalog::Catalog, schema::Schema},
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
@@ -31,8 +31,12 @@ impl Database {
             return;
         }
         let stmts = stmts.unwrap();
-        let mut binder = Binder {};
         for stmt in stmts {
+            let mut binder = Binder {
+                context: BinderContext {
+                    catalog: &self.catalog,
+                },
+            };
             let statement = binder.bind(&stmt);
             println!("{:?}", statement);
 

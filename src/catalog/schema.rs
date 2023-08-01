@@ -2,7 +2,7 @@ use super::column::Column;
 
 #[derive(Debug, Clone)]
 pub struct Schema {
-    columns: Vec<Column>,
+    pub columns: Vec<Column>,
 }
 impl Schema {
     pub fn new(mut columns: Vec<Column>) -> Self {
