@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use crate::{
     buffer::buffer_pool::BufferPoolManager,
     common::{config::INVALID_PAGE_ID, rid::Rid},
