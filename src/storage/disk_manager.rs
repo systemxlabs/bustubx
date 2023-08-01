@@ -14,7 +14,7 @@ pub struct DiskManager {
     pub db_path: String,
     pub db_file: UnsafeCell<std::fs::File>,
     pub next_page_id: AtomicU32,
-    db_io_latch: RwLock<()>,
+    db_io_latch: Mutex<()>,
 }
 impl DiskManager {
     pub fn new(db_path: String) -> Self {
@@ -34,13 +34,13 @@ impl DiskManager {
             db_path,
             db_file: UnsafeCell::new(db_file),
             next_page_id: AtomicU32::new(next_page_id),
-            db_io_latch: RwLock::new(()),
+            db_io_latch: Mutex::new(()),
         }
     }
 
     // 读取磁盘指定页的数据
     pub fn read_page(&self, page_id: PageId) -> [u8; TINYSQL_PAGE_SIZE] {
-        let lock = self.db_io_latch.read().unwrap();
+        let lock = self.db_io_latch.lock().unwrap();
         let mut buf = [0; TINYSQL_PAGE_SIZE];
         unsafe {
             (*self.db_file.get())
@@ -56,7 +56,7 @@ impl DiskManager {
 
     // 将数据写入磁盘指定页
     pub fn write_page(&self, page_id: PageId, data: &[u8]) {
-        let lock = self.db_io_latch.write().unwrap();
+        let lock = self.db_io_latch.lock().unwrap();
         unsafe {
             (*self.db_file.get())
                 .seek(std::io::SeekFrom::Start(
@@ -70,7 +70,7 @@ impl DiskManager {
 
     // TODO 使用bitmap管理
     pub fn allocate_page(&self) -> PageId {
-        let lock = self.db_io_latch.write().unwrap();
+        let lock = self.db_io_latch.lock().unwrap();
         let page_id = self.next_page_id.load(std::sync::atomic::Ordering::SeqCst);
         self.next_page_id
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -90,7 +90,7 @@ impl DiskManager {
 
     pub fn deallocate_page(&self, page_id: PageId) {
         // TODO 利用pageId或者释放的空间
-        let lock = self.db_io_latch.write().unwrap();
+        let lock = self.db_io_latch.lock().unwrap();
         unsafe {
             (*self.db_file.get())
                 .seek(std::io::SeekFrom::Start(
