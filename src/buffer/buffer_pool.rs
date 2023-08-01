@@ -22,7 +22,7 @@ pub struct BufferPoolManager {
     pool: Vec<Page>,
     // LRU-K置换算法
     pub replacer: LRUKReplacer,
-    disk_manager: Arc<DiskManager>,
+    pub disk_manager: Arc<DiskManager>,
     // 缓冲池中的页号与frame号的映射
     page_table: HashMap<PageId, FrameId>,
     // 缓冲池中空闲的frame
