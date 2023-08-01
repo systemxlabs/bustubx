@@ -1,4 +1,9 @@
-use std::collections::{HashMap, VecDeque};
+use std::{
+    borrow::BorrowMut,
+    cell::RefCell,
+    collections::{HashMap, VecDeque},
+    sync::Arc,
+};
 
 use crate::{
     common::config::TINYSQL_PAGE_SIZE,
@@ -17,7 +22,7 @@ pub struct BufferPoolManager {
     pool: Vec<Page>,
     // LRU-K置换算法
     pub replacer: LRUKReplacer,
-    disk_manager: DiskManager,
+    disk_manager: Arc<DiskManager>,
     // 缓冲池中的页号与frame号的映射
     page_table: HashMap<PageId, FrameId>,
     // 缓冲池中空闲的frame
@@ -26,7 +31,7 @@ pub struct BufferPoolManager {
     num_pages: usize,
 }
 impl BufferPoolManager {
-    pub fn new(num_pages: usize, disk_manager: DiskManager) -> Self {
+    pub fn new(num_pages: usize, disk_manager: Arc<DiskManager>) -> Self {
         let mut free_list = VecDeque::with_capacity(num_pages);
         for i in 0..num_pages {
             free_list.push_back(i as FrameId);
@@ -195,7 +200,7 @@ impl BufferPoolManager {
 
 mod tests {
     use crate::{buffer::buffer_pool::BufferPoolManager, storage::disk_manager::DiskManager};
-    use std::fs::remove_file;
+    use std::{fs::remove_file, sync::Arc};
 
     #[test]
     pub fn test_buffer_pool_manager_new_page() {
@@ -203,7 +208,7 @@ mod tests {
         let _ = remove_file(db_path);
 
         let disk_manager = DiskManager::new(db_path.to_string());
-        let mut buffer_pool_manager = BufferPoolManager::new(3, disk_manager);
+        let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
         let page = buffer_pool_manager.new_page().unwrap().clone();
         assert_eq!(page.page_id, 0);
         assert_eq!(buffer_pool_manager.pool[0].page_id, page.page_id);
@@ -231,7 +236,7 @@ mod tests {
         let _ = remove_file(db_path);
 
         let disk_manager = DiskManager::new(db_path.to_string());
-        let mut buffer_pool_manager = BufferPoolManager::new(3, disk_manager);
+        let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page = buffer_pool_manager.new_page().unwrap();
         let page = buffer_pool_manager.new_page().unwrap();
@@ -252,7 +257,7 @@ mod tests {
         let _ = remove_file(db_path);
 
         let disk_manager = DiskManager::new(db_path.to_string());
-        let mut buffer_pool_manager = BufferPoolManager::new(3, disk_manager);
+        let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page = buffer_pool_manager.new_page().unwrap();
         buffer_pool_manager.unpin_page(0, true);
@@ -274,7 +279,7 @@ mod tests {
         let _ = remove_file(db_path);
 
         let disk_manager = DiskManager::new(db_path.to_string());
-        let mut buffer_pool_manager = BufferPoolManager::new(3, disk_manager);
+        let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page_id = buffer_pool_manager.new_page().unwrap();
         buffer_pool_manager.unpin_page(0, true);

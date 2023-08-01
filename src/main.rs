@@ -2,10 +2,10 @@ mod binder;
 mod buffer;
 mod catalog;
 mod common;
-mod execution;
 mod dbtype;
-mod storage;
+mod execution;
 mod planner;
+mod storage;
 
 fn main() {
     println!("Hello, world!");

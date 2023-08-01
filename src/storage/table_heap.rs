@@ -113,7 +113,7 @@ impl TableHeap {
 }
 
 mod tests {
-    use std::fs::remove_file;
+    use std::{fs::remove_file, sync::Arc};
 
     use crate::{
         buffer::buffer_pool::BufferPoolManager,
@@ -126,7 +126,7 @@ mod tests {
         let _ = remove_file(db_path);
 
         let disk_manager = disk_manager::DiskManager::new(db_path.to_string());
-        let buffer_pool_manager = BufferPoolManager::new(10, disk_manager);
+        let buffer_pool_manager = BufferPoolManager::new(10, Arc::new(disk_manager));
         let table_heap = TableHeap::new(buffer_pool_manager);
         assert_eq!(table_heap.first_page_id, 0);
         assert_eq!(table_heap.last_page_id, 0);
@@ -141,7 +141,7 @@ mod tests {
         let _ = remove_file(db_path);
 
         let disk_manager = disk_manager::DiskManager::new(db_path.to_string());
-        let buffer_pool_manager = BufferPoolManager::new(1000, disk_manager);
+        let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::new(buffer_pool_manager);
         let meta = super::TupleMeta {
             insert_txn_id: 0,
@@ -173,7 +173,7 @@ mod tests {
         let _ = remove_file(db_path);
 
         let disk_manager = disk_manager::DiskManager::new(db_path.to_string());
-        let buffer_pool_manager = BufferPoolManager::new(1000, disk_manager);
+        let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::new(buffer_pool_manager);
         let meta = super::TupleMeta {
             insert_txn_id: 0,
@@ -212,7 +212,7 @@ mod tests {
         let _ = remove_file(db_path);
 
         let disk_manager = disk_manager::DiskManager::new(db_path.to_string());
-        let buffer_pool_manager = BufferPoolManager::new(1000, disk_manager);
+        let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::new(buffer_pool_manager);
 
         let meta1 = super::TupleMeta {

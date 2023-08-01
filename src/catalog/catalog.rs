@@ -1,6 +1,9 @@
 use std::{
     collections::HashMap,
-    sync::{atomic::{AtomicPtr, AtomicU32}, Arc, Mutex},
+    sync::{
+        atomic::{AtomicPtr, AtomicU32},
+        Arc, Mutex,
+    },
 };
 
 use crate::{

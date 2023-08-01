@@ -758,7 +758,7 @@ impl BPlusTreeIndex {
 }
 
 mod tests {
-    use std::fs::remove_file;
+    use std::{fs::remove_file, sync::Arc};
 
     use crate::{
         buffer::buffer_pool,
@@ -819,7 +819,7 @@ mod tests {
             vec![0, 1],
         );
         let disk_manager = disk_manager::DiskManager::new(db_path.to_string());
-        let buffer_pool_manager = buffer_pool::BufferPoolManager::new(1000, disk_manager);
+        let buffer_pool_manager = buffer_pool::BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 2, 3);
 
         index.insert(&Tuple::new(vec![1, 1, 1]), Rid::new(1, 1));
@@ -880,7 +880,7 @@ mod tests {
             vec![0, 1],
         );
         let disk_manager = disk_manager::DiskManager::new(db_path.to_string());
-        let buffer_pool_manager = buffer_pool::BufferPoolManager::new(1000, disk_manager);
+        let buffer_pool_manager = buffer_pool::BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 4, 5);
 
         index.insert(&Tuple::new(vec![1, 1, 1]), Rid::new(1, 1));
