@@ -5,6 +5,8 @@ use crate::{
     buffer::buffer_pool::BufferPoolManager,
     catalog::{catalog::Catalog, schema::Schema},
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
+    optimizer::Optimizer,
+    planner::Planner,
     storage::disk_manager::DiskManager,
 };
 
@@ -25,6 +27,7 @@ impl Database {
     }
 
     pub fn run(&mut self, sql: &String) {
+        // sql -> ast
         let stmts = crate::parser::parse_sql(sql);
         if stmts.is_err() {
             println!("parse sql error");
@@ -37,6 +40,7 @@ impl Database {
                     catalog: &self.catalog,
                 },
             };
+            // ast -> statement
             let statement = binder.bind(&stmt);
             println!("{:?}", statement);
 
@@ -49,6 +53,16 @@ impl Database {
                 }
                 _ => {}
             }
+
+            // statement -> logical plan
+            let mut planner = Planner {};
+            let logical_plan = planner.plan(statement);
+            println!("{:?}", logical_plan);
+
+            // logical plan -> physical plan
+            let mut optimizer = Optimizer::new(Arc::new(logical_plan));
+            let physical_plan = optimizer.find_best();
+            println!("{:?}", physical_plan);
         }
     }
 }

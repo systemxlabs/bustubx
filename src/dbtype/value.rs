@@ -2,7 +2,7 @@ use crate::catalog::column::DataType;
 
 use super::{boolean::Boolean, integer::Integer, smallint::SmallInt, tinyint::TinyInt};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Value {
     Boolean(Boolean),
     TinyInt(TinyInt),

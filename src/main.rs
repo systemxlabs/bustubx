@@ -9,6 +9,7 @@ mod common;
 mod database;
 mod dbtype;
 mod execution;
+mod optimizer;
 mod parser;
 mod planner;
 mod storage;
