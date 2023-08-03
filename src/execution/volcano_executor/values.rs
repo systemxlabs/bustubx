@@ -1,25 +1,40 @@
-use crate::{catalog::column::Column, dbtype::value::Value, storage::tuple::Tuple};
+use std::sync::{atomic::AtomicUsize, Arc, Mutex};
+
+use crate::{
+    execution::execution_plan::ExecutionPlan,
+    optimizer::{operator::PhysicalOperator, physical_plan::PhysicalPlan},
+    storage::tuple::Tuple,
+};
 
 use super::VolcanoExecutor;
 
-pub struct ValuesExecutor {
-    cursor: usize,
-    columns: Vec<Column>,
-    tuples: Vec<Vec<Value>>,
+#[derive(Debug)]
+pub struct VolcanValuesExecutor {
+    cursor: Mutex<usize>,
 }
-impl VolcanoExecutor for ValuesExecutor {
-    fn init(&mut self) {
-        self.cursor = 0;
+impl VolcanValuesExecutor {
+    pub fn new() -> Self {
+        Self {
+            cursor: Mutex::new(0),
+        }
     }
-    fn next(&mut self) -> Option<Tuple> {
-        if self.cursor < self.tuples.len() {
-            let tuple = self.tuples[self.cursor].clone();
-            self.cursor += 1;
-            // Some(tuple)
-            // TODO 构建tuple
-            unimplemented!()
+}
+impl VolcanoExecutor for VolcanValuesExecutor {
+    fn init(&mut self) {
+        self.cursor = Mutex::new(0);
+    }
+    fn next(&self, op: Arc<PhysicalOperator>, _children: Vec<Arc<ExecutionPlan>>) -> Option<Tuple> {
+        if let PhysicalOperator::Values(op) = op.as_ref() {
+            let mut cursor = self.cursor.lock().unwrap();
+            if *cursor < op.tuples.len() {
+                let values = op.tuples[*cursor].clone();
+                *cursor += 1;
+                Some(Tuple::from_values(values))
+            } else {
+                None
+            }
         } else {
-            None
+            panic!("not values operator")
         }
     }
 }

@@ -11,7 +11,7 @@ use super::operator::{
 
 #[derive(Debug)]
 pub struct PhysicalPlan {
-    pub operator: PhysicalOperator,
+    pub operator: Arc<PhysicalOperator>,
     pub children: Vec<Arc<PhysicalPlan>>,
 }
 impl PhysicalPlan {
@@ -20,25 +20,25 @@ impl PhysicalPlan {
     }
     pub fn dummy() -> Self {
         Self {
-            operator: PhysicalOperator::Dummy,
+            operator: Arc::new(PhysicalOperator::Dummy),
             children: Vec::new(),
         }
     }
     pub fn new_insert_node(table_name: &String, columns: &Vec<Column>) -> Self {
         Self {
-            operator: PhysicalOperator::Insert(PhysicalInsertOperator::new(
+            operator: Arc::new(PhysicalOperator::Insert(PhysicalInsertOperator::new(
                 table_name.clone(),
                 columns.clone(),
-            )),
+            ))),
             children: Vec::new(),
         }
     }
     pub fn new_values_node(columns: &Vec<Column>, tuples: &Vec<Vec<Value>>) -> Self {
         Self {
-            operator: PhysicalOperator::Values(PhysicalValuesOperator::new(
+            operator: Arc::new(PhysicalOperator::Values(PhysicalValuesOperator::new(
                 columns.clone(),
                 tuples.clone(),
-            )),
+            ))),
             children: Vec::new(),
         }
     }

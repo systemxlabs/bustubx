@@ -18,6 +18,15 @@ impl Value {
         }
     }
 
+    pub fn to_bytes(&self) -> Vec<u8> {
+        match self {
+            Self::Boolean(v) => v.to_bytes(),
+            Self::TinyInt(v) => v.value.to_be_bytes().to_vec(),
+            Self::SmallInt(v) => v.value.to_be_bytes().to_vec(),
+            Self::Integer(v) => v.value.to_be_bytes().to_vec(),
+        }
+    }
+
     pub fn from_sqlparser_value(value: &sqlparser::ast::Value, data_type: DataType) -> Self {
         match value {
             sqlparser::ast::Value::Number(v, _) => match data_type {

@@ -5,6 +5,7 @@ use crate::{
     buffer::buffer_pool::BufferPoolManager,
     catalog::{catalog::Catalog, schema::Schema},
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
+    execution::ExecutionEngine,
     optimizer::Optimizer,
     planner::Planner,
     storage::disk_manager::DiskManager,
@@ -63,6 +64,11 @@ impl Database {
             let mut optimizer = Optimizer::new(Arc::new(logical_plan));
             let physical_plan = optimizer.find_best();
             println!("{:?}", physical_plan);
+
+            let mut execution_engine = ExecutionEngine {};
+            let execution_plan = execution_engine.plan(Arc::new(physical_plan));
+            println!("{:?}", execution_plan);
+            execution_engine.execute(execution_plan);
         }
     }
 }
