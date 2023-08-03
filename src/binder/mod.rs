@@ -18,7 +18,9 @@ use self::{
     table_ref::{base_table::BoundBaseTableRef, BoundTableRef},
 };
 
+pub mod bind_create_table;
 pub mod bind_insert;
+pub mod bind_select;
 pub mod expression;
 pub mod statement;
 pub mod table_ref;
@@ -34,7 +36,7 @@ impl<'a> Binder<'a> {
     pub fn bind(&mut self, stmt: &Statement) -> BoundStatement {
         match stmt {
             Statement::CreateTable { name, columns, .. } => {
-                BoundStatement::CreateTable(CreateTableStatement::bind(name, columns))
+                BoundStatement::CreateTable(self.bind_create_table(name, columns))
             }
             // Statement::Query(query) => BoundStatement::Select(self.bind_select()),
             Statement::Insert {
@@ -45,10 +47,6 @@ impl<'a> Binder<'a> {
             } => BoundStatement::Insert(self.bind_insert(table_name, columns, source)),
             _ => unimplemented!(),
         }
-    }
-
-    pub fn bind_select() -> SelectStatement {
-        unimplemented!()
     }
 
     pub fn bind_expression(&self, expr: &Expr) -> BoundExpression {
