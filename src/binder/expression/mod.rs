@@ -1,5 +1,9 @@
-use self::{binary_op::BoundBinaryOp, column_ref::BoundColumnRef, constant::BoundConstant};
+use self::{
+    alias::BoundAlias, binary_op::BoundBinaryOp, column_ref::BoundColumnRef,
+    constant::BoundConstant,
+};
 
+pub mod alias;
 pub mod binary_op;
 pub mod column_ref;
 pub mod constant;
@@ -10,4 +14,5 @@ pub enum BoundExpression {
     Constant(BoundConstant),
     ColumnRef(BoundColumnRef),
     BinaryOp(BoundBinaryOp),
+    Alias(BoundAlias),
 }

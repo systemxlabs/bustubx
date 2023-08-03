@@ -11,6 +11,9 @@ use super::schema::Schema;
 pub type TableOid = u32;
 pub type IndexOid = u32;
 
+pub static DEFAULT_DATABASE_NAME: &str = "tinysql";
+pub static DEFAULT_SCHEMA_NAME: &str = "tinysql";
+
 // table元信息
 #[derive(Debug)]
 pub struct TableInfo {

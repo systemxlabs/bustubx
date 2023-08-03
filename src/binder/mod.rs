@@ -1,8 +1,14 @@
-use sqlparser::ast::{Expr, Ident, ObjectName, Query, SetExpr, Statement};
+use sqlparser::ast::{Expr, Ident, ObjectName, Query, SetExpr, Statement, TableFactor};
 
 use crate::{
-    binder::expression::binary_op::{BinaryOperator, BoundBinaryOp},
-    catalog::{catalog::Catalog, column::Column},
+    binder::expression::{
+        binary_op::{BinaryOperator, BoundBinaryOp},
+        column_ref::BoundColumnRef,
+    },
+    catalog::{
+        catalog::{Catalog, DEFAULT_DATABASE_NAME, DEFAULT_SCHEMA_NAME},
+        column::Column,
+    },
     dbtype::value::Value,
 };
 
@@ -38,7 +44,7 @@ impl<'a> Binder<'a> {
             Statement::CreateTable { name, columns, .. } => {
                 BoundStatement::CreateTable(self.bind_create_table(name, columns))
             }
-            // Statement::Query(query) => BoundStatement::Select(self.bind_select()),
+            Statement::Query(query) => BoundStatement::Select(self.bind_select(query)),
             Statement::Insert {
                 table_name,
                 columns,
@@ -60,10 +66,50 @@ impl<'a> Binder<'a> {
             Expr::Value(value) => BoundExpression::Constant(BoundConstant {
                 value: Constant::from_sqlparser_value(value),
             }),
+            Expr::Identifier(ident) => BoundExpression::ColumnRef(BoundColumnRef {
+                col_names: vec![ident.value.clone()],
+            }),
             _ => unimplemented!(),
         }
     }
-    pub fn bind_table_ref(&self, table_ref: &sqlparser::ast::TableFactor) -> BoundTableRef {
-        unimplemented!()
+    pub fn bind_table_ref(&self, table: &TableFactor) -> BoundTableRef {
+        match table {
+            TableFactor::Table { name, alias, .. } => {
+                let (_database, _schema, table) = match name.0.as_slice() {
+                    [table] => (
+                        DEFAULT_DATABASE_NAME,
+                        DEFAULT_SCHEMA_NAME,
+                        table.value.as_str(),
+                    ),
+                    [schema, table] => (
+                        DEFAULT_DATABASE_NAME,
+                        schema.value.as_str(),
+                        table.value.as_str(),
+                    ),
+                    [db, schema, table] => (
+                        db.value.as_str(),
+                        schema.value.as_str(),
+                        table.value.as_str(),
+                    ),
+                    _ => unimplemented!(),
+                };
+
+                let table_info = self.context.catalog.get_table_by_name(table);
+                if table_info.is_none() {
+                    panic!("Table {} not found", table);
+                }
+                let table_info = table_info.unwrap();
+
+                let alias = alias.as_ref().map(|a| a.name.value.clone());
+
+                BoundTableRef::BaseTable(BoundBaseTableRef {
+                    table: table.to_string(),
+                    oid: table_info.oid,
+                    alias,
+                    schema: table_info.schema.clone(),
+                })
+            }
+            _ => unimplemented!(),
+        }
     }
 }
