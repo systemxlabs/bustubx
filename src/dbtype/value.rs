@@ -4,6 +4,7 @@ use super::{boolean::Boolean, integer::Integer, smallint::SmallInt, tinyint::Tin
 
 #[derive(Debug, Clone)]
 pub enum Value {
+    // TODO 没必要用struct
     Boolean(Boolean),
     TinyInt(TinyInt),
     SmallInt(SmallInt),

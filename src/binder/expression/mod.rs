@@ -1,9 +1,13 @@
-use self::column_ref::BoundColumnRef;
+use self::{binary_op::BoundBinaryOp, column_ref::BoundColumnRef, constant::BoundConstant};
 
+pub mod binary_op;
 pub mod column_ref;
+pub mod constant;
 
 #[derive(Debug)]
 pub enum BoundExpression {
     Invalid,
+    Constant(BoundConstant),
     ColumnRef(BoundColumnRef),
+    BinaryOp(BoundBinaryOp),
 }
