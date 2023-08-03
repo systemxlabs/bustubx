@@ -1,45 +1,11 @@
 use std::sync::Arc;
 
-use crate::{
-    catalog::column::Column,
-    dbtype::value::Value,
-    planner::{operator::LogicalOperator, LogicalPlan},
-};
+use crate::planner::{logical_plan::LogicalPlan, operator::LogicalOperator};
 
-use self::operator::{
-    insert::PhysicalInsertOperator, values::PhysicalValuesOperator, PhysicalOperator,
-};
+use self::physical_plan::PhysicalPlan;
 
 pub mod operator;
-
-#[derive(Debug)]
-pub struct PhysicalPlan {
-    pub operator: PhysicalOperator,
-    pub children: Vec<Arc<PhysicalPlan>>,
-}
-impl PhysicalPlan {
-    pub fn dummy() -> Self {
-        Self {
-            operator: PhysicalOperator::Dummy,
-            children: Vec::new(),
-        }
-    }
-    pub fn new_insert_node(table_name: &String) -> Self {
-        Self {
-            operator: PhysicalOperator::Insert(PhysicalInsertOperator::new(table_name.clone())),
-            children: Vec::new(),
-        }
-    }
-    pub fn new_values_node(columns: &Vec<Column>, tuples: &Vec<Vec<Value>>) -> Self {
-        Self {
-            operator: PhysicalOperator::Values(PhysicalValuesOperator::new(
-                columns.clone(),
-                tuples.clone(),
-            )),
-            children: Vec::new(),
-        }
-    }
-}
+pub mod physical_plan;
 
 pub struct Optimizer {
     logical_plan: Arc<LogicalPlan>,
@@ -76,7 +42,7 @@ impl Optimizer {
         match logical_node.operator {
             LogicalOperator::Dummy => PhysicalPlan::dummy(),
             LogicalOperator::Insert(ref logic_insert) => {
-                PhysicalPlan::new_insert_node(&logic_insert.table_name)
+                PhysicalPlan::new_insert_node(&logic_insert.table_name, &logic_insert.columns)
             }
             LogicalOperator::Values(ref logical_values) => {
                 PhysicalPlan::new_values_node(&logical_values.columns, &logical_values.tuples)

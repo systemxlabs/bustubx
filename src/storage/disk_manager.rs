@@ -86,6 +86,3 @@ impl DiskManager {
         guard.db_file.write_all(data).unwrap();
     }
 }
-
-unsafe impl Send for DiskManager {}
-unsafe impl Sync for DiskManager {}
