@@ -1,12 +1,16 @@
 use std::sync::Arc;
 
 use crate::{
-    catalog::{column::Column, schema::Schema},
+    catalog::{
+        column::Column,
+        schema::{self, Schema},
+    },
     dbtype::value::Value,
 };
 
 use super::operator::{
-    insert::PhysicalInsertOperator, values::PhysicalValuesOperator, PhysicalOperator,
+    create_table::PhysicalCreateTableOperator, insert::PhysicalInsertOperator,
+    values::PhysicalValuesOperator, PhysicalOperator,
 };
 
 #[derive(Debug)]
@@ -21,6 +25,14 @@ impl PhysicalPlan {
     pub fn dummy() -> Self {
         Self {
             operator: Arc::new(PhysicalOperator::Dummy),
+            children: Vec::new(),
+        }
+    }
+    pub fn new_create_table_node(table_name: &String, schema: &Schema) -> Self {
+        Self {
+            operator: Arc::new(PhysicalOperator::CreateTable(
+                PhysicalCreateTableOperator::new(table_name.clone(), schema.clone()),
+            )),
             children: Vec::new(),
         }
     }

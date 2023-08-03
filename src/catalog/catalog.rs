@@ -82,6 +82,11 @@ impl Catalog {
             .get(table_name)
             .and_then(|oid| self.tables.get(oid))
     }
+    pub fn get_mut_table_by_name(&mut self, table_name: &str) -> Option<&mut TableInfo> {
+        self.table_names
+            .get(table_name)
+            .and_then(|oid| self.tables.get_mut(oid))
+    }
 
     pub fn get_table_by_oid(&self, oid: TableOid) -> Option<&TableInfo> {
         self.tables.get(&oid)

@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::binder::statement::BoundStatement;
+use crate::{
+    binder::statement::BoundStatement,
+    catalog::schema::{self, Schema},
+};
 
 use self::{logical_plan::LogicalPlan, operator::LogicalOperator};
 
@@ -23,6 +26,13 @@ impl Planner {
                 LogicalPlan {
                     operator: LogicalOperator::new_insert_operator(stmt.table.table, stmt.columns),
                     children: vec![Arc::new(values_node)],
+                }
+            }
+            BoundStatement::CreateTable(stmt) => {
+                let schema = Schema::new(stmt.columns);
+                LogicalPlan {
+                    operator: LogicalOperator::new_create_table_operator(stmt.table_name, schema),
+                    children: Vec::new(),
                 }
             }
             _ => unimplemented!(),

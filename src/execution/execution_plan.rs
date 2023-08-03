@@ -2,13 +2,18 @@ use std::sync::Arc;
 
 use crate::{optimizer::operator::PhysicalOperator, storage::tuple::Tuple};
 
-use super::volcano_executor::{
-    insert::VolcanoInsertExecutor, values::VolcanValuesExecutor, VolcanoExecutor,
+use super::{
+    volcano_executor::{
+        create_table::VolcanoCreateTableExecutor, insert::VolcanoInsertExecutor,
+        values::VolcanValuesExecutor, VolcanoExecutor,
+    },
+    ExecutionContext,
 };
 
 #[derive(Debug)]
 pub enum Executor {
     Dummy,
+    VolcanoCreateTable(VolcanoCreateTableExecutor),
     VolcanoInsert(VolcanoInsertExecutor),
     VolcanoValues(VolcanValuesExecutor),
 }
@@ -27,6 +32,13 @@ impl ExecutionPlan {
             children: Vec::new(),
         }
     }
+    pub fn new_create_table_node(operator: Arc<PhysicalOperator>) -> Self {
+        Self {
+            executor: Executor::VolcanoCreateTable(VolcanoCreateTableExecutor {}),
+            operator,
+            children: Vec::new(),
+        }
+    }
     pub fn new_insert_node(operator: Arc<PhysicalOperator>) -> Self {
         Self {
             executor: Executor::VolcanoInsert(VolcanoInsertExecutor {}),
@@ -41,14 +53,17 @@ impl ExecutionPlan {
             children: Vec::new(),
         }
     }
-    pub fn next(&self) -> Option<Tuple> {
+    pub fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
         match self.executor {
             Executor::Dummy => None,
+            Executor::VolcanoCreateTable(ref executor) => {
+                executor.next(context, self.operator.clone(), self.children.clone())
+            }
             Executor::VolcanoInsert(ref executor) => {
-                executor.next(self.operator.clone(), self.children.clone())
+                executor.next(context, self.operator.clone(), self.children.clone())
             }
             Executor::VolcanoValues(ref executor) => {
-                executor.next(self.operator.clone(), self.children.clone())
+                executor.next(context, self.operator.clone(), self.children.clone())
             }
         }
     }

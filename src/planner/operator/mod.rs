@@ -1,20 +1,24 @@
 use crate::{
-    catalog::{column::Column, schema::Schema},
+    catalog::{
+        column::Column,
+        schema::{self, Schema},
+    },
     dbtype::value::Value,
 };
 
-use self::{insert::LogicalInsertOperator, values::LogicalValuesOperator};
+use self::{
+    create_table::LogicalCreateTableOperator, insert::LogicalInsertOperator,
+    values::LogicalValuesOperator,
+};
 
+pub mod create_table;
 pub mod insert;
 pub mod values;
-
-pub trait LogicalPlanNode {
-    fn output_schema(&self) -> &Schema;
-}
 
 #[derive(Debug)]
 pub enum LogicalOperator {
     Dummy,
+    CreateTable(LogicalCreateTableOperator),
     // Aggregate(AggregateOperator),
     // Filter(FilterOperator),
     // Join(JoinOperator),
@@ -26,6 +30,9 @@ pub enum LogicalOperator {
     Values(LogicalValuesOperator),
 }
 impl LogicalOperator {
+    pub fn new_create_table_operator(table_name: String, schema: Schema) -> LogicalOperator {
+        LogicalOperator::CreateTable(LogicalCreateTableOperator::new(table_name, schema))
+    }
     pub fn new_insert_operator(table_name: String, columns: Vec<Column>) -> LogicalOperator {
         LogicalOperator::Insert(LogicalInsertOperator::new(table_name, columns))
     }
@@ -35,13 +42,7 @@ impl LogicalOperator {
     pub fn output_schema(&self) -> Schema {
         match self {
             LogicalOperator::Dummy => Schema::new(vec![]),
-            // LogicalOperator::Aggregate(op) => op.output_schema(),
-            // LogicalOperator::Filter(op) => op.output_schema(),
-            // LogicalOperator::Join(op) => op.output_schema(),
-            // LogicalOperator::Project(op) => op.output_schema(),
-            // LogicalOperator::Scan(op) => op.output_schema(),
-            // LogicalOperator::Sort(op) => op.output_schema(),
-            // LogicalOperator::Limit(op) => op.output_schema(),
+            LogicalOperator::CreateTable(op) => op.output_schema(),
             LogicalOperator::Insert(op) => op.output_schema(),
             LogicalOperator::Values(op) => op.output_schema(),
         }

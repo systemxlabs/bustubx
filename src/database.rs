@@ -5,7 +5,7 @@ use crate::{
     buffer::buffer_pool::BufferPoolManager,
     catalog::{catalog::Catalog, schema::Schema},
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
-    execution::ExecutionEngine,
+    execution::{ExecutionContext, ExecutionEngine},
     optimizer::Optimizer,
     planner::Planner,
     storage::disk_manager::DiskManager,
@@ -45,16 +45,6 @@ impl Database {
             let statement = binder.bind(&stmt);
             println!("{:?}", statement);
 
-            match statement {
-                BoundStatement::CreateTable(create_table) => {
-                    let schema = Schema::new(create_table.columns);
-                    let table_info = self.catalog.create_table(create_table.table_name, schema);
-                    println!("{:?}", table_info);
-                    continue;
-                }
-                _ => {}
-            }
-
             // statement -> logical plan
             let mut planner = Planner {};
             let logical_plan = planner.plan(statement);
@@ -65,7 +55,10 @@ impl Database {
             let physical_plan = optimizer.find_best();
             println!("{:?}", physical_plan);
 
-            let mut execution_engine = ExecutionEngine {};
+            let execution_ctx = ExecutionContext::new(&mut self.catalog);
+            let mut execution_engine = ExecutionEngine {
+                context: execution_ctx,
+            };
             let execution_plan = execution_engine.plan(Arc::new(physical_plan));
             println!("{:?}", execution_plan);
             execution_engine.execute(execution_plan);

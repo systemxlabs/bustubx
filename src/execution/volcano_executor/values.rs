@@ -1,7 +1,7 @@
 use std::sync::{atomic::AtomicUsize, Arc, Mutex};
 
 use crate::{
-    execution::execution_plan::ExecutionPlan,
+    execution::{execution_plan::ExecutionPlan, ExecutionContext},
     optimizer::{operator::PhysicalOperator, physical_plan::PhysicalPlan},
     storage::tuple::Tuple,
 };
@@ -23,7 +23,12 @@ impl VolcanoExecutor for VolcanValuesExecutor {
     fn init(&mut self) {
         self.cursor = Mutex::new(0);
     }
-    fn next(&self, op: Arc<PhysicalOperator>, _children: Vec<Arc<ExecutionPlan>>) -> Option<Tuple> {
+    fn next(
+        &self,
+        context: &mut ExecutionContext,
+        op: Arc<PhysicalOperator>,
+        _children: Vec<Arc<ExecutionPlan>>,
+    ) -> Option<Tuple> {
         if let PhysicalOperator::Values(op) = op.as_ref() {
             let mut cursor = self.cursor.lock().unwrap();
             if *cursor < op.tuples.len() {

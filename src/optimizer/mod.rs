@@ -41,6 +41,12 @@ impl Optimizer {
     fn build_physical_node(logical_node: Arc<LogicalPlan>) -> PhysicalPlan {
         match logical_node.operator {
             LogicalOperator::Dummy => PhysicalPlan::dummy(),
+            LogicalOperator::CreateTable(ref logic_create_table) => {
+                PhysicalPlan::new_create_table_node(
+                    &logic_create_table.table_name,
+                    &logic_create_table.schema,
+                )
+            }
             LogicalOperator::Insert(ref logic_insert) => {
                 PhysicalPlan::new_insert_node(&logic_insert.table_name, &logic_insert.columns)
             }
