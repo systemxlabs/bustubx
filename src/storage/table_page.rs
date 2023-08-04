@@ -112,6 +112,15 @@ impl TablePage {
         return self.tuple_info[tuple_id as usize].2.clone();
     }
 
+    pub fn get_next_rid(&self, rid: &Rid) -> Option<Rid> {
+        // TODO 忽略删除的tuple
+        let tuple_id = rid.slot_num;
+        if tuple_id + 1 >= self.num_tuples as u32 {
+            return None;
+        }
+        return Some(Rid::new(rid.page_id, tuple_id + 1));
+    }
+
     pub fn from_bytes(data: &[u8]) -> Self {
         let next_page_id = u32::from_be_bytes([data[0], data[1], data[2], data[3]]);
         let mut table_page = Self::new(next_page_id);

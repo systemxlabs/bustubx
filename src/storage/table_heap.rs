@@ -110,6 +110,77 @@ impl TableHeap {
         self.buffer_pool_manager.unpin_page(rid.page_id, false);
         result
     }
+
+    pub fn get_first_rid(&mut self) -> Option<Rid> {
+        let page = self
+            .buffer_pool_manager
+            .fetch_page(self.first_page_id)
+            .expect("Can not fetch page");
+        let table_page = TablePage::from_bytes(&page.data);
+        self.buffer_pool_manager.unpin_page(self.first_page_id, false);
+        if table_page.num_tuples == 0 {
+            // TODO 忽略删除的tuple
+            return None;
+        } else {
+            return Some(Rid::new(self.first_page_id, 0))
+        }
+    }
+
+    pub fn get_next_rid(&mut self, rid: Rid) -> Option<Rid> {
+        let page = self
+            .buffer_pool_manager
+            .fetch_page(rid.page_id)
+            .expect("Can not fetch page");
+        let table_page = TablePage::from_bytes(&page.data);
+        self.buffer_pool_manager.unpin_page(rid.page_id, false);
+        let next_rid = table_page.get_next_rid(&rid);
+        if next_rid.is_some() {
+            return next_rid;
+        }
+        if table_page.next_page_id == INVALID_PAGE_ID {
+            return None;
+        }
+        let next_page = self
+            .buffer_pool_manager
+            .fetch_page(table_page.next_page_id)
+            .expect("Can not fetch page");
+        let next_table_page = TablePage::from_bytes(&next_page.data);
+        self.buffer_pool_manager
+            .unpin_page(table_page.next_page_id, false);
+        if next_table_page.num_tuples == 0 {
+            // TODO 忽略删除的tuple
+            return None;
+        } else {
+            return Some(Rid::new(table_page.next_page_id, 0))
+        }
+    }
+
+    pub fn iter(&mut self, start_at: Option<Rid>, stop_at: Option<Rid>) -> TableIterator {
+        TableIterator {
+            rid: start_at.or(self.get_first_rid()),
+            stop_at
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct TableIterator {
+    pub rid: Option<Rid>,
+    pub stop_at: Option<Rid>
+}
+impl TableIterator {
+    pub fn next(&mut self, table_heap: &mut TableHeap) -> Option<(TupleMeta, Tuple)> {
+        if self.rid.is_none() {
+            return None;
+        }
+        let rid = self.rid.unwrap();
+        if self.stop_at.is_some() && rid == self.stop_at.unwrap() {
+            return None;
+        }
+        let result = table_heap.get_tuple(rid);
+        self.rid = table_heap.get_next_rid(rid);
+        Some(result)
+    }
 }
 
 mod tests {
@@ -251,6 +322,61 @@ mod tests {
         let (meta, tuple) = table_heap.get_tuple(rid3);
         assert_eq!(meta, meta3);
         assert_eq!(tuple.data, vec![3; 2000]);
+
+        assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 2);
+
+        let _ = remove_file(db_path);
+    }
+
+    #[test]
+    pub fn test_table_heap_iterator() {
+        let db_path = "./test_table_heap_iterator.db";
+        let _ = remove_file(db_path);
+
+        let disk_manager = disk_manager::DiskManager::new(db_path.to_string());
+        let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
+        let mut table_heap = TableHeap::new(buffer_pool_manager);
+
+        let meta1 = super::TupleMeta {
+            insert_txn_id: 1,
+            delete_txn_id: 1,
+            is_deleted: false,
+        };
+        let rid1 = table_heap
+            .insert_tuple(&meta1, &Tuple::new(vec![1; 2000]))
+            .unwrap();
+        let meta2 = super::TupleMeta {
+            insert_txn_id: 2,
+            delete_txn_id: 2,
+            is_deleted: false,
+        };
+        let rid2 = table_heap
+            .insert_tuple(&meta2, &Tuple::new(vec![2; 2000]))
+            .unwrap();
+        let meta3 = super::TupleMeta {
+            insert_txn_id: 3,
+            delete_txn_id: 3,
+            is_deleted: false,
+        };
+        let rid3 = table_heap
+            .insert_tuple(&meta3, &Tuple::new(vec![3; 2000]))
+            .unwrap();
+
+        let mut iterator = table_heap.iter(None, None);
+
+        let (meta, tuple) = iterator.next(&mut table_heap).unwrap();
+        assert_eq!(meta, meta1);
+        assert_eq!(tuple.data, vec![1; 2000]);
+
+        let (meta, tuple) = iterator.next(&mut table_heap).unwrap();
+        assert_eq!(meta, meta2);
+        assert_eq!(tuple.data, vec![2; 2000]);
+
+        let (meta, tuple) = iterator.next(&mut table_heap).unwrap();
+        assert_eq!(meta, meta3);
+        assert_eq!(tuple.data, vec![3; 2000]);
+
+        assert!(iterator.next(&mut table_heap).is_none());
 
         assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 2);
 
