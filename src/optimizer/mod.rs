@@ -53,6 +53,19 @@ impl Optimizer {
             LogicalOperator::Values(ref logical_values) => {
                 PhysicalPlan::new_values_node(&logical_values.columns, &logical_values.tuples)
             }
+            LogicalOperator::Project(ref logical_project) => {
+                PhysicalPlan::new_project_node(&logical_project.expressions)
+            }
+            LogicalOperator::Filter(ref logical_filter) => {
+                PhysicalPlan::new_filter_node(&logical_filter.predicate)
+            }
+            LogicalOperator::TableScan(ref logical_table_scan) => {
+                PhysicalPlan::new_table_scan_node(
+                    &logical_table_scan.table_oid,
+                    &logical_table_scan.columns,
+                )
+            }
+            _ => unimplemented!(),
         }
     }
 }

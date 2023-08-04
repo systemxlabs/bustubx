@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    binder::statement::BoundStatement,
+    binder::{statement::BoundStatement, table_ref::BoundTableRef},
     catalog::schema::{self, Schema},
 };
 
@@ -9,6 +9,7 @@ use self::{logical_plan::LogicalPlan, operator::LogicalOperator};
 
 pub mod logical_plan;
 pub mod operator;
+pub mod plan_select;
 
 pub struct Planner {}
 impl Planner {
@@ -35,6 +36,17 @@ impl Planner {
                     children: Vec::new(),
                 }
             }
+            BoundStatement::Select(stmt) => self.plan_select(stmt),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn plan_table_ref(&mut self, table_ref: BoundTableRef) -> LogicalPlan {
+        match table_ref {
+            BoundTableRef::BaseTable(table) => LogicalPlan {
+                operator: LogicalOperator::new_table_scan_operator(table.oid, table.schema.columns),
+                children: Vec::new(),
+            },
             _ => unimplemented!(),
         }
     }

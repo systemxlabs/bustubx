@@ -8,7 +8,7 @@ pub mod binary_op;
 pub mod column_ref;
 pub mod constant;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BoundExpression {
     Invalid,
     Constant(BoundConstant),

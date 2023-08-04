@@ -5,7 +5,7 @@ use crate::{
     },
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Constant {
     Number(String),
     Null,
@@ -39,7 +39,7 @@ impl Constant {
 }
 
 /// A bound constant, e.g., `1`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BoundConstant {
     pub value: Constant,
 }

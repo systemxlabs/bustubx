@@ -1,6 +1,6 @@
 use super::BoundExpression;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum BinaryOperator {
     Plus,
     Minus,
@@ -36,7 +36,7 @@ impl BinaryOperator {
 }
 
 /// A bound binary operator, e.g., `a+b`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BoundBinaryOp {
     pub larg: Box<BoundExpression>,
     pub op: BinaryOperator,

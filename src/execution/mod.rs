@@ -65,6 +65,7 @@ impl ExecutionEngine<'_> {
             }
             PhysicalOperator::Insert(_) => ExecutionPlan::new_insert_node(physical_operator),
             PhysicalOperator::Values(_) => ExecutionPlan::new_values_node(physical_operator),
+            _ => unimplemented!(),
         }
     }
 }

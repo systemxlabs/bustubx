@@ -1,5 +1,7 @@
 use crate::{
+    binder::expression::BoundExpression,
     catalog::{
+        catalog::TableOid,
         column::Column,
         schema::{self, Schema},
     },
@@ -7,12 +9,16 @@ use crate::{
 };
 
 use self::{
-    create_table::LogicalCreateTableOperator, insert::LogicalInsertOperator,
-    values::LogicalValuesOperator,
+    create_table::LogicalCreateTableOperator, filter::LogicalFilterOperator,
+    insert::LogicalInsertOperator, project::LogicalProjectOperator,
+    table_scan::LogicalTableScanOperator, values::LogicalValuesOperator,
 };
 
 pub mod create_table;
+pub mod filter;
 pub mod insert;
+pub mod project;
+pub mod table_scan;
 pub mod values;
 
 #[derive(Debug)]
@@ -20,9 +26,10 @@ pub enum LogicalOperator {
     Dummy,
     CreateTable(LogicalCreateTableOperator),
     // Aggregate(AggregateOperator),
-    // Filter(FilterOperator),
+    Filter(LogicalFilterOperator),
     // Join(JoinOperator),
-    // Project(ProjectOperator),
+    Project(LogicalProjectOperator),
+    TableScan(LogicalTableScanOperator),
     // Scan(ScanOperator),
     // Sort(SortOperator),
     // Limit(LimitOperator),
@@ -39,12 +46,24 @@ impl LogicalOperator {
     pub fn new_values_operator(columns: Vec<Column>, tuples: Vec<Vec<Value>>) -> LogicalOperator {
         LogicalOperator::Values(LogicalValuesOperator::new(columns, tuples))
     }
+    pub fn new_table_scan_operator(table_oid: TableOid, columns: Vec<Column>) -> LogicalOperator {
+        LogicalOperator::TableScan(LogicalTableScanOperator::new(table_oid, columns))
+    }
+    pub fn new_project_operator(expressions: Vec<BoundExpression>) -> LogicalOperator {
+        LogicalOperator::Project(LogicalProjectOperator::new(expressions))
+    }
+    pub fn new_filter_operator(predicate: BoundExpression) -> LogicalOperator {
+        LogicalOperator::Filter(LogicalFilterOperator::new(predicate))
+    }
     pub fn output_schema(&self) -> Schema {
         match self {
             LogicalOperator::Dummy => Schema::new(vec![]),
             LogicalOperator::CreateTable(op) => op.output_schema(),
+            LogicalOperator::Project(op) => op.output_schema(),
+            LogicalOperator::TableScan(op) => op.output_schema(),
             LogicalOperator::Insert(op) => op.output_schema(),
             LogicalOperator::Values(op) => op.output_schema(),
+            LogicalOperator::Filter(op) => op.output_schema(),
         }
     }
 }
