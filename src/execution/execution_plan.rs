@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
-use crate::{optimizer::operator::PhysicalOperator, storage::tuple::Tuple};
+use crate::{
+    optimizer::operator::PhysicalOperator,
+    storage::{table_heap::TableIterator, tuple::Tuple},
+};
 
 use super::{
     volcano_executor::{
         create_table::VolcanoCreateTableExecutor, insert::VolcanoInsertExecutor,
-        values::VolcanValuesExecutor, VolcanoExecutor,
+        table_scan::VolcanoTableScanExecutor, values::VolcanValuesExecutor, VolcanoExecutor,
     },
     ExecutionContext,
 };
@@ -16,6 +19,7 @@ pub enum Executor {
     VolcanoCreateTable(VolcanoCreateTableExecutor),
     VolcanoInsert(VolcanoInsertExecutor),
     VolcanoValues(VolcanValuesExecutor),
+    VolcanoTableScan(VolcanoTableScanExecutor),
 }
 
 #[derive(Debug)]
@@ -53,6 +57,30 @@ impl ExecutionPlan {
             children: Vec::new(),
         }
     }
+    pub fn new_table_scan_node(operator: Arc<PhysicalOperator>) -> Self {
+        Self {
+            executor: Executor::VolcanoTableScan(VolcanoTableScanExecutor::default()),
+            operator,
+            children: Vec::new(),
+        }
+    }
+    pub fn init(&self, context: &mut ExecutionContext) {
+        match self.executor {
+            Executor::Dummy => {}
+            Executor::VolcanoCreateTable(ref executor) => {
+                executor.init(context, self.operator.clone(), self.children.clone())
+            }
+            Executor::VolcanoInsert(ref executor) => {
+                executor.init(context, self.operator.clone(), self.children.clone())
+            }
+            Executor::VolcanoValues(ref executor) => {
+                executor.init(context, self.operator.clone(), self.children.clone())
+            }
+            Executor::VolcanoTableScan(ref executor) => {
+                executor.init(context, self.operator.clone(), self.children.clone())
+            }
+        }
+    }
     pub fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
         match self.executor {
             Executor::Dummy => None,
@@ -63,6 +91,9 @@ impl ExecutionPlan {
                 executor.next(context, self.operator.clone(), self.children.clone())
             }
             Executor::VolcanoValues(ref executor) => {
+                executor.next(context, self.operator.clone(), self.children.clone())
+            }
+            Executor::VolcanoTableScan(ref executor) => {
                 executor.next(context, self.operator.clone(), self.children.clone())
             }
         }

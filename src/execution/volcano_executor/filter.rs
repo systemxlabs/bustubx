@@ -9,8 +9,20 @@ use super::VolcanoExecutor;
 #[derive(Debug)]
 pub struct VolcanoFilterExecutor;
 impl VolcanoExecutor for VolcanoFilterExecutor {
-    fn init(&mut self) {
-        todo!()
+    fn init(
+        &self,
+        context: &mut ExecutionContext,
+        op: Arc<PhysicalOperator>,
+        children: Vec<Arc<ExecutionPlan>>,
+    ) {
+        if let PhysicalOperator::Filter(op) = op.as_ref() {
+            println!("init filter executor");
+            for child in children {
+                child.init(context);
+            }
+        } else {
+            panic!("not filter operator")
+        }
     }
     fn next(
         &self,

@@ -24,6 +24,7 @@ pub struct ExecutionEngine<'a> {
 }
 impl ExecutionEngine<'_> {
     pub fn execute(&mut self, plan: ExecutionPlan) {
+        plan.init(&mut self.context);
         loop {
             let tuple = plan.next(&mut self.context);
             if tuple.is_some() {
@@ -65,6 +66,7 @@ impl ExecutionEngine<'_> {
             }
             PhysicalOperator::Insert(_) => ExecutionPlan::new_insert_node(physical_operator),
             PhysicalOperator::Values(_) => ExecutionPlan::new_values_node(physical_operator),
+            PhysicalOperator::TableScan(_) => ExecutionPlan::new_table_scan_node(physical_operator),
             _ => unimplemented!(),
         }
     }

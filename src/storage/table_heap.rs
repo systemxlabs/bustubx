@@ -117,12 +117,13 @@ impl TableHeap {
             .fetch_page(self.first_page_id)
             .expect("Can not fetch page");
         let table_page = TablePage::from_bytes(&page.data);
-        self.buffer_pool_manager.unpin_page(self.first_page_id, false);
+        self.buffer_pool_manager
+            .unpin_page(self.first_page_id, false);
         if table_page.num_tuples == 0 {
             // TODO 忽略删除的tuple
             return None;
         } else {
-            return Some(Rid::new(self.first_page_id, 0))
+            return Some(Rid::new(self.first_page_id, 0));
         }
     }
 
@@ -151,14 +152,14 @@ impl TableHeap {
             // TODO 忽略删除的tuple
             return None;
         } else {
-            return Some(Rid::new(table_page.next_page_id, 0))
+            return Some(Rid::new(table_page.next_page_id, 0));
         }
     }
 
     pub fn iter(&mut self, start_at: Option<Rid>, stop_at: Option<Rid>) -> TableIterator {
         TableIterator {
             rid: start_at.or(self.get_first_rid()),
-            stop_at
+            stop_at,
         }
     }
 }
@@ -166,9 +167,12 @@ impl TableHeap {
 #[derive(Debug)]
 pub struct TableIterator {
     pub rid: Option<Rid>,
-    pub stop_at: Option<Rid>
+    pub stop_at: Option<Rid>,
 }
 impl TableIterator {
+    pub fn new(rid: Option<Rid>, stop_at: Option<Rid>) -> Self {
+        Self { rid, stop_at }
+    }
     pub fn next(&mut self, table_heap: &mut TableHeap) -> Option<(TupleMeta, Tuple)> {
         if self.rid.is_none() {
             return None;

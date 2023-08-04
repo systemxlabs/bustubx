@@ -12,7 +12,12 @@ pub mod table_scan;
 pub mod values;
 
 pub trait VolcanoExecutor {
-    fn init(&mut self);
+    fn init(
+        &self,
+        context: &mut ExecutionContext,
+        op: Arc<PhysicalOperator>,
+        children: Vec<Arc<ExecutionPlan>>,
+    );
     fn next(
         &self,
         context: &mut ExecutionContext,

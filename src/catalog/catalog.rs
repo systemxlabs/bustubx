@@ -95,6 +95,10 @@ impl Catalog {
         self.tables.get(&oid)
     }
 
+    pub fn get_mut_table_by_oid(&mut self, table_oid: TableOid) -> Option<&mut TableInfo> {
+        self.tables.get_mut(&table_oid)
+    }
+
     pub fn create_index(
         &mut self,
         index_name: String,

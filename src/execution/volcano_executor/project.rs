@@ -9,8 +9,20 @@ use super::VolcanoExecutor;
 #[derive(Debug)]
 pub struct VolcanoProjectExecutor;
 impl VolcanoExecutor for VolcanoProjectExecutor {
-    fn init(&mut self) {
-        todo!()
+    fn init(
+        &self,
+        context: &mut ExecutionContext,
+        op: Arc<PhysicalOperator>,
+        children: Vec<Arc<ExecutionPlan>>,
+    ) {
+        if let PhysicalOperator::Project(op) = op.as_ref() {
+            println!("init project executor");
+            for child in children {
+                child.init(context);
+            }
+        } else {
+            panic!("not project operator")
+        }
     }
     fn next(
         &self,

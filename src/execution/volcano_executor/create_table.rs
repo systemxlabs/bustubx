@@ -14,7 +14,21 @@ use super::VolcanoExecutor;
 #[derive(Debug)]
 pub struct VolcanoCreateTableExecutor;
 impl VolcanoExecutor for VolcanoCreateTableExecutor {
-    fn init(&mut self) {}
+    fn init(
+        &self,
+        context: &mut ExecutionContext,
+        op: Arc<PhysicalOperator>,
+        children: Vec<Arc<ExecutionPlan>>,
+    ) {
+        if let PhysicalOperator::CreateTable(op) = op.as_ref() {
+            println!("init create table executor");
+            for child in children {
+                child.init(context);
+            }
+        } else {
+            panic!("not create table operator")
+        }
+    }
     fn next(
         &self,
         context: &mut ExecutionContext,

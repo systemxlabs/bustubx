@@ -20,8 +20,22 @@ impl VolcanValuesExecutor {
     }
 }
 impl VolcanoExecutor for VolcanValuesExecutor {
-    fn init(&mut self) {
-        self.cursor = Mutex::new(0);
+    fn init(
+        &self,
+        context: &mut ExecutionContext,
+        op: Arc<PhysicalOperator>,
+        children: Vec<Arc<ExecutionPlan>>,
+    ) {
+        if let PhysicalOperator::Values(op) = op.as_ref() {
+            println!("init values executor");
+            let mut cursor = self.cursor.lock().unwrap();
+            *cursor = 0;
+            for child in children {
+                child.init(context);
+            }
+        } else {
+            panic!("not values operator")
+        }
     }
     fn next(
         &self,

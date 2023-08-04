@@ -15,7 +15,21 @@ use super::VolcanoExecutor;
 #[derive(Debug)]
 pub struct VolcanoInsertExecutor;
 impl VolcanoExecutor for VolcanoInsertExecutor {
-    fn init(&mut self) {}
+    fn init(
+        &self,
+        context: &mut ExecutionContext,
+        op: Arc<PhysicalOperator>,
+        children: Vec<Arc<ExecutionPlan>>,
+    ) {
+        if let PhysicalOperator::Insert(op) = op.as_ref() {
+            println!("init insert executor");
+            for child in children {
+                child.init(context);
+            }
+        } else {
+            panic!("not insert operator")
+        }
+    }
     fn next(
         &self,
         context: &mut ExecutionContext,
