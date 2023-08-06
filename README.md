@@ -6,8 +6,8 @@
 - [x] B+ Tree Index
 - [x] Table Heap
 - [x] Catalog
-- [ ] Binder
-- [ ] Planner
+- [x] Binder
+- [x] Planner
 - [ ] Optimizer
 - [x] Volcano Executor
 - [ ] MVCC
@@ -21,6 +21,7 @@ Install rust toolchain first.
 ```
 cargo run
 ```
+![demo](./docs/tinysql-demo.png)
 
 ## Reference
 - [CMU 15-445/645 Database Systems](https://15445.courses.cs.cmu.edu/fall2022/)
