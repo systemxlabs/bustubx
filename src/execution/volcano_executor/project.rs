@@ -38,8 +38,10 @@ impl VolcanoExecutor for VolcanoProjectExecutor {
             }
             let mut new_values = Vec::new();
             for expr in &op.expressions {
-                new_values
-                    .push(expr.evaluate(next_result.tuple.as_ref(), Some(&child.operator.output_schema())));
+                new_values.push(expr.evaluate(
+                    next_result.tuple.as_ref(),
+                    Some(&child.operator.output_schema()),
+                ));
             }
             NextResult::new(Some(Tuple::from_values(new_values)), next_result.exhusted)
         } else {

@@ -65,10 +65,11 @@ impl PhysicalPlan {
             children: Vec::new(),
         }
     }
-    pub fn new_filter_node(predicate: &BoundExpression) -> Self {
+    pub fn new_filter_node(predicate: &BoundExpression, input: Arc<PhysicalOperator>) -> Self {
         Self {
             operator: Arc::new(PhysicalOperator::Filter(PhysicalFilterOperator::new(
                 predicate.clone(),
+                input,
             ))),
             children: Vec::new(),
         }

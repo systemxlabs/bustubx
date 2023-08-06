@@ -7,9 +7,10 @@ use crate::{
 
 use super::{
     volcano_executor::{
-        create_table::VolcanoCreateTableExecutor, insert::VolcanoInsertExecutor,
+        create_table::VolcanoCreateTableExecutor, filter::VolcanoFilterExecutor,
+        insert::VolcanoInsertExecutor, project::VolcanoProjectExecutor,
         table_scan::VolcanoTableScanExecutor, values::VolcanValuesExecutor, NextResult,
-        VolcanoExecutor, filter::VolcanoFilterExecutor, project::VolcanoProjectExecutor,
+        VolcanoExecutor,
     },
     ExecutionContext,
 };
@@ -22,7 +23,7 @@ pub enum Executor {
     VolcanoValues(VolcanValuesExecutor),
     VolcanoTableScan(VolcanoTableScanExecutor),
     VolcanoFilter(VolcanoFilterExecutor),
-    VolcanoProject(VolcanoProjectExecutor)
+    VolcanoProject(VolcanoProjectExecutor),
 }
 
 #[derive(Debug)]

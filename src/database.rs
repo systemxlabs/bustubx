@@ -43,24 +43,24 @@ impl Database {
             };
             // ast -> statement
             let statement = binder.bind(&stmt);
-            println!("{:?}", statement);
+            // println!("{:?}", statement);
 
             // statement -> logical plan
             let mut planner = Planner {};
             let logical_plan = planner.plan(statement);
-            println!("{:?}", logical_plan);
+            // println!("{:?}", logical_plan);
 
             // logical plan -> physical plan
             let mut optimizer = Optimizer::new(Arc::new(logical_plan));
             let physical_plan = optimizer.find_best();
-            println!("{:?}", physical_plan);
+            // println!("{:?}", physical_plan);
 
             let execution_ctx = ExecutionContext::new(&mut self.catalog);
             let mut execution_engine = ExecutionEngine {
                 context: execution_ctx,
             };
             let execution_plan = execution_engine.plan(Arc::new(physical_plan));
-            println!("{:?}", execution_plan);
+            // println!("{:?}", execution_plan);
             execution_engine.execute(execution_plan);
         }
     }
