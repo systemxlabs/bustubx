@@ -30,7 +30,7 @@ impl ExecutionEngine<'_> {
             if next_result.tuple.is_some() {
                 println!("tuple: {:?}", next_result.tuple.unwrap());
             }
-            if next_result.exhusted {
+            if next_result.exhausted {
                 break;
             }
         }

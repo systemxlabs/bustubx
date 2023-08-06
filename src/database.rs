@@ -65,3 +65,14 @@ impl Database {
         }
     }
 }
+
+mod tests {
+    #[test]
+    pub fn test_crud_sql() {
+        let mut db = super::Database::new_on_disk("test.db");
+        db.run(&"create table t1 (a int, b int)".to_string());
+        db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
+        db.run(&"select * from t1".to_string());
+        db.run(&"select a from t1 where a <= b".to_string());
+    }
+}

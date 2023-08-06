@@ -34,7 +34,7 @@ impl VolcanoExecutor for VolcanoProjectExecutor {
             let child = children[0].clone();
             let next_result = child.next(context);
             if next_result.tuple.is_none() {
-                return NextResult::new(None, next_result.exhusted);
+                return NextResult::new(None, next_result.exhausted);
             }
             let mut new_values = Vec::new();
             for expr in &op.expressions {
@@ -43,7 +43,7 @@ impl VolcanoExecutor for VolcanoProjectExecutor {
                     Some(&child.operator.output_schema()),
                 ));
             }
-            NextResult::new(Some(Tuple::from_values(new_values)), next_result.exhusted)
+            NextResult::new(Some(Tuple::from_values(new_values)), next_result.exhausted)
         } else {
             panic!("not project operator")
         }

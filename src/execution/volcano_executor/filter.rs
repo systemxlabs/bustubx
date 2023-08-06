@@ -41,16 +41,16 @@ impl VolcanoExecutor for VolcanoFilterExecutor {
             let child = children[0].clone();
             let next_result = child.next(context);
             if next_result.tuple.is_none() {
-                return NextResult::new(None, next_result.exhusted);
+                return NextResult::new(None, next_result.exhausted);
             }
             let tuple = next_result.tuple.unwrap();
             let output_schema = child.operator.output_schema();
             let compare_res = op.predicate.evaluate(Some(&tuple), Some(&output_schema));
-            if let Value::Boolean(bool) = compare_res {
-                if bool.value {
-                    return NextResult::new(Some(tuple), next_result.exhusted);
+            if let Value::Boolean(v) = compare_res {
+                if v {
+                    return NextResult::new(Some(tuple), next_result.exhausted);
                 } else {
-                    return NextResult::new(None, next_result.exhusted);
+                    return NextResult::new(None, next_result.exhausted);
                 }
             } else {
                 panic!("filter predicate should be boolean")

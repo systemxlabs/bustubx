@@ -13,11 +13,11 @@ pub mod values;
 
 pub struct NextResult {
     pub tuple: Option<Tuple>,
-    pub exhusted: bool,
+    pub exhausted: bool,
 }
 impl NextResult {
-    pub fn new(tuple: Option<Tuple>, exhusted: bool) -> Self {
-        Self { tuple, exhusted }
+    pub fn new(tuple: Option<Tuple>, exhausted: bool) -> Self {
+        Self { tuple, exhausted }
     }
 }
 

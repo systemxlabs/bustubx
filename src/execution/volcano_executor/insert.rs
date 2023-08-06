@@ -54,9 +54,9 @@ impl VolcanoExecutor for VolcanoInsertExecutor {
                 };
                 table_heap.insert_tuple(&tuple_meta, &tuple);
                 println!("insert tuple to database, tuple: {:?}", tuple);
-                NextResult::new(Some(tuple), next_result.exhusted)
+                NextResult::new(Some(tuple), next_result.exhausted)
             } else {
-                NextResult::new(None, next_result.exhusted)
+                NextResult::new(None, next_result.exhausted)
             }
         } else {
             panic!("not insert operator")

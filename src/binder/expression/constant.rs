@@ -1,9 +1,4 @@
-use crate::{
-    catalog::column::DataType,
-    dbtype::{
-        boolean::Boolean, integer::Integer, smallint::SmallInt, tinyint::TinyInt, value::Value,
-    },
-};
+use crate::{catalog::column::DataType, dbtype::value::Value};
 
 #[derive(Debug, Clone)]
 pub enum Constant {
@@ -27,12 +22,12 @@ impl Constant {
     pub fn to_value(&self, data_type: DataType) -> Value {
         match self {
             Constant::Number(n) => match data_type {
-                DataType::TinyInt => Value::TinyInt(TinyInt::new(n.parse::<i8>().unwrap())),
-                DataType::SmallInt => Value::SmallInt(SmallInt::new(n.parse::<i16>().unwrap())),
-                DataType::Integer => Value::Integer(Integer::new(n.parse::<i32>().unwrap())),
+                DataType::TinyInt => Value::TinyInt(n.parse::<i8>().unwrap()),
+                DataType::SmallInt => Value::SmallInt(n.parse::<i16>().unwrap()),
+                DataType::Integer => Value::Integer(n.parse::<i32>().unwrap()),
                 _ => unimplemented!(),
             },
-            Constant::Boolean(b) => Value::Boolean(Boolean::new(*b)),
+            Constant::Boolean(b) => Value::Boolean(*b),
             _ => unimplemented!(),
         }
     }
@@ -46,8 +41,8 @@ pub struct BoundConstant {
 impl BoundConstant {
     pub fn evaluate(&self) -> Value {
         match &self.value {
-            Constant::Number(n) => Value::Integer(Integer::new(n.parse::<i32>().unwrap())),
-            Constant::Boolean(b) => Value::Boolean(Boolean::new(*b)),
+            Constant::Number(n) => Value::Integer(n.parse::<i32>().unwrap()),
+            Constant::Boolean(b) => Value::Boolean(*b),
             _ => unimplemented!(),
         }
     }
