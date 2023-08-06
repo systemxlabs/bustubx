@@ -8,7 +8,8 @@ use crate::{
 use super::{
     volcano_executor::{
         create_table::VolcanoCreateTableExecutor, insert::VolcanoInsertExecutor,
-        table_scan::VolcanoTableScanExecutor, values::VolcanValuesExecutor, VolcanoExecutor,
+        table_scan::VolcanoTableScanExecutor, values::VolcanValuesExecutor, NextResult,
+        VolcanoExecutor,
     },
     ExecutionContext,
 };
@@ -81,9 +82,9 @@ impl ExecutionPlan {
             }
         }
     }
-    pub fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
+    pub fn next(&self, context: &mut ExecutionContext) -> NextResult {
         match self.executor {
-            Executor::Dummy => None,
+            Executor::Dummy => NextResult::new(None, true),
             Executor::VolcanoCreateTable(ref executor) => {
                 executor.next(context, self.operator.clone(), self.children.clone())
             }

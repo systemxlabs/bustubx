@@ -11,6 +11,16 @@ pub mod project;
 pub mod table_scan;
 pub mod values;
 
+pub struct NextResult {
+    pub tuple: Option<Tuple>,
+    pub exhusted: bool,
+}
+impl NextResult {
+    pub fn new(tuple: Option<Tuple>, exhusted: bool) -> Self {
+        Self { tuple, exhusted }
+    }
+}
+
 pub trait VolcanoExecutor {
     fn init(
         &self,
@@ -23,5 +33,5 @@ pub trait VolcanoExecutor {
         context: &mut ExecutionContext,
         op: Arc<PhysicalOperator>,
         children: Vec<Arc<ExecutionPlan>>,
-    ) -> Option<Tuple>;
+    ) -> NextResult;
 }

@@ -1,10 +1,14 @@
+use sqlparser::keywords::NO;
+
+use crate::binder::expression::BoundExpression;
+use crate::dbtype::value::Value;
 use crate::execution::execution_plan::ExecutionPlan;
 use crate::{
     execution::ExecutionContext, optimizer::operator::PhysicalOperator, storage::tuple::Tuple,
 };
 use std::sync::Arc;
 
-use super::VolcanoExecutor;
+use super::{NextResult, VolcanoExecutor};
 
 #[derive(Debug)]
 pub struct VolcanoFilterExecutor;
@@ -29,7 +33,30 @@ impl VolcanoExecutor for VolcanoFilterExecutor {
         context: &mut ExecutionContext,
         op: Arc<PhysicalOperator>,
         children: Vec<Arc<ExecutionPlan>>,
-    ) -> Option<Tuple> {
-        todo!()
+    ) -> NextResult {
+        if let PhysicalOperator::Filter(op) = op.as_ref() {
+            if children.len() != 1 {
+                panic!("filter should have only one child")
+            }
+            let child = children[0].clone();
+            let next_result = child.next(context);
+            if next_result.tuple.is_none() {
+                return NextResult::new(None, next_result.exhusted);
+            }
+            let tuple = next_result.tuple.unwrap();
+            let output_schema = child.operator.output_schema();
+            let compare_res = op.predicate.evaluate(Some(&tuple), Some(&output_schema));
+            if let Value::Boolean(bool) = compare_res {
+                if bool.value {
+                    return NextResult::new(Some(tuple), next_result.exhusted);
+                } else {
+                    return NextResult::new(None, next_result.exhusted);
+                }
+            } else {
+                panic!("filter predicate should be boolean")
+            }
+        } else {
+            panic!("not filter operator")
+        }
     }
 }

@@ -4,7 +4,7 @@ use crate::{
 };
 use std::sync::Arc;
 
-use super::VolcanoExecutor;
+use super::{NextResult, VolcanoExecutor};
 
 #[derive(Debug)]
 pub struct VolcanoProjectExecutor;
@@ -29,7 +29,7 @@ impl VolcanoExecutor for VolcanoProjectExecutor {
         context: &mut ExecutionContext,
         op: Arc<PhysicalOperator>,
         children: Vec<Arc<ExecutionPlan>>,
-    ) -> Option<Tuple> {
+    ) -> NextResult {
         todo!()
     }
 }

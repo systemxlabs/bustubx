@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-use super::VolcanoExecutor;
+use super::{NextResult, VolcanoExecutor};
 
 #[derive(Debug)]
 pub struct VolcanoInsertExecutor;
@@ -35,12 +35,12 @@ impl VolcanoExecutor for VolcanoInsertExecutor {
         context: &mut ExecutionContext,
         op: Arc<PhysicalOperator>,
         children: Vec<Arc<ExecutionPlan>>,
-    ) -> Option<Tuple> {
+    ) -> NextResult {
         if let PhysicalOperator::Insert(op) = op.as_ref() {
             let child = children[0].clone();
-            let tuple = child.next(context);
-            if tuple.is_some() {
-                let tuple = tuple.unwrap();
+            let next_result = child.next(context);
+            if next_result.tuple.is_some() {
+                let tuple = next_result.tuple.unwrap();
                 // 插入数据库
                 let table_heap = &mut context
                     .catalog
@@ -54,9 +54,9 @@ impl VolcanoExecutor for VolcanoInsertExecutor {
                 };
                 table_heap.insert_tuple(&tuple_meta, &tuple);
                 println!("insert tuple to database, tuple: {:?}", tuple);
-                Some(tuple)
+                NextResult::new(Some(tuple), next_result.exhusted)
             } else {
-                None
+                NextResult::new(None, next_result.exhusted)
             }
         } else {
             panic!("not insert operator")

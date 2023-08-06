@@ -5,7 +5,7 @@ use crate::{
 };
 use std::sync::{Arc, Mutex};
 
-use super::VolcanoExecutor;
+use super::{NextResult, VolcanoExecutor};
 
 #[derive(Debug)]
 pub struct VolcanoTableScanExecutor {
@@ -43,13 +43,16 @@ impl VolcanoExecutor for VolcanoTableScanExecutor {
         context: &mut ExecutionContext,
         op: Arc<PhysicalOperator>,
         children: Vec<Arc<ExecutionPlan>>,
-    ) -> Option<Tuple> {
+    ) -> NextResult {
         if let PhysicalOperator::TableScan(op) = op.as_ref() {
             let table_info = context.catalog.get_mut_table_by_oid(op.table_oid).unwrap();
             let mut iterator = self.iterator.lock().unwrap();
-            iterator
-                .next(&mut table_info.table)
-                .map(|(_meta, tuple)| tuple)
+            let tuple = iterator.next(&mut table_info.table);
+            if tuple.is_none() {
+                return NextResult::new(None, true);
+            } else {
+                return NextResult::new(Some(tuple.unwrap().1), false);
+            }
         } else {
             panic!("not table scan operator")
         }

@@ -1,3 +1,5 @@
+use crate::{catalog::schema::Schema, dbtype::value::Value, storage::tuple::Tuple};
+
 use super::BoundExpression;
 
 #[derive(Debug, Clone, Copy)]
@@ -41,4 +43,55 @@ pub struct BoundBinaryOp {
     pub larg: Box<BoundExpression>,
     pub op: BinaryOperator,
     pub rarg: Box<BoundExpression>,
+}
+impl BoundBinaryOp {
+    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> Value {
+        let l = self.larg.evaluate(tuple, schema);
+        let r = self.rarg.evaluate(tuple, schema);
+        match self.op {
+            // BinaryOperator::Plus => l + r,
+            // BinaryOperator::Minus => l - r,
+            // BinaryOperator::Multiply => l * r,
+            // BinaryOperator::Divide => l / r,
+            BinaryOperator::Gt => {
+                let order = l.compare(&r);
+                Value::Boolean(crate::dbtype::boolean::Boolean::new(
+                    order == std::cmp::Ordering::Greater,
+                ))
+            }
+            BinaryOperator::Lt => {
+                let order = l.compare(&r);
+                Value::Boolean(crate::dbtype::boolean::Boolean::new(
+                    order == std::cmp::Ordering::Less,
+                ))
+            }
+            BinaryOperator::GtEq => {
+                let order = l.compare(&r);
+                Value::Boolean(crate::dbtype::boolean::Boolean::new(
+                    order == std::cmp::Ordering::Greater || order == std::cmp::Ordering::Equal,
+                ))
+            }
+            BinaryOperator::LtEq => {
+                let order = l.compare(&r);
+                Value::Boolean(crate::dbtype::boolean::Boolean::new(
+                    order == std::cmp::Ordering::Less || order == std::cmp::Ordering::Equal,
+                ))
+            }
+            BinaryOperator::Eq => {
+                let order = l.compare(&r);
+                Value::Boolean(crate::dbtype::boolean::Boolean::new(
+                    order == std::cmp::Ordering::Equal,
+                ))
+            }
+            BinaryOperator::NotEq => {
+                let order = l.compare(&r);
+                Value::Boolean(crate::dbtype::boolean::Boolean::new(
+                    order != std::cmp::Ordering::Equal,
+                ))
+            }
+            // BinaryOperator::And => l && r,
+            // BinaryOperator::Or => l || r,
+            _ => unimplemented!(),
+        }
+    }
 }

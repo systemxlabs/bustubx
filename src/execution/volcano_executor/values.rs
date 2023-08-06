@@ -6,7 +6,7 @@ use crate::{
     storage::tuple::Tuple,
 };
 
-use super::VolcanoExecutor;
+use super::{NextResult, VolcanoExecutor};
 
 #[derive(Debug)]
 pub struct VolcanValuesExecutor {
@@ -42,15 +42,15 @@ impl VolcanoExecutor for VolcanValuesExecutor {
         context: &mut ExecutionContext,
         op: Arc<PhysicalOperator>,
         _children: Vec<Arc<ExecutionPlan>>,
-    ) -> Option<Tuple> {
+    ) -> NextResult {
         if let PhysicalOperator::Values(op) = op.as_ref() {
             let mut cursor = self.cursor.lock().unwrap();
             if *cursor < op.tuples.len() {
                 let values = op.tuples[*cursor].clone();
                 *cursor += 1;
-                Some(Tuple::from_values(values))
+                NextResult::new(Some(Tuple::from_values(values)), false)
             } else {
-                None
+                NextResult::new(None, true)
             }
         } else {
             panic!("not values operator")

@@ -59,8 +59,17 @@ impl Tuple {
     pub fn to_bytes(&self) -> Vec<u8> {
         self.data.clone()
     }
-    pub fn get_value(&self, schema: &Schema, column_index: usize) -> Value {
+    pub fn get_value_by_col_id(&self, schema: &Schema, column_index: usize) -> Value {
         let column = schema.get_by_index(column_index).expect("column not found");
+        let offset = column.column_offset;
+        let len = column.fixed_len;
+        let raw = &self.data[offset..offset + len];
+        Value::from_bytes(raw, column.column_type)
+    }
+    pub fn get_value_by_col_name(&self, schema: &Schema, columon_name: &str) -> Value {
+        let column = schema
+            .get_by_col_name(columon_name)
+            .expect("column not found");
         let offset = column.column_offset;
         let len = column.fixed_len;
         let raw = &self.data[offset..offset + len];
@@ -72,8 +81,8 @@ impl Tuple {
         let column_count = schema.column_count();
         for column_index in 0..column_count {
             let compare_res = self
-                .get_value(schema, column_index)
-                .compare(&other.get_value(schema, column_index));
+                .get_value_by_col_id(schema, column_index)
+                .compare(&other.get_value_by_col_id(schema, column_index));
             if compare_res == std::cmp::Ordering::Equal {
                 continue;
             }

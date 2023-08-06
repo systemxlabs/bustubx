@@ -26,10 +26,11 @@ impl ExecutionEngine<'_> {
     pub fn execute(&mut self, plan: ExecutionPlan) {
         plan.init(&mut self.context);
         loop {
-            let tuple = plan.next(&mut self.context);
-            if tuple.is_some() {
-                println!("tuple: {:?}", tuple.unwrap());
-            } else {
+            let next_result = plan.next(&mut self.context);
+            if next_result.tuple.is_some() {
+                println!("tuple: {:?}", next_result.tuple.unwrap());
+            }
+            if next_result.exhusted {
                 break;
             }
         }

@@ -43,3 +43,12 @@ impl Constant {
 pub struct BoundConstant {
     pub value: Constant,
 }
+impl BoundConstant {
+    pub fn evaluate(&self) -> Value {
+        match &self.value {
+            Constant::Number(n) => Value::Integer(Integer::new(n.parse::<i32>().unwrap())),
+            Constant::Boolean(b) => Value::Boolean(Boolean::new(*b)),
+            _ => unimplemented!(),
+        }
+    }
+}
