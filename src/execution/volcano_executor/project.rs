@@ -30,6 +30,20 @@ impl VolcanoExecutor for VolcanoProjectExecutor {
         op: Arc<PhysicalOperator>,
         children: Vec<Arc<ExecutionPlan>>,
     ) -> NextResult {
-        todo!()
+        if let PhysicalOperator::Project(op) = op.as_ref() {
+            let child = children[0].clone();
+            let next_result = child.next(context);
+            if next_result.tuple.is_none() {
+                return NextResult::new(None, next_result.exhusted);
+            }
+            let mut new_values = Vec::new();
+            for expr in &op.expressions {
+                new_values
+                    .push(expr.evaluate(next_result.tuple.as_ref(), Some(&child.operator.output_schema())));
+            }
+            NextResult::new(Some(Tuple::from_values(new_values)), next_result.exhusted)
+        } else {
+            panic!("not project operator")
+        }
     }
 }

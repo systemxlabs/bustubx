@@ -2,7 +2,7 @@ use crate::{binder::expression::BoundExpression, catalog::schema::Schema};
 
 #[derive(Debug)]
 pub struct PhysicalProjectOperator {
-    expressions: Vec<BoundExpression>,
+    pub expressions: Vec<BoundExpression>,
 }
 impl PhysicalProjectOperator {
     pub fn new(expressions: Vec<BoundExpression>) -> Self {

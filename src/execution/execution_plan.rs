@@ -9,7 +9,7 @@ use super::{
     volcano_executor::{
         create_table::VolcanoCreateTableExecutor, insert::VolcanoInsertExecutor,
         table_scan::VolcanoTableScanExecutor, values::VolcanValuesExecutor, NextResult,
-        VolcanoExecutor,
+        VolcanoExecutor, filter::VolcanoFilterExecutor, project::VolcanoProjectExecutor,
     },
     ExecutionContext,
 };
@@ -21,6 +21,8 @@ pub enum Executor {
     VolcanoInsert(VolcanoInsertExecutor),
     VolcanoValues(VolcanValuesExecutor),
     VolcanoTableScan(VolcanoTableScanExecutor),
+    VolcanoFilter(VolcanoFilterExecutor),
+    VolcanoProject(VolcanoProjectExecutor)
 }
 
 #[derive(Debug)]
@@ -65,6 +67,20 @@ impl ExecutionPlan {
             children: Vec::new(),
         }
     }
+    pub fn new_filter_node(operator: Arc<PhysicalOperator>) -> Self {
+        Self {
+            executor: Executor::VolcanoFilter(VolcanoFilterExecutor {}),
+            operator,
+            children: Vec::new(),
+        }
+    }
+    pub fn new_project_node(operator: Arc<PhysicalOperator>) -> Self {
+        Self {
+            executor: Executor::VolcanoProject(VolcanoProjectExecutor {}),
+            operator,
+            children: Vec::new(),
+        }
+    }
     pub fn init(&self, context: &mut ExecutionContext) {
         match self.executor {
             Executor::Dummy => {}
@@ -78,6 +94,12 @@ impl ExecutionPlan {
                 executor.init(context, self.operator.clone(), self.children.clone())
             }
             Executor::VolcanoTableScan(ref executor) => {
+                executor.init(context, self.operator.clone(), self.children.clone())
+            }
+            Executor::VolcanoFilter(ref executor) => {
+                executor.init(context, self.operator.clone(), self.children.clone())
+            }
+            Executor::VolcanoProject(ref executor) => {
                 executor.init(context, self.operator.clone(), self.children.clone())
             }
         }
@@ -95,6 +117,12 @@ impl ExecutionPlan {
                 executor.next(context, self.operator.clone(), self.children.clone())
             }
             Executor::VolcanoTableScan(ref executor) => {
+                executor.next(context, self.operator.clone(), self.children.clone())
+            }
+            Executor::VolcanoFilter(ref executor) => {
+                executor.next(context, self.operator.clone(), self.children.clone())
+            }
+            Executor::VolcanoProject(ref executor) => {
                 executor.next(context, self.operator.clone(), self.children.clone())
             }
         }

@@ -12,9 +12,11 @@ pub enum Value {
 }
 impl Value {
     pub fn from_bytes(bytes: &[u8], data_type: DataType) -> Self {
-        match bytes.len() {
-            1 => Self::TinyInt(TinyInt::from_bytes(bytes)),
-            2 => Self::SmallInt(SmallInt::from_bytes(bytes)),
+        match data_type {
+            DataType::Boolean => Self::Boolean(Boolean::from_bytes(bytes)),
+            DataType::TinyInt => Self::TinyInt(TinyInt::from_bytes(bytes)),
+            DataType::SmallInt => Self::SmallInt(SmallInt::from_bytes(bytes)),
+            DataType::Integer => Self::Integer(Integer::from_bytes(bytes)),
             _ => panic!("Not implemented"),
         }
     }
