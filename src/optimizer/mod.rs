@@ -79,6 +79,19 @@ impl Optimizer {
                 &logical_table_scan.table_oid,
                 &logical_table_scan.columns,
             ),
+            LogicalOperator::Limit(ref logical_limit) => {
+                // limit下只有一个子节点
+                let child_logical_node = logical_node_children[0].clone();
+                let child_physical_node = Self::build_physical_node(
+                    child_logical_node.clone(),
+                    child_logical_node.children.clone(),
+                );
+                PhysicalPlan::new_limit_node(
+                    &logical_limit.limit,
+                    &logical_limit.offset,
+                    child_physical_node.operator.clone(),
+                )
+            }
             _ => unimplemented!(),
         }
     }

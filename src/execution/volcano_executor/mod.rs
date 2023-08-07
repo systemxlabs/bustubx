@@ -7,6 +7,7 @@ use super::{execution_plan::ExecutionPlan, ExecutionContext};
 pub mod create_table;
 pub mod filter;
 pub mod insert;
+pub mod limit;
 pub mod project;
 pub mod table_scan;
 pub mod values;

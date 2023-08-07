@@ -11,7 +11,4 @@ impl LogicalProjectOperator {
     pub fn new(expressions: Vec<BoundExpression>) -> Self {
         Self { expressions }
     }
-    pub fn output_schema(&self) -> Schema {
-        unimplemented!()
-    }
 }

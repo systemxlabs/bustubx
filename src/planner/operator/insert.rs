@@ -12,7 +12,4 @@ impl LogicalInsertOperator {
             columns,
         }
     }
-    pub fn output_schema(&self) -> Schema {
-        Schema::new(self.columns.clone())
-    }
 }

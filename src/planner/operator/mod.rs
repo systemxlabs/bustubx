@@ -10,13 +10,14 @@ use crate::{
 
 use self::{
     create_table::LogicalCreateTableOperator, filter::LogicalFilterOperator,
-    insert::LogicalInsertOperator, project::LogicalProjectOperator, scan::LogicalScanOperator,
-    values::LogicalValuesOperator,
+    insert::LogicalInsertOperator, limit::LogicalLimitOperator, project::LogicalProjectOperator,
+    scan::LogicalScanOperator, values::LogicalValuesOperator,
 };
 
 pub mod create_table;
 pub mod filter;
 pub mod insert;
+pub mod limit;
 pub mod project;
 pub mod scan;
 pub mod values;
@@ -31,7 +32,7 @@ pub enum LogicalOperator {
     Project(LogicalProjectOperator),
     Scan(LogicalScanOperator),
     // Sort(SortOperator),
-    // Limit(LimitOperator),
+    Limit(LogicalLimitOperator),
     Insert(LogicalInsertOperator),
     Values(LogicalValuesOperator),
 }
@@ -54,15 +55,7 @@ impl LogicalOperator {
     pub fn new_filter_operator(predicate: BoundExpression) -> LogicalOperator {
         LogicalOperator::Filter(LogicalFilterOperator::new(predicate))
     }
-    pub fn output_schema(&self) -> Schema {
-        match self {
-            LogicalOperator::Dummy => Schema::new(vec![]),
-            LogicalOperator::CreateTable(op) => op.output_schema(),
-            LogicalOperator::Project(op) => op.output_schema(),
-            LogicalOperator::Scan(op) => op.output_schema(),
-            LogicalOperator::Insert(op) => op.output_schema(),
-            LogicalOperator::Values(op) => op.output_schema(),
-            LogicalOperator::Filter(op) => op.output_schema(),
-        }
+    pub fn new_limit_operator(limit: Option<usize>, offset: Option<usize>) -> LogicalOperator {
+        LogicalOperator::Limit(limit::LogicalLimitOperator::new(limit, offset))
     }
 }

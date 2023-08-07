@@ -12,7 +12,7 @@ use crate::{
 
 use super::operator::{
     create_table::PhysicalCreateTableOperator, filter::PhysicalFilterOperator,
-    insert::PhysicalInsertOperator, project::PhysicalProjectOperator,
+    insert::PhysicalInsertOperator, limit::PhysicalLimitOperator, project::PhysicalProjectOperator,
     table_scan::PhysicalTableScanOperator, values::PhysicalValuesOperator, PhysicalOperator,
 };
 
@@ -79,6 +79,20 @@ impl PhysicalPlan {
             operator: Arc::new(PhysicalOperator::TableScan(PhysicalTableScanOperator::new(
                 table_oid.clone(),
                 columns.clone(),
+            ))),
+            children: Vec::new(),
+        }
+    }
+    pub fn new_limit_node(
+        limit: &Option<usize>,
+        offset: &Option<usize>,
+        input: Arc<PhysicalOperator>,
+    ) -> Self {
+        Self {
+            operator: Arc::new(PhysicalOperator::Limit(PhysicalLimitOperator::new(
+                offset.clone(),
+                limit.clone(),
+                input,
             ))),
             children: Vec::new(),
         }

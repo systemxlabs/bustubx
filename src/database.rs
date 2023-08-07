@@ -74,5 +74,6 @@ mod tests {
         db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
         db.run(&"select * from t1".to_string());
         db.run(&"select a from t1 where a <= b".to_string());
+        db.run(&"select * from t1 limit 1 offset 1".to_string());
     }
 }

@@ -1,23 +1,64 @@
 use std::sync::Arc;
 
-use crate::{binder::statement::select::SelectStatement, planner::operator::LogicalOperator};
+use crate::{
+    binder::{
+        expression::{constant::Constant, BoundExpression},
+        statement::select::SelectStatement,
+    },
+    planner::operator::LogicalOperator,
+};
 
 use super::{logical_plan::LogicalPlan, Planner};
 
 impl Planner {
     pub fn plan_select(&mut self, stmt: SelectStatement) -> LogicalPlan {
-        let table_scan_plan = Arc::new(self.plan_table_ref(stmt.from_table));
+        let mut plan = self.plan_table_ref(stmt.from_table);
 
-        let filter_plan = stmt.where_clause.map(|predicate| LogicalPlan {
-            operator: LogicalOperator::new_filter_operator(predicate),
-            children: vec![table_scan_plan.clone()],
-        });
+        if stmt.limit.is_some() || stmt.offset.is_some() {
+            let mut limit_plan = self.plan_limit(&stmt.limit, &stmt.offset);
+            limit_plan.children.push(Arc::new(plan));
+            plan = limit_plan;
+        }
 
-        let project_plan = LogicalPlan {
+        if stmt.where_clause.is_some() {
+            let mut filter_plan = LogicalPlan {
+                operator: LogicalOperator::new_filter_operator(stmt.where_clause.unwrap()),
+                children: Vec::new(),
+            };
+            filter_plan.children.push(Arc::new(plan));
+            plan = filter_plan;
+        }
+
+        let plan = LogicalPlan {
             operator: LogicalOperator::new_project_operator(stmt.select_list),
-            children: filter_plan
-                .map_or(vec![table_scan_plan.clone()], |child| vec![Arc::new(child)]),
+            children: vec![Arc::new(plan)],
         };
-        project_plan
+
+        plan
+    }
+
+    pub fn plan_limit(
+        &self,
+        limit: &Option<BoundExpression>,
+        offset: &Option<BoundExpression>,
+    ) -> LogicalPlan {
+        let limit = limit.as_ref().map(|limit| match limit {
+            BoundExpression::Constant(ref constant) => match constant.value {
+                Constant::Number(ref v) => v.parse::<usize>().unwrap(),
+                _ => panic!("limit must be a number"),
+            },
+            _ => panic!("limit must be a number"),
+        });
+        let offset = offset.as_ref().map(|offset| match offset {
+            BoundExpression::Constant(ref constant) => match constant.value {
+                Constant::Number(ref v) => v.parse::<usize>().unwrap(),
+                _ => panic!("offset must be a number"),
+            },
+            _ => panic!("offset must be a number"),
+        });
+        LogicalPlan {
+            operator: LogicalOperator::new_limit_operator(limit, offset),
+            children: Vec::new(),
+        }
     }
 }

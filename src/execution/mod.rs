@@ -70,6 +70,7 @@ impl ExecutionEngine<'_> {
             PhysicalOperator::TableScan(_) => ExecutionPlan::new_table_scan_node(physical_operator),
             PhysicalOperator::Filter(_) => ExecutionPlan::new_filter_node(physical_operator),
             PhysicalOperator::Project(_) => ExecutionPlan::new_project_node(physical_operator),
+            PhysicalOperator::Limit(_) => ExecutionPlan::new_limit_node(physical_operator),
             _ => unimplemented!(),
         }
     }

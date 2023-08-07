@@ -1,4 +1,4 @@
-use sqlparser::ast::{Query, SelectItem, SetExpr};
+use sqlparser::ast::{Expr, Offset, Query, SelectItem, SetExpr};
 
 use crate::binder::expression::{alias::BoundAlias, BoundExpression};
 
@@ -65,10 +65,27 @@ impl<'a> Binder<'a> {
             .as_ref()
             .map(|expr| self.bind_expression(expr));
 
+        // bind limit and offset
+        let (limit, offset) = self.bind_limit(&query.limit, &query.offset);
+
         SelectStatement {
             select_list,
             from_table,
             where_clause,
+            limit,
+            offset,
         }
+    }
+
+    pub fn bind_limit(
+        &self,
+        limit: &Option<Expr>,
+        offset: &Option<Offset>,
+    ) -> (Option<BoundExpression>, Option<BoundExpression>) {
+        let limit = limit.as_ref().map(|expr| self.bind_expression(&expr));
+        let offset = offset
+            .as_ref()
+            .map(|offset| self.bind_expression(&offset.value));
+        (limit, offset)
     }
 }
