@@ -86,8 +86,46 @@ impl BufferPoolManager {
         return Some(&mut self.pool[frame_id as usize]);
     }
 
+    pub fn fetch_page(&mut self, page_id: PageId) -> Option<&Page> {
+        if self.page_table.contains_key(&page_id) {
+            let frame_id = self.page_table[&page_id];
+            let page = &mut self.pool[frame_id as usize];
+            page.pin_count += 1;
+            self.replacer.set_evictable(frame_id, false);
+            return Some(page);
+        } else {
+            // 分配一个frame
+            let frame_id = if !self.free_list.is_empty() {
+                self.free_list.pop_front().unwrap()
+            } else {
+                if let Some(frame_id) = self.replacer.evict() {
+                    let evicted_page = &self.pool[frame_id as usize];
+                    let evicted_page_id = evicted_page.page_id;
+                    if evicted_page.is_dirty {
+                        self.flush_page(evicted_page_id);
+                    }
+                    self.page_table.remove(&evicted_page_id);
+                    frame_id
+                } else {
+                    return None;
+                }
+            };
+            // 从磁盘读取页
+            self.page_table.insert(page_id, frame_id);
+            let mut new_page = Page::new(page_id);
+            new_page.pin_count = 1;
+            new_page.data = self.disk_manager.read_page(page_id);
+            self.pool[frame_id as usize] = new_page;
+
+            self.replacer.record_access(frame_id);
+            self.replacer.set_evictable(frame_id, false);
+
+            return Some(&self.pool[frame_id as usize]);
+        }
+    }
+
     // 从缓冲池中获取指定页
-    pub fn fetch_page(&mut self, page_id: PageId) -> Option<&mut Page> {
+    pub fn fetch_page_mut(&mut self, page_id: PageId) -> Option<&mut Page> {
         if self.page_table.contains_key(&page_id) {
             let frame_id = self.page_table[&page_id];
             let page = &mut self.pool[frame_id as usize];
@@ -204,7 +242,7 @@ mod tests {
 
     #[test]
     pub fn test_buffer_pool_manager_new_page() {
-        let db_path = "./test_new_page.db";
+        let db_path = "./test_buffer_pool_manager_new_page.db";
         let _ = remove_file(db_path);
 
         let disk_manager = DiskManager::new(db_path.to_string());
@@ -232,7 +270,7 @@ mod tests {
 
     #[test]
     pub fn test_buffer_pool_manager_unpin_page() {
-        let db_path = "./test_new_page.db";
+        let db_path = "./test_buffer_pool_manager_unpin_page.db";
         let _ = remove_file(db_path);
 
         let disk_manager = DiskManager::new(db_path.to_string());
@@ -253,7 +291,7 @@ mod tests {
 
     #[test]
     pub fn test_buffer_pool_manager_fetch_page() {
-        let db_path = "./test_new_page.db";
+        let db_path = "./test_buffer_pool_manager_fetch_page.db";
         let _ = remove_file(db_path);
 
         let disk_manager = DiskManager::new(db_path.to_string());
@@ -266,16 +304,23 @@ mod tests {
         let page = buffer_pool_manager.new_page().unwrap();
         buffer_pool_manager.unpin_page(2, false);
 
-        let page = buffer_pool_manager.fetch_page(0);
+        let page = buffer_pool_manager.fetch_page_mut(0);
         assert!(page.is_some());
         assert_eq!(page.unwrap().page_id, 0);
+        buffer_pool_manager.unpin_page(0, false);
+
+        let page = buffer_pool_manager.fetch_page(1);
+        assert!(page.is_some());
+        assert_eq!(page.unwrap().page_id, 1);
+        buffer_pool_manager.unpin_page(1, false);
+        assert_eq!(buffer_pool_manager.replacer.size(), 3);
 
         let _ = remove_file(db_path);
     }
 
     #[test]
     pub fn test_buffer_pool_manager_delete_page() {
-        let db_path = "./test_delete_page.db";
+        let db_path = "./test_buffer_pool_manager_delete_page.db";
         let _ = remove_file(db_path);
 
         let disk_manager = DiskManager::new(db_path.to_string());
@@ -295,7 +340,7 @@ mod tests {
         assert_eq!(buffer_pool_manager.replacer.size(), 2);
         assert_eq!(buffer_pool_manager.page_table.len(), 2);
 
-        let page = buffer_pool_manager.fetch_page(1);
+        let page = buffer_pool_manager.fetch_page_mut(1);
         assert!(page.is_some());
         assert_eq!(page.unwrap().page_id, 1);
 

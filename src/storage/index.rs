@@ -93,7 +93,7 @@ impl BPlusTreeIndex {
         let leaf_page_id = self.find_leaf_page(key, &mut context);
         let page = self
             .buffer_pool_manager
-            .fetch_page(leaf_page_id)
+            .fetch_page_mut(leaf_page_id)
             .expect("Leaf page can not be fetched");
         let mut leaf_page =
             BPlusTreeLeafPage::from_bytes(&page.data, &self.index_metadata.key_schema);
@@ -115,7 +115,7 @@ impl BPlusTreeIndex {
                 // 更新父节点
                 let page = self
                     .buffer_pool_manager
-                    .fetch_page(page_id)
+                    .fetch_page_mut(page_id)
                     .expect("Page can not be fetched");
                 let mut tree_page =
                     BPlusTreePage::from_bytes(&page.data, &self.index_metadata.key_schema);
@@ -171,7 +171,7 @@ impl BPlusTreeIndex {
         let leaf_page_id = self.find_leaf_page(key, &mut context);
         let page = self
             .buffer_pool_manager
-            .fetch_page(leaf_page_id)
+            .fetch_page_mut(leaf_page_id)
             .expect("Leaf page can not be fetched");
         let mut leaf_page =
             BPlusTreeLeafPage::from_bytes(&page.data, &self.index_metadata.key_schema);
@@ -190,7 +190,7 @@ impl BPlusTreeIndex {
                 if let Some(left_sibling_page_id) = left_sibling_page_id {
                     let left_sibling_page = self
                         .buffer_pool_manager
-                        .fetch_page(left_sibling_page_id)
+                        .fetch_page_mut(left_sibling_page_id)
                         .expect("Left sibling page can not be fetched");
                     let mut left_sibling_tree_page = BPlusTreePage::from_bytes(
                         &left_sibling_page.data,
@@ -252,7 +252,7 @@ impl BPlusTreeIndex {
                         // 更新父节点
                         let parent_page = self
                             .buffer_pool_manager
-                            .fetch_page(parent_page_id)
+                            .fetch_page_mut(parent_page_id)
                             .expect("Parent page can not be fetched");
                         let mut parent_internal_page = BPlusTreeInternalPage::from_bytes(
                             &parent_page.data,
@@ -276,7 +276,7 @@ impl BPlusTreeIndex {
                 if let Some(right_sibling_page_id) = right_sibling_page_id {
                     let right_sibling_page = self
                         .buffer_pool_manager
-                        .fetch_page(right_sibling_page_id)
+                        .fetch_page_mut(right_sibling_page_id)
                         .expect("Right sibling page can not be fetched");
                     let mut right_sibling_tree_page = BPlusTreePage::from_bytes(
                         &right_sibling_page.data,
@@ -325,7 +325,7 @@ impl BPlusTreeIndex {
                         // 更新父节点
                         let parent_page = self
                             .buffer_pool_manager
-                            .fetch_page(parent_page_id)
+                            .fetch_page_mut(parent_page_id)
                             .expect("Parent page can not be fetched");
                         let mut parent_internal_page = BPlusTreeInternalPage::from_bytes(
                             &parent_page.data,
@@ -349,7 +349,7 @@ impl BPlusTreeIndex {
                 if let Some(left_sibling_page_id) = left_sibling_page_id {
                     let left_sibling_page = self
                         .buffer_pool_manager
-                        .fetch_page(left_sibling_page_id)
+                        .fetch_page_mut(left_sibling_page_id)
                         .expect("Left sibling page can not be fetched");
                     let mut left_sibling_tree_page = BPlusTreePage::from_bytes(
                         &left_sibling_page.data,
@@ -398,7 +398,7 @@ impl BPlusTreeIndex {
                     // 更新父节点
                     let parent_page = self
                         .buffer_pool_manager
-                        .fetch_page(parent_page_id)
+                        .fetch_page_mut(parent_page_id)
                         .expect("Parent page can not be fetched");
                     let mut parent_internal_page = BPlusTreeInternalPage::from_bytes(
                         &parent_page.data,
@@ -425,7 +425,7 @@ impl BPlusTreeIndex {
                 if let Some(right_sibling_page_id) = right_sibling_page_id {
                     let right_sibling_page = self
                         .buffer_pool_manager
-                        .fetch_page(right_sibling_page_id)
+                        .fetch_page_mut(right_sibling_page_id)
                         .expect("Right sibling page can not be fetched");
                     let mut right_sibling_tree_page = BPlusTreePage::from_bytes(
                         &right_sibling_page.data,
@@ -470,7 +470,7 @@ impl BPlusTreeIndex {
                     // 更新父节点
                     let parent_page = self
                         .buffer_pool_manager
-                        .fetch_page(parent_page_id)
+                        .fetch_page_mut(parent_page_id)
                         .expect("Parent page can not be fetched");
                     let mut parent_internal_page = BPlusTreeInternalPage::from_bytes(
                         &parent_page.data,
@@ -537,7 +537,7 @@ impl BPlusTreeIndex {
 
         let leaf_page = self
             .buffer_pool_manager
-            .fetch_page(leaf_page_id)
+            .fetch_page_mut(leaf_page_id)
             .expect("Leaf page can not be fetched");
         let leaf_page =
             BPlusTreeLeafPage::from_bytes(&leaf_page.data, &self.index_metadata.key_schema);

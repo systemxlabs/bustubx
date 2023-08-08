@@ -39,7 +39,7 @@ impl TableHeap {
         let mut last_page_id = self.last_page_id;
         let last_page = self
             .buffer_pool_manager
-            .fetch_page(self.last_page_id)
+            .fetch_page_mut(self.last_page_id)
             .expect("Can not fetch last page");
         let mut last_table_page = TablePage::from_bytes(&last_page.data);
         loop {
@@ -81,7 +81,7 @@ impl TableHeap {
     pub fn update_tuple_meta(&mut self, meta: &TupleMeta, rid: Rid) {
         let page = self
             .buffer_pool_manager
-            .fetch_page(rid.page_id)
+            .fetch_page_mut(rid.page_id)
             .expect("Can not fetch page");
         let mut table_page = TablePage::from_bytes(&page.data);
         table_page.update_tuple_meta(meta, &rid);
@@ -92,7 +92,7 @@ impl TableHeap {
     pub fn get_tuple(&mut self, rid: Rid) -> (TupleMeta, Tuple) {
         let page = self
             .buffer_pool_manager
-            .fetch_page(rid.page_id)
+            .fetch_page_mut(rid.page_id)
             .expect("Can not fetch page");
         let mut table_page = TablePage::from_bytes(&page.data);
         let result = table_page.get_tuple(&rid);
@@ -103,7 +103,7 @@ impl TableHeap {
     pub fn get_tuple_meta(&mut self, rid: Rid) -> TupleMeta {
         let page = self
             .buffer_pool_manager
-            .fetch_page(rid.page_id)
+            .fetch_page_mut(rid.page_id)
             .expect("Can not fetch page");
         let mut table_page = TablePage::from_bytes(&page.data);
         let result = table_page.get_tuple_meta(&rid);
@@ -114,7 +114,7 @@ impl TableHeap {
     pub fn get_first_rid(&mut self) -> Option<Rid> {
         let page = self
             .buffer_pool_manager
-            .fetch_page(self.first_page_id)
+            .fetch_page_mut(self.first_page_id)
             .expect("Can not fetch page");
         let table_page = TablePage::from_bytes(&page.data);
         self.buffer_pool_manager
@@ -130,7 +130,7 @@ impl TableHeap {
     pub fn get_next_rid(&mut self, rid: Rid) -> Option<Rid> {
         let page = self
             .buffer_pool_manager
-            .fetch_page(rid.page_id)
+            .fetch_page_mut(rid.page_id)
             .expect("Can not fetch page");
         let table_page = TablePage::from_bytes(&page.data);
         self.buffer_pool_manager.unpin_page(rid.page_id, false);
@@ -143,7 +143,7 @@ impl TableHeap {
         }
         let next_page = self
             .buffer_pool_manager
-            .fetch_page(table_page.next_page_id)
+            .fetch_page_mut(table_page.next_page_id)
             .expect("Can not fetch page");
         let next_table_page = TablePage::from_bytes(&next_page.data);
         self.buffer_pool_manager
