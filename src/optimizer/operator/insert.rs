@@ -1,4 +1,7 @@
-use crate::catalog::{column::Column, schema::Schema};
+use crate::catalog::{
+    column::{Column, DataType},
+    schema::Schema,
+};
 
 #[derive(Debug)]
 pub struct PhysicalInsertOperator {
@@ -13,6 +16,10 @@ impl PhysicalInsertOperator {
         }
     }
     pub fn output_schema(&self) -> Schema {
-        Schema::new(self.columns.clone())
+        Schema::new(vec![Column::new(
+            "insert_rows".to_string(),
+            DataType::Integer,
+            0,
+        )])
     }
 }

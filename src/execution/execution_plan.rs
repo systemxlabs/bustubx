@@ -50,7 +50,7 @@ impl ExecutionPlan {
     }
     pub fn new_insert_node(operator: Arc<PhysicalOperator>) -> Self {
         Self {
-            executor: Executor::VolcanoInsert(VolcanoInsertExecutor {}),
+            executor: Executor::VolcanoInsert(VolcanoInsertExecutor::new()),
             operator,
             children: Vec::new(),
         }
