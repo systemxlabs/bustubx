@@ -1,4 +1,4 @@
-use crate::binder::expression::BoundExpression;
+use crate::{binder::expression::BoundExpression, catalog::column::ColumnFullName};
 
 use super::BoundTableRef;
 
@@ -24,4 +24,11 @@ pub struct BoundJoinRef {
     pub left: Box<BoundTableRef>,
     pub right: Box<BoundTableRef>,
     pub condition: Option<BoundExpression>,
+}
+impl BoundJoinRef {
+    pub fn column_names(&self) -> Vec<ColumnFullName> {
+        let mut columns = self.left.column_names();
+        columns.extend(self.right.column_names());
+        columns
+    }
 }

@@ -39,19 +39,7 @@ impl<'a> Binder<'a> {
                     // )
                 }
                 SelectItem::Wildcard(_) => {
-                    select_list.extend(match from_table {
-                        BoundTableRef::BaseTable(ref base_table) => base_table
-                            .schema
-                            .columns
-                            .iter()
-                            .map(|c| {
-                                BoundExpression::ColumnRef(BoundColumnRef {
-                                    col_names: vec![c.column_name.clone()],
-                                })
-                            })
-                            .collect::<Vec<BoundExpression>>(),
-                        _ => unimplemented!(),
-                    });
+                    select_list.extend(from_table.gen_select_list());
                 }
             }
         }

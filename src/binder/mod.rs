@@ -1,6 +1,9 @@
-use sqlparser::ast::{
-    Expr, Ident, JoinConstraint, JoinOperator, ObjectName, Query, SetExpr, Statement, TableFactor,
-    TableWithJoins,
+use sqlparser::{
+    ast::{
+        Expr, Ident, JoinConstraint, JoinOperator, ObjectName, Query, SetExpr, Statement,
+        TableFactor, TableWithJoins,
+    },
+    keywords::NO,
 };
 
 use crate::{
@@ -10,7 +13,7 @@ use crate::{
     },
     catalog::{
         catalog::{Catalog, DEFAULT_DATABASE_NAME, DEFAULT_SCHEMA_NAME},
-        column::Column,
+        column::{Column, ColumnFullName},
     },
     dbtype::value::Value,
 };
@@ -74,11 +77,25 @@ impl<'a> Binder<'a> {
                 value: Constant::from_sqlparser_value(value),
             }),
             Expr::Identifier(ident) => BoundExpression::ColumnRef(BoundColumnRef {
-                col_names: vec![ident.value.clone()],
+                col_name: ColumnFullName::new(None, ident.value.clone()),
             }),
-            Expr::CompoundIdentifier(idents) => BoundExpression::ColumnRef(BoundColumnRef {
-                col_names: idents.iter().map(|i| i.value.clone()).collect(),
-            }),
+            Expr::CompoundIdentifier(idents) => {
+                if idents.len() == 0 {
+                    panic!("Invalid column name");
+                }
+                if idents.len() == 1 {
+                    BoundExpression::ColumnRef(BoundColumnRef {
+                        col_name: ColumnFullName::new(None, idents[0].value.clone()),
+                    })
+                } else {
+                    BoundExpression::ColumnRef(BoundColumnRef {
+                        col_name: ColumnFullName::new(
+                            Some(idents[0].value.clone()),
+                            idents[1].value.clone(),
+                        ),
+                    })
+                }
+            }
             _ => unimplemented!(),
         }
     }

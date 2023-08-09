@@ -1,5 +1,19 @@
 use sqlparser::ast::ColumnDef;
 
+#[derive(Debug, Clone)]
+pub struct ColumnFullName {
+    pub table_name: Option<String>,
+    pub column_name: String,
+}
+impl ColumnFullName {
+    pub fn new(table_name: Option<String>, column_name: String) -> Self {
+        Self {
+            table_name,
+            column_name,
+        }
+    }
+}
+
 // 列定义
 #[derive(Debug, Clone)]
 pub struct Column {
