@@ -38,4 +38,10 @@ impl PhysicalOperator {
             Self::Limit(op) => op.output_schema(),
         }
     }
+    pub fn is_insert(&self) -> bool {
+        match self {
+            Self::Insert(_) => true,
+            _ => false,
+        }
+    }
 }

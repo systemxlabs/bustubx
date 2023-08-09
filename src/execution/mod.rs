@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::{
     catalog::catalog::Catalog,
     optimizer::{operator::PhysicalOperator, physical_plan::PhysicalPlan},
+    storage::tuple::Tuple,
 };
 
 use self::execution_plan::ExecutionPlan;
@@ -23,17 +24,23 @@ pub struct ExecutionEngine<'a> {
     pub context: ExecutionContext<'a>,
 }
 impl ExecutionEngine<'_> {
-    pub fn execute(&mut self, plan: ExecutionPlan) {
+    pub fn execute(&mut self, plan: ExecutionPlan) -> Vec<Tuple> {
         plan.init(&mut self.context);
+        let mut result = Vec::new();
         loop {
             let next_result = plan.next(&mut self.context);
             if next_result.tuple.is_some() {
-                println!("tuple: {:?}", next_result.tuple.unwrap());
+                result.push(next_result.tuple.unwrap());
             }
             if next_result.exhausted {
                 break;
             }
         }
+        return if plan.operator.is_insert() && result.len() > 0 {
+            vec![result.last().unwrap().clone()]
+        } else {
+            result
+        };
     }
 
     // 生成执行计划

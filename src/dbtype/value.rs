@@ -1,6 +1,6 @@
 use crate::catalog::column::DataType;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
     // NULL is less than any non-NULL values
     // Null,
