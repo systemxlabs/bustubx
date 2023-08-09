@@ -1,6 +1,6 @@
 use crate::catalog::{catalog::TableOid, schema::Schema};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BoundBaseTableRef {
     pub table: String,
     pub oid: TableOid,

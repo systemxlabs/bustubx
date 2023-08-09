@@ -2,19 +2,26 @@ use crate::binder::expression::BoundExpression;
 
 use super::BoundTableRef;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum JoinType {
-    Left,
-    Right,
+    // select * from x inner join y on ...
     Inner,
-    Outer,
+    // select * from x left (outer) join y on ...
+    LeftOuter,
+    // select * from x right (outer) join y on ...
+    RightOuter,
+    // select * from x full (outer) join y on ...
+    FullOuter,
+    // select * from x, y
+    // select * from x cross join y
+    CrossJoin,
 }
 
 /// A join. e.g., `SELECT * FROM x INNER JOIN y ON ...`, where `x INNER JOIN y ON ...` is `BoundJoinRef`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BoundJoinRef {
     pub join_type: JoinType,
     pub left: Box<BoundTableRef>,
     pub right: Box<BoundTableRef>,
-    pub condition: BoundExpression,
+    pub condition: Option<BoundExpression>,
 }

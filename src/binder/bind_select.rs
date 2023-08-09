@@ -14,10 +14,7 @@ impl<'a> Binder<'a> {
             _ => unimplemented!(),
         };
 
-        if select.from.len() != 1 {
-            panic!("Only support single table select")
-        }
-        let from_table = self.bind_table_ref(&select.from[0].relation);
+        let from_table = self.bind_from(&select.from);
 
         // bind select list
         let mut select_list = vec![];

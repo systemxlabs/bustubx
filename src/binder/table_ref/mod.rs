@@ -4,9 +4,8 @@ pub mod base_table;
 pub mod join;
 pub mod subquery;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BoundTableRef {
-    Invalid,
     BaseTable(BoundBaseTableRef),
     Join(BoundJoinRef),
     Subquery(BoundSubqueryRef),

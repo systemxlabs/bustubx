@@ -1,4 +1,7 @@
-use sqlparser::ast::{Expr, Ident, ObjectName, Query, SetExpr, Statement, TableFactor};
+use sqlparser::ast::{
+    Expr, Ident, JoinConstraint, JoinOperator, ObjectName, Query, SetExpr, Statement, TableFactor,
+    TableWithJoins,
+};
 
 use crate::{
     binder::expression::{
@@ -21,7 +24,11 @@ use self::{
         create_table::CreateTableStatement, insert::InsertStatement, select::SelectStatement,
         BoundStatement,
     },
-    table_ref::{base_table::BoundBaseTableRef, BoundTableRef},
+    table_ref::{
+        base_table::BoundBaseTableRef,
+        join::{BoundJoinRef, JoinType},
+        BoundTableRef,
+    },
 };
 
 pub mod bind_create_table;
@@ -69,10 +76,85 @@ impl<'a> Binder<'a> {
             Expr::Identifier(ident) => BoundExpression::ColumnRef(BoundColumnRef {
                 col_names: vec![ident.value.clone()],
             }),
+            Expr::CompoundIdentifier(idents) => BoundExpression::ColumnRef(BoundColumnRef {
+                col_names: idents.iter().map(|i| i.value.clone()).collect(),
+            }),
             _ => unimplemented!(),
         }
     }
-    pub fn bind_table_ref(&self, table: &TableFactor) -> BoundTableRef {
+    pub fn bind_from(&self, from: &Vec<TableWithJoins>) -> BoundTableRef {
+        let from_tables = from
+            .iter()
+            .map(|t| self.bind_joins(t))
+            .collect::<Vec<BoundTableRef>>();
+
+        // 每个表通过 cross join 连接
+        let mut left_table_ref = from_tables[0].clone();
+        for right_table_ref in from_tables.iter().skip(1) {
+            left_table_ref = BoundTableRef::Join(BoundJoinRef {
+                left: Box::new(left_table_ref),
+                right: Box::new(right_table_ref.clone()),
+                join_type: JoinType::CrossJoin,
+                condition: None,
+            });
+        }
+        return left_table_ref;
+    }
+
+    pub fn bind_joins(&self, table_with_joins: &TableWithJoins) -> BoundTableRef {
+        let mut left_table_ref =
+            BoundTableRef::BaseTable(self.bind_base_table_ref(&table_with_joins.relation));
+        for join in table_with_joins.joins.iter() {
+            let right_table_ref =
+                BoundTableRef::BaseTable(self.bind_base_table_ref(&join.relation));
+            match join.join_operator {
+                JoinOperator::Inner(ref constraint) => {
+                    left_table_ref = BoundTableRef::Join(BoundJoinRef {
+                        left: Box::new(left_table_ref),
+                        right: Box::new(right_table_ref),
+                        join_type: JoinType::Inner,
+                        condition: Some(self.bind_join_constraint(constraint)),
+                    });
+                }
+                JoinOperator::LeftOuter(ref constraint) => {
+                    left_table_ref = BoundTableRef::Join(BoundJoinRef {
+                        left: Box::new(left_table_ref),
+                        right: Box::new(right_table_ref),
+                        join_type: JoinType::LeftOuter,
+                        condition: Some(self.bind_join_constraint(constraint)),
+                    });
+                }
+                JoinOperator::RightOuter(ref constraint) => {
+                    left_table_ref = BoundTableRef::Join(BoundJoinRef {
+                        left: Box::new(left_table_ref),
+                        right: Box::new(right_table_ref),
+                        join_type: JoinType::RightOuter,
+                        condition: Some(self.bind_join_constraint(constraint)),
+                    });
+                }
+                JoinOperator::FullOuter(ref constraint) => {
+                    left_table_ref = BoundTableRef::Join(BoundJoinRef {
+                        left: Box::new(left_table_ref),
+                        right: Box::new(right_table_ref),
+                        join_type: JoinType::FullOuter,
+                        condition: Some(self.bind_join_constraint(constraint)),
+                    });
+                }
+                JoinOperator::CrossJoin => {
+                    left_table_ref = BoundTableRef::Join(BoundJoinRef {
+                        left: Box::new(left_table_ref),
+                        right: Box::new(right_table_ref),
+                        join_type: JoinType::CrossJoin,
+                        condition: None,
+                    });
+                }
+                _ => unimplemented!(),
+            }
+        }
+        return left_table_ref;
+    }
+
+    fn bind_base_table_ref(&self, table: &TableFactor) -> BoundBaseTableRef {
         match table {
             TableFactor::Table { name, alias, .. } => {
                 let (_database, _schema, table) = match name.0.as_slice() {
@@ -102,13 +184,20 @@ impl<'a> Binder<'a> {
 
                 let alias = alias.as_ref().map(|a| a.name.value.clone());
 
-                BoundTableRef::BaseTable(BoundBaseTableRef {
+                BoundBaseTableRef {
                     table: table.to_string(),
                     oid: table_info.oid,
                     alias,
                     schema: table_info.schema.clone(),
-                })
+                }
             }
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn bind_join_constraint(&self, constraint: &JoinConstraint) -> BoundExpression {
+        match constraint {
+            JoinConstraint::On(expr) => self.bind_expression(expr),
             _ => unimplemented!(),
         }
     }

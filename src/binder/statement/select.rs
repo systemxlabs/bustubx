@@ -1,6 +1,6 @@
 use crate::binder::{expression::BoundExpression, table_ref::BoundTableRef};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SelectStatement {
     pub select_list: Vec<BoundExpression>,
     pub from_table: BoundTableRef,

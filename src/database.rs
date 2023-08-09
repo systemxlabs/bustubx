@@ -75,5 +75,9 @@ mod tests {
         db.run(&"select * from t1".to_string());
         db.run(&"select a from t1 where a <= b".to_string());
         db.run(&"select * from t1 limit 1 offset 1".to_string());
+        // db.run(&"create table t2 (a int, b int)".to_string());
+        // db.run(&"create table t3 (a int, b int)".to_string());
+        // db.run(&"create table t4 (a int, b int)".to_string());
+        // db.run(&"select * from t1, t2, t3 inner join t4 on t3.id = t4.id".to_string());
     }
 }
