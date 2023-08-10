@@ -66,6 +66,9 @@ impl VolcanoExecutor for VolcanoInsertExecutor {
                 };
                 table_heap.insert_tuple(&tuple_meta, &tuple);
                 *insert_rows += 1;
+            }
+            // 只在最后一次next的时候返回插入的行数
+            if next_result.exhausted {
                 NextResult::new(
                     Some(Tuple::from_values(vec![Value::Integer(
                         *insert_rows as i32,

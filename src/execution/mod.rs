@@ -36,11 +36,7 @@ impl ExecutionEngine<'_> {
                 break;
             }
         }
-        return if plan.operator.is_insert() && result.len() > 0 {
-            vec![result.last().unwrap().clone()]
-        } else {
-            result
-        };
+        result
     }
 
     // 生成执行计划
