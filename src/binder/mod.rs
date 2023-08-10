@@ -119,11 +119,9 @@ impl<'a> Binder<'a> {
     }
 
     pub fn bind_joins(&self, table_with_joins: &TableWithJoins) -> BoundTableRef {
-        let mut left_table_ref =
-            BoundTableRef::BaseTable(self.bind_base_table_ref(&table_with_joins.relation));
+        let mut left_table_ref = self.bind_table_ref(&table_with_joins.relation);
         for join in table_with_joins.joins.iter() {
-            let right_table_ref =
-                BoundTableRef::BaseTable(self.bind_base_table_ref(&join.relation));
+            let right_table_ref = self.bind_table_ref(&join.relation);
             match join.join_operator {
                 JoinOperator::Inner(ref constraint) => {
                     left_table_ref = BoundTableRef::Join(BoundJoinRef {
@@ -171,7 +169,8 @@ impl<'a> Binder<'a> {
         return left_table_ref;
     }
 
-    fn bind_base_table_ref(&self, table: &TableFactor) -> BoundBaseTableRef {
+    fn bind_table_ref(&self, table: &TableFactor) -> BoundTableRef {
+        println!("bind_base_table_ref {:?}", table);
         match table {
             TableFactor::Table { name, alias, .. } => {
                 let (_database, _schema, table) = match name.0.as_slice() {
@@ -201,12 +200,20 @@ impl<'a> Binder<'a> {
 
                 let alias = alias.as_ref().map(|a| a.name.value.clone());
 
-                BoundBaseTableRef {
+                BoundTableRef::BaseTable(BoundBaseTableRef {
                     table: table.to_string(),
                     oid: table_info.oid,
                     alias,
                     schema: table_info.schema.clone(),
-                }
+                })
+            }
+            TableFactor::NestedJoin {
+                table_with_joins,
+                alias,
+            } => {
+                let table_ref = self.bind_joins(table_with_joins);
+                // TODO 记录alias
+                table_ref
             }
             _ => unimplemented!(),
         }

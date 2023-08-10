@@ -83,10 +83,12 @@ mod tests {
     #[test]
     pub fn test_crud_sql() {
         let mut db = super::Database::new_on_disk("test.db");
-        // db.run(&"create table t2 (a int, b int)".to_string());
-        // db.run(&"create table t3 (a int, b int)".to_string());
+        db.run(&"create table t1 (a int, b int)".to_string());
+        db.run(&"create table t2 (a int, b int)".to_string());
+        db.run(&"create table t3 (a int, b int)".to_string());
         // db.run(&"create table t4 (a int, b int)".to_string());
         // db.run(&"select * from t1, t2, t3 inner join t4 on t3.id = t4.id".to_string());
+        // db.run(&"select * from (t1 inner join t2 on t1.a = t2.a) inner join t3 on t1.a = t3.a ".to_string());
     }
 
     #[test]
@@ -138,7 +140,12 @@ mod tests {
 
         let mut db = super::Database::new_on_disk(db_path);
         db.run(&"create table t1 (a int, b int)".to_string());
+
+        let select_result = db.run(&"select * from t1".to_string());
+        assert_eq!(select_result.len(), 0);
+
         db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
+
         let select_result = db.run(&"select * from t1".to_string());
         assert_eq!(select_result.len(), 3);
 
