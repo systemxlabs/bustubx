@@ -1,6 +1,6 @@
 [English](./README_EN.md)
 
-# tinysql - 简单关系型数据库 (基于 CMU 15-455 课程)
+# tinysql - 简单关系型数据库 (基于 CMU 15-445 课程)
 - [x] Disk Manager 磁盘管理
 - [x] LRU-K置换算法
 - [ ] 可扩展哈希表
