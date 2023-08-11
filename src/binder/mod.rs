@@ -1,10 +1,4 @@
-use sqlparser::{
-    ast::{
-        Expr, Ident, JoinConstraint, JoinOperator, ObjectName, Query, SetExpr, Statement,
-        TableFactor, TableWithJoins,
-    },
-    keywords::NO,
-};
+use sqlparser::ast::{Expr, JoinConstraint, JoinOperator, Statement, TableFactor, TableWithJoins};
 
 use crate::{
     binder::expression::{
@@ -13,9 +7,8 @@ use crate::{
     },
     catalog::{
         catalog::{Catalog, DEFAULT_DATABASE_NAME, DEFAULT_SCHEMA_NAME},
-        column::{Column, ColumnFullName},
+        column::ColumnFullName,
     },
-    dbtype::value::Value,
 };
 
 use self::{

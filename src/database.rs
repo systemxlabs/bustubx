@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use crate::{
-    binder::{statement::BoundStatement, Binder, BinderContext},
+    binder::{Binder, BinderContext},
     buffer::buffer_pool::BufferPoolManager,
-    catalog::{catalog::Catalog, schema::Schema},
+    catalog::catalog::Catalog,
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     execution::{ExecutionContext, ExecutionEngine},
     optimizer::Optimizer,

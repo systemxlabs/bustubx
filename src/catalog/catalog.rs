@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::atomic::AtomicU32};
 
 use crate::{
-    buffer::{self, buffer_pool::BufferPoolManager},
+    buffer::buffer_pool::BufferPoolManager,
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     storage::{index::BPlusTreeIndex, table_heap::TableHeap},
 };

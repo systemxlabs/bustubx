@@ -1,5 +1,3 @@
-use sqlparser::ast::{ColumnDef, ObjectName};
-
 use crate::catalog::column::Column;
 
 #[derive(Debug)]
