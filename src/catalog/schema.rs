@@ -24,7 +24,7 @@ impl Schema {
     }
 
     pub fn get_col_by_name(&self, col_full_name: &ColumnFullName) -> Option<&Column> {
-        // if table name not specified, then find the first column with the same column name
+        // if table name not specified, then match column with the column name
         self.columns.iter().find(|c| {
             if col_full_name.table.is_none() {
                 c.full_name.column == col_full_name.column
