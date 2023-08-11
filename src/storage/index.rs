@@ -778,10 +778,10 @@ mod tests {
             "test_index".to_string(),
             "test_table".to_string(),
             &Schema::new(vec![
-                Column::new("a".to_string(), DataType::TinyInt, 0),
-                Column::new("b".to_string(), DataType::SmallInt, 0),
-                Column::new("c".to_string(), DataType::TinyInt, 0),
-                Column::new("d".to_string(), DataType::SmallInt, 0),
+                Column::new(None, "a".to_string(), DataType::TinyInt, 0),
+                Column::new(None, "b".to_string(), DataType::SmallInt, 0),
+                Column::new(None, "c".to_string(), DataType::TinyInt, 0),
+                Column::new(None, "d".to_string(), DataType::SmallInt, 0),
             ]),
             vec![1, 3],
         );
@@ -789,17 +789,19 @@ mod tests {
         assert_eq!(
             index_metadata
                 .key_schema
-                .get_by_index(0)
+                .get_col_by_index(0)
                 .unwrap()
-                .column_name,
+                .full_name
+                .column,
             "b"
         );
         assert_eq!(
             index_metadata
                 .key_schema
-                .get_by_index(1)
+                .get_col_by_index(1)
                 .unwrap()
-                .column_name,
+                .full_name
+                .column,
             "d"
         );
     }
@@ -813,8 +815,8 @@ mod tests {
             "test_index".to_string(),
             "test_table".to_string(),
             &Schema::new(vec![
-                Column::new("a".to_string(), DataType::TinyInt, 0),
-                Column::new("b".to_string(), DataType::SmallInt, 0),
+                Column::new(None, "a".to_string(), DataType::TinyInt, 0),
+                Column::new(None, "b".to_string(), DataType::SmallInt, 0),
             ]),
             vec![0, 1],
         );
@@ -874,8 +876,8 @@ mod tests {
             "test_index".to_string(),
             "test_table".to_string(),
             &Schema::new(vec![
-                Column::new("a".to_string(), DataType::TinyInt, 0),
-                Column::new("b".to_string(), DataType::SmallInt, 0),
+                Column::new(None, "a".to_string(), DataType::TinyInt, 0),
+                Column::new(None, "b".to_string(), DataType::SmallInt, 0),
             ]),
             vec![0, 1],
         );

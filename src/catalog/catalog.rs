@@ -143,55 +143,103 @@ mod tests {
         let mut catalog = super::Catalog::new(buffer_pool_manager);
 
         let schema = Schema::new(vec![
-            Column::new("a".to_string(), DataType::TinyInt, 0),
-            Column::new("b".to_string(), DataType::SmallInt, 0),
-            Column::new("c".to_string(), DataType::Integer, 0),
+            Column::new(None, "a".to_string(), DataType::TinyInt, 0),
+            Column::new(None, "b".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "c".to_string(), DataType::Integer, 0),
         ]);
         let table_info = catalog.create_table("test_table1".to_string(), schema);
         assert!(table_info.is_some());
         let table_info = table_info.unwrap();
         assert_eq!(table_info.name, "test_table1");
         assert_eq!(table_info.schema.column_count(), 3);
-        assert_eq!(table_info.schema.get_by_index(0).unwrap().column_name, "a");
         assert_eq!(
-            table_info.schema.get_by_index(0).unwrap().column_type,
+            table_info
+                .schema
+                .get_col_by_index(0)
+                .unwrap()
+                .full_name
+                .column,
+            "a"
+        );
+        assert_eq!(
+            table_info.schema.get_col_by_index(0).unwrap().column_type,
             DataType::TinyInt
         );
-        assert_eq!(table_info.schema.get_by_index(1).unwrap().column_name, "b");
         assert_eq!(
-            table_info.schema.get_by_index(1).unwrap().column_type,
+            table_info
+                .schema
+                .get_col_by_index(1)
+                .unwrap()
+                .full_name
+                .column,
+            "b"
+        );
+        assert_eq!(
+            table_info.schema.get_col_by_index(1).unwrap().column_type,
             DataType::SmallInt
         );
-        assert_eq!(table_info.schema.get_by_index(2).unwrap().column_name, "c");
         assert_eq!(
-            table_info.schema.get_by_index(2).unwrap().column_type,
+            table_info
+                .schema
+                .get_col_by_index(2)
+                .unwrap()
+                .full_name
+                .column,
+            "c"
+        );
+        assert_eq!(
+            table_info.schema.get_col_by_index(2).unwrap().column_type,
             DataType::Integer
         );
         assert_eq!(table_info.oid, 0);
 
         let schema = Schema::new(vec![
-            Column::new("d".to_string(), DataType::Integer, 0),
-            Column::new("e".to_string(), DataType::SmallInt, 0),
-            Column::new("f".to_string(), DataType::TinyInt, 0),
+            Column::new(None, "d".to_string(), DataType::Integer, 0),
+            Column::new(None, "e".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "f".to_string(), DataType::TinyInt, 0),
         ]);
         let table_info = catalog.create_table("test_table2".to_string(), schema);
         assert!(table_info.is_some());
         let table_info = table_info.unwrap();
         assert_eq!(table_info.name, "test_table2");
         assert_eq!(table_info.schema.column_count(), 3);
-        assert_eq!(table_info.schema.get_by_index(0).unwrap().column_name, "d");
         assert_eq!(
-            table_info.schema.get_by_index(0).unwrap().column_type,
+            table_info
+                .schema
+                .get_col_by_index(0)
+                .unwrap()
+                .full_name
+                .column,
+            "d"
+        );
+        assert_eq!(
+            table_info.schema.get_col_by_index(0).unwrap().column_type,
             DataType::Integer
         );
-        assert_eq!(table_info.schema.get_by_index(1).unwrap().column_name, "e");
         assert_eq!(
-            table_info.schema.get_by_index(1).unwrap().column_type,
+            table_info
+                .schema
+                .get_col_by_index(1)
+                .unwrap()
+                .full_name
+                .column,
+            "e"
+        );
+        assert_eq!(
+            table_info.schema.get_col_by_index(1).unwrap().column_type,
             DataType::SmallInt
         );
-        assert_eq!(table_info.schema.get_by_index(2).unwrap().column_name, "f");
         assert_eq!(
-            table_info.schema.get_by_index(2).unwrap().column_type,
+            table_info
+                .schema
+                .get_col_by_index(2)
+                .unwrap()
+                .full_name
+                .column,
+            "f"
+        );
+        assert_eq!(
+            table_info.schema.get_col_by_index(2).unwrap().column_type,
             DataType::TinyInt
         );
         assert_eq!(table_info.oid, 1);
@@ -209,16 +257,16 @@ mod tests {
         let mut catalog = super::Catalog::new(buffer_pool_manager);
 
         let schema = Schema::new(vec![
-            Column::new("a".to_string(), DataType::TinyInt, 0),
-            Column::new("b".to_string(), DataType::SmallInt, 0),
-            Column::new("c".to_string(), DataType::Integer, 0),
+            Column::new(None, "a".to_string(), DataType::TinyInt, 0),
+            Column::new(None, "b".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "c".to_string(), DataType::Integer, 0),
         ]);
         let _ = catalog.create_table("test_table1".to_string(), schema);
 
         let schema = Schema::new(vec![
-            Column::new("d".to_string(), DataType::Integer, 0),
-            Column::new("e".to_string(), DataType::SmallInt, 0),
-            Column::new("f".to_string(), DataType::TinyInt, 0),
+            Column::new(None, "d".to_string(), DataType::Integer, 0),
+            Column::new(None, "e".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "f".to_string(), DataType::TinyInt, 0),
         ]);
         let _ = catalog.create_table("test_table2".to_string(), schema);
 

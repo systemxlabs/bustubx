@@ -1,4 +1,4 @@
-use super::column::Column;
+use super::column::{Column, ColumnFullName};
 
 #[derive(Debug, Clone)]
 pub struct Schema {
@@ -23,11 +23,18 @@ impl Schema {
         Self::new(columns)
     }
 
-    pub fn get_by_col_name(&self, col_name: &str) -> Option<&Column> {
-        self.columns.iter().find(|c| c.column_name == col_name)
+    pub fn get_col_by_name(&self, col_full_name: &ColumnFullName) -> Option<&Column> {
+        // if table name not specified, then find the first column with the same column name
+        self.columns.iter().find(|c| {
+            if col_full_name.table.is_none() {
+                c.full_name.column == col_full_name.column
+            } else {
+                c.full_name == *col_full_name
+            }
+        })
     }
 
-    pub fn get_by_index(&self, index: usize) -> Option<&Column> {
+    pub fn get_col_by_index(&self, index: usize) -> Option<&Column> {
         self.columns.get(index)
     }
 
