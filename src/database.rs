@@ -20,6 +20,7 @@ impl Database {
         let disk_manager = Arc::new(DiskManager::new(db_path.to_string()));
         let buffer_pool_manager =
             BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
+        // TODO load catalog from disk
         let catalog = Catalog::new(buffer_pool_manager);
         Self {
             disk_manager,
@@ -86,8 +87,8 @@ mod tests {
         db.run(&"create table t1 (a int, b int)".to_string());
         db.run(&"create table t2 (a int, b int)".to_string());
         db.run(&"create table t3 (a int, b int)".to_string());
-        // db.run(&"create table t4 (a int, b int)".to_string());
-        // db.run(&"select * from t1, t2, t3 inner join t4 on t3.id = t4.id".to_string());
+        db.run(&"create table t4 (a int, b int)".to_string());
+        db.run(&"select * from t1, t2, t3 inner join t4 on t3.id = t4.id".to_string());
         // db.run(&"select * from (t1 inner join t2 on t1.a = t2.a) inner join t3 on t1.a = t3.a ".to_string());
     }
 
@@ -228,6 +229,61 @@ mod tests {
             select_result[0].get_value_by_col_id(&schema, 1),
             Value::Integer(3)
         );
+
+        let _ = std::fs::remove_file(db_path);
+    }
+
+    #[test]
+    pub fn test_select_join_sql() {
+        let db_path = "test_select_join_sql.db";
+        let _ = std::fs::remove_file(db_path);
+
+        let mut db = super::Database::new_on_disk(db_path);
+        db.run(&"create table t1 (a int, b int)".to_string());
+        db.run(&"create table t2 (a int, b int)".to_string());
+        db.run(&"insert into t1 values (1, 1), (2, 2), (3, 3)".to_string());
+        db.run(&"insert into t2 values (4, 4), (5, 5), (6, 6)".to_string());
+        let select_result = db.run(&"select * from t1, t2".to_string());
+        // assert_eq!(select_result.len(), 9);
+
+        // let schema = Schema::new(vec![
+        //     Column::new("a".to_string(), DataType::Integer, 0),
+        //     Column::new("b".to_string(), DataType::Integer, 1),
+        //     Column::new("a".to_string(), DataType::Integer, 0),
+        //     Column::new("b".to_string(), DataType::Integer, 1),
+        // ]);
+        // assert_eq!(
+        //     select_result[0].get_value_by_col_id(&schema, 0),
+        //     Value::Integer(1)
+        // );
+        // assert_eq!(
+        //     select_result[0].get_value_by_col_id(&schema, 1),
+        //     Value::Integer(1)
+        // );
+        // assert_eq!(
+        //     select_result[0].get_value_by_col_id(&schema, 2),
+        //     Value::Integer(1)
+        // );
+        // assert_eq!(
+        //     select_result[0].get_value_by_col_id(&schema, 3),
+        //     Value::Integer(1)
+        // );
+        // assert_eq!(
+        //     select_result[1].get_value_by_col_id(&schema, 0),
+        //     Value::Integer(1)
+        // );
+        // assert_eq!(
+        //     select_result[1].get_value_by_col_id(&schema, 1),
+        //     Value::Integer(1)
+        // );
+        // assert_eq!(
+        //     select_result[1].get_value_by_col_id(&schema, 2),
+        //     Value::Integer(2)
+        // );
+        // assert_eq!(
+        //     select_result[1].get_value_by_col_id(&schema, 3),
+        //     Value::Integer(3)
+        // );
 
         let _ = std::fs::remove_file(db_path);
     }

@@ -92,6 +92,24 @@ impl Optimizer {
                     child_physical_node.operator.clone(),
                 )
             }
+            LogicalOperator::Join(ref logical_join) => {
+                let left_logical_node = logical_node_children[0].clone();
+                let right_logical_node = logical_node_children[1].clone();
+                let left_physical_node = Self::build_physical_node(
+                    left_logical_node.clone(),
+                    left_logical_node.children.clone(),
+                );
+                let right_physical_node = Self::build_physical_node(
+                    right_logical_node.clone(),
+                    right_logical_node.children.clone(),
+                );
+                PhysicalPlan::new_nested_loop_join_node(
+                    logical_join.join_type,
+                    logical_join.condition.clone(),
+                    left_physical_node.operator.clone(),
+                    right_physical_node.operator.clone(),
+                )
+            }
             _ => unimplemented!(),
         }
     }

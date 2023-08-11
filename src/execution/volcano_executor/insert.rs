@@ -54,6 +54,7 @@ impl VolcanoExecutor for VolcanoInsertExecutor {
             if next_result.tuple.is_some() {
                 let tuple = next_result.tuple.unwrap();
                 // 插入数据库
+                // TODO update index if needed
                 let table_heap = &mut context
                     .catalog
                     .get_mut_table_by_name(&op.table_name)

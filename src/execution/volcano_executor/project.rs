@@ -43,6 +43,10 @@ impl VolcanoExecutor for VolcanoProjectExecutor {
                     Some(&child.operator.output_schema()),
                 ));
             }
+            println!(
+                "project child output schema: {:?}",
+                child.operator.output_schema()
+            );
             NextResult::new(Some(Tuple::from_values(new_values)), next_result.exhausted)
         } else {
             panic!("not project operator")

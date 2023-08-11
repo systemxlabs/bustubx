@@ -8,7 +8,8 @@ use crate::{
 use super::{
     volcano_executor::{
         create_table::VolcanoCreateTableExecutor, filter::VolcanoFilterExecutor,
-        insert::VolcanoInsertExecutor, limit::VolcanLimitExecutor, project::VolcanoProjectExecutor,
+        insert::VolcanoInsertExecutor, limit::VolcanLimitExecutor,
+        nested_loop_join::VolcanNestedLoopJoinExecutor, project::VolcanoProjectExecutor,
         table_scan::VolcanoTableScanExecutor, values::VolcanValuesExecutor, NextResult,
         VolcanoExecutor,
     },
@@ -25,6 +26,7 @@ pub enum Executor {
     VolcanoFilter(VolcanoFilterExecutor),
     VolcanoProject(VolcanoProjectExecutor),
     VolcanoLimit(VolcanLimitExecutor),
+    VolcanoNestedLoopJoin(VolcanNestedLoopJoinExecutor),
 }
 
 #[derive(Debug)]
@@ -90,6 +92,13 @@ impl ExecutionPlan {
             children: Vec::new(),
         }
     }
+    pub fn new_nested_loop_join_node(operator: Arc<PhysicalOperator>) -> Self {
+        Self {
+            executor: Executor::VolcanoNestedLoopJoin(VolcanNestedLoopJoinExecutor::new()),
+            operator,
+            children: Vec::new(),
+        }
+    }
     pub fn init(&self, context: &mut ExecutionContext) {
         match self.executor {
             Executor::Dummy => {}
@@ -112,6 +121,9 @@ impl ExecutionPlan {
                 executor.init(context, self.operator.clone(), self.children.clone())
             }
             Executor::VolcanoLimit(ref executor) => {
+                executor.init(context, self.operator.clone(), self.children.clone())
+            }
+            Executor::VolcanoNestedLoopJoin(ref executor) => {
                 executor.init(context, self.operator.clone(), self.children.clone())
             }
         }
@@ -138,6 +150,9 @@ impl ExecutionPlan {
                 executor.next(context, self.operator.clone(), self.children.clone())
             }
             Executor::VolcanoLimit(ref executor) => {
+                executor.next(context, self.operator.clone(), self.children.clone())
+            }
+            Executor::VolcanoNestedLoopJoin(ref executor) => {
                 executor.next(context, self.operator.clone(), self.children.clone())
             }
         }

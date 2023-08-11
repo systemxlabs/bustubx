@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    binder::expression::BoundExpression,
+    binder::{expression::BoundExpression, table_ref::join::JoinType},
     catalog::{
         catalog::TableOid,
         column::Column,
@@ -12,7 +12,8 @@ use crate::{
 
 use super::operator::{
     create_table::PhysicalCreateTableOperator, filter::PhysicalFilterOperator,
-    insert::PhysicalInsertOperator, limit::PhysicalLimitOperator, project::PhysicalProjectOperator,
+    insert::PhysicalInsertOperator, limit::PhysicalLimitOperator,
+    nested_loop_join::PhysicalNestedLoopJoinOperator, project::PhysicalProjectOperator,
     table_scan::PhysicalTableScanOperator, values::PhysicalValuesOperator, PhysicalOperator,
 };
 
@@ -94,6 +95,19 @@ impl PhysicalPlan {
                 limit.clone(),
                 input,
             ))),
+            children: Vec::new(),
+        }
+    }
+    pub fn new_nested_loop_join_node(
+        join_type: JoinType,
+        condition: Option<BoundExpression>,
+        left_input: Arc<PhysicalOperator>,
+        right_input: Arc<PhysicalOperator>,
+    ) -> Self {
+        Self {
+            operator: Arc::new(PhysicalOperator::NestedLoopJoin(
+                PhysicalNestedLoopJoinOperator::new(join_type, condition, left_input, right_input),
+            )),
             children: Vec::new(),
         }
     }

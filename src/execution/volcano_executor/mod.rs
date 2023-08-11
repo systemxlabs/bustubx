@@ -8,6 +8,7 @@ pub mod create_table;
 pub mod filter;
 pub mod insert;
 pub mod limit;
+pub mod nested_loop_join;
 pub mod project;
 pub mod table_scan;
 pub mod values;

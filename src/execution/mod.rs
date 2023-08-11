@@ -74,6 +74,9 @@ impl ExecutionEngine<'_> {
             PhysicalOperator::Filter(_) => ExecutionPlan::new_filter_node(physical_operator),
             PhysicalOperator::Project(_) => ExecutionPlan::new_project_node(physical_operator),
             PhysicalOperator::Limit(_) => ExecutionPlan::new_limit_node(physical_operator),
+            PhysicalOperator::NestedLoopJoin(_) => {
+                ExecutionPlan::new_nested_loop_join_node(physical_operator)
+            }
             _ => unimplemented!(),
         }
     }
