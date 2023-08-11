@@ -13,6 +13,7 @@ pub mod project;
 pub mod table_scan;
 pub mod values;
 
+#[derive(Debug, Clone)]
 pub struct NextResult {
     pub tuple: Option<Tuple>,
     pub exhausted: bool,

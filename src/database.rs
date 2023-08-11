@@ -266,56 +266,175 @@ mod tests {
     }
 
     #[test]
-    pub fn test_select_join_sql() {
-        let db_path = "test_select_join_sql.db";
+    pub fn test_select_cross_join_sql() {
+        let db_path = "test_select_cross_join_sql.db";
         let _ = std::fs::remove_file(db_path);
 
         let mut db = super::Database::new_on_disk(db_path);
         db.run(&"create table t1 (a int, b int)".to_string());
         db.run(&"create table t2 (a int, b int)".to_string());
-        db.run(&"insert into t1 values (1, 1), (2, 2), (3, 3)".to_string());
-        db.run(&"insert into t2 values (4, 4), (5, 5), (6, 6)".to_string());
+        db.run(&"insert into t1 values (1, 2), (3, 4)".to_string());
+        db.run(&"insert into t2 values (5, 6), (7, 8)".to_string());
         let select_result = db.run(&"select * from t1, t2".to_string());
-        // assert_eq!(select_result.len(), 9);
+        assert_eq!(select_result.len(), 4);
 
-        // let schema = Schema::new(vec![
-        //     Column::new("a".to_string(), DataType::Integer, 0),
-        //     Column::new("b".to_string(), DataType::Integer, 1),
-        //     Column::new("a".to_string(), DataType::Integer, 0),
-        //     Column::new("b".to_string(), DataType::Integer, 1),
-        // ]);
-        // assert_eq!(
-        //     select_result[0].get_value_by_col_id(&schema, 0),
-        //     Value::Integer(1)
-        // );
-        // assert_eq!(
-        //     select_result[0].get_value_by_col_id(&schema, 1),
-        //     Value::Integer(1)
-        // );
-        // assert_eq!(
-        //     select_result[0].get_value_by_col_id(&schema, 2),
-        //     Value::Integer(1)
-        // );
-        // assert_eq!(
-        //     select_result[0].get_value_by_col_id(&schema, 3),
-        //     Value::Integer(1)
-        // );
-        // assert_eq!(
-        //     select_result[1].get_value_by_col_id(&schema, 0),
-        //     Value::Integer(1)
-        // );
-        // assert_eq!(
-        //     select_result[1].get_value_by_col_id(&schema, 1),
-        //     Value::Integer(1)
-        // );
-        // assert_eq!(
-        //     select_result[1].get_value_by_col_id(&schema, 2),
-        //     Value::Integer(2)
-        // );
-        // assert_eq!(
-        //     select_result[1].get_value_by_col_id(&schema, 3),
-        //     Value::Integer(3)
-        // );
+        let schema = Schema::new(vec![
+            Column::new(
+                Some("t1".to_string()),
+                "a".to_string(),
+                DataType::Integer,
+                0,
+            ),
+            Column::new(
+                Some("t1".to_string()),
+                "b".to_string(),
+                DataType::Integer,
+                1,
+            ),
+            Column::new(
+                Some("t2".to_string()),
+                "a".to_string(),
+                DataType::Integer,
+                0,
+            ),
+            Column::new(
+                Some("t2".to_string()),
+                "b".to_string(),
+                DataType::Integer,
+                1,
+            ),
+        ]);
+        // 1st row
+        assert_eq!(
+            select_result[0].get_value_by_col_id(&schema, 0),
+            Value::Integer(1)
+        );
+        assert_eq!(
+            select_result[0].get_value_by_col_id(&schema, 1),
+            Value::Integer(2)
+        );
+        assert_eq!(
+            select_result[0].get_value_by_col_id(&schema, 2),
+            Value::Integer(5)
+        );
+        assert_eq!(
+            select_result[0].get_value_by_col_id(&schema, 3),
+            Value::Integer(6)
+        );
+
+        // 2nd row
+        assert_eq!(
+            select_result[1].get_value_by_col_id(&schema, 0),
+            Value::Integer(1)
+        );
+        assert_eq!(
+            select_result[1].get_value_by_col_id(&schema, 1),
+            Value::Integer(2)
+        );
+        assert_eq!(
+            select_result[1].get_value_by_col_id(&schema, 2),
+            Value::Integer(7)
+        );
+        assert_eq!(
+            select_result[1].get_value_by_col_id(&schema, 3),
+            Value::Integer(8)
+        );
+
+        // 3rd row
+        assert_eq!(
+            select_result[2].get_value_by_col_id(&schema, 0),
+            Value::Integer(3)
+        );
+        assert_eq!(
+            select_result[2].get_value_by_col_id(&schema, 1),
+            Value::Integer(4)
+        );
+        assert_eq!(
+            select_result[2].get_value_by_col_id(&schema, 2),
+            Value::Integer(5)
+        );
+        assert_eq!(
+            select_result[2].get_value_by_col_id(&schema, 3),
+            Value::Integer(6)
+        );
+
+        // 4th row
+        assert_eq!(
+            select_result[3].get_value_by_col_id(&schema, 0),
+            Value::Integer(3)
+        );
+        assert_eq!(
+            select_result[3].get_value_by_col_id(&schema, 1),
+            Value::Integer(4)
+        );
+        assert_eq!(
+            select_result[3].get_value_by_col_id(&schema, 2),
+            Value::Integer(7)
+        );
+        assert_eq!(
+            select_result[3].get_value_by_col_id(&schema, 3),
+            Value::Integer(8)
+        );
+
+        let _ = std::fs::remove_file(db_path);
+    }
+
+    #[test]
+    pub fn test_select_inner_join_sql() {
+        let db_path = "test_select_inner_join_sql.db";
+        let _ = std::fs::remove_file(db_path);
+
+        let mut db = super::Database::new_on_disk(db_path);
+        db.run(&"create table t1 (a int, b int)".to_string());
+        db.run(&"create table t2 (a int, b int)".to_string());
+        db.run(&"insert into t1 values (1, 2), (5, 6)".to_string());
+        db.run(&"insert into t2 values (3, 4), (7, 8)".to_string());
+        let select_result = db.run(&"select * from t1 inner join t2 on t1.a > t2.a".to_string());
+        assert_eq!(select_result.len(), 1);
+
+        let schema = Schema::new(vec![
+            Column::new(
+                Some("t1".to_string()),
+                "a".to_string(),
+                DataType::Integer,
+                0,
+            ),
+            Column::new(
+                Some("t1".to_string()),
+                "b".to_string(),
+                DataType::Integer,
+                0,
+            ),
+            Column::new(
+                Some("t2".to_string()),
+                "a".to_string(),
+                DataType::Integer,
+                0,
+            ),
+            Column::new(
+                Some("t2".to_string()),
+                "b".to_string(),
+                DataType::Integer,
+                0,
+            ),
+        ]);
+        // 1st row
+        assert_eq!(
+            select_result[0].get_value_by_col_id(&schema, 0),
+            Value::Integer(5)
+        );
+        assert_eq!(
+            select_result[0].get_value_by_col_id(&schema, 1),
+            Value::Integer(6)
+        );
+        assert_eq!(
+            select_result[0].get_value_by_col_id(&schema, 2),
+            Value::Integer(3)
+        );
+        assert_eq!(
+            select_result[0].get_value_by_col_id(&schema, 3),
+            Value::Integer(4)
+        );
 
         let _ = std::fs::remove_file(db_path);
     }

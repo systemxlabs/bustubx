@@ -15,6 +15,14 @@ impl Schema {
         Self { columns }
     }
 
+    pub fn from_schemas(schemas: Vec<Schema>) -> Self {
+        let mut columns = Vec::new();
+        for schema in schemas {
+            columns.extend(schema.columns);
+        }
+        Self::new(columns)
+    }
+
     pub fn copy_schema(from: &Schema, key_attrs: &[u32]) -> Self {
         let columns = key_attrs
             .iter()

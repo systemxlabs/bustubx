@@ -9,10 +9,10 @@ use super::PhysicalOperator;
 
 #[derive(Debug)]
 pub struct PhysicalNestedLoopJoinOperator {
-    join_type: JoinType,
-    condition: Option<BoundExpression>,
-    left_input: Arc<PhysicalOperator>,
-    right_input: Arc<PhysicalOperator>,
+    pub join_type: JoinType,
+    pub condition: Option<BoundExpression>,
+    pub left_input: Arc<PhysicalOperator>,
+    pub right_input: Arc<PhysicalOperator>,
 }
 impl PhysicalNestedLoopJoinOperator {
     pub fn new(
@@ -29,8 +29,9 @@ impl PhysicalNestedLoopJoinOperator {
         }
     }
     pub fn output_schema(&self) -> Schema {
-        let mut columns = self.left_input.output_schema().columns;
-        columns.append(&mut self.right_input.output_schema().columns);
-        Schema::new(columns)
+        Schema::from_schemas(vec![
+            self.left_input.output_schema(),
+            self.right_input.output_schema(),
+        ])
     }
 }
