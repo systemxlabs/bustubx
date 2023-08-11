@@ -16,10 +16,7 @@ use self::{
         constant::{BoundConstant, Constant},
         BoundExpression,
     },
-    statement::{
-        create_table::CreateTableStatement, insert::InsertStatement, select::SelectStatement,
-        BoundStatement,
-    },
+    statement::BoundStatement,
     table_ref::{
         base_table::BoundBaseTableRef,
         join::{BoundJoinRef, JoinType},
