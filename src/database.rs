@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use crate::{
-    binder::{statement::BoundStatement, Binder, BinderContext},
+    binder::{Binder, BinderContext},
     buffer::buffer_pool::BufferPoolManager,
-    catalog::{catalog::Catalog, schema::Schema},
+    catalog::catalog::Catalog,
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     execution::{ExecutionContext, ExecutionEngine},
     optimizer::Optimizer,
@@ -75,7 +75,7 @@ impl Database {
 mod tests {
     use crate::{
         catalog::{
-            column::{Column, DataType},
+            column::{Column, ColumnFullName, DataType},
             schema::Schema,
         },
         dbtype::value::Value,
@@ -105,9 +105,15 @@ mod tests {
         let table = table.unwrap();
         assert_eq!(table.name, "t1");
         assert_eq!(table.schema.columns.len(), 2);
-        assert_eq!(table.schema.columns[0].column_name, "a");
+        assert_eq!(
+            table.schema.columns[0].full_name,
+            ColumnFullName::new(Some("t1".to_string()), "a".to_string())
+        );
         assert_eq!(table.schema.columns[0].column_type, DataType::Integer);
-        assert_eq!(table.schema.columns[1].column_name, "b");
+        assert_eq!(
+            table.schema.columns[1].full_name,
+            ColumnFullName::new(Some("t1".to_string()), "b".to_string())
+        );
         assert_eq!(table.schema.columns[1].column_type, DataType::Integer);
 
         let _ = std::fs::remove_file(db_path);
@@ -124,6 +130,7 @@ mod tests {
         assert_eq!(insert_rows.len(), 1);
 
         let schema = Schema::new(vec![Column::new(
+            None,
             "insert_rows".to_string(),
             DataType::Integer,
             0,
@@ -151,8 +158,18 @@ mod tests {
         assert_eq!(select_result.len(), 3);
 
         let schema = Schema::new(vec![
-            Column::new("a".to_string(), DataType::Integer, 0),
-            Column::new("b".to_string(), DataType::Integer, 1),
+            Column::new(
+                Some("t1".to_string()),
+                "a".to_string(),
+                DataType::Integer,
+                0,
+            ),
+            Column::new(
+                Some("t1".to_string()),
+                "b".to_string(),
+                DataType::Integer,
+                1,
+            ),
         ]);
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),
@@ -193,7 +210,12 @@ mod tests {
         let select_result = db.run(&"select a from t1 where a <= b".to_string());
         assert_eq!(select_result.len(), 2);
 
-        let schema = Schema::new(vec![Column::new("a".to_string(), DataType::Integer, 0)]);
+        let schema = Schema::new(vec![Column::new(
+            Some("t1".to_string()),
+            "a".to_string(),
+            DataType::Integer,
+            0,
+        )]);
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),
             Value::Integer(1)
@@ -218,8 +240,18 @@ mod tests {
         assert_eq!(select_result.len(), 1);
 
         let schema = Schema::new(vec![
-            Column::new("a".to_string(), DataType::Integer, 0),
-            Column::new("b".to_string(), DataType::Integer, 1),
+            Column::new(
+                Some("t1".to_string()),
+                "a".to_string(),
+                DataType::Integer,
+                0,
+            ),
+            Column::new(
+                Some("t1".to_string()),
+                "b".to_string(),
+                DataType::Integer,
+                1,
+            ),
         ]);
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),

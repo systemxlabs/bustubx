@@ -1,4 +1,4 @@
-# tinysql - A tiny relational database (CMU 15-455)
+# tinysql - A tiny relational database (CMU 15-445)
 - [x] Disk Manager
 - [x] LRU-K Replacer
 - [ ] Extendible Hash Table

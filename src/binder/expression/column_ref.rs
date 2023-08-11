@@ -16,6 +16,6 @@ impl BoundColumnRef {
         }
         let tuple = tuple.unwrap();
         let schema = schema.unwrap();
-        tuple.get_value_by_col_name(schema, self.col_name.column_name.as_str())
+        tuple.get_value_by_col_name(schema, &self.col_name)
     }
 }

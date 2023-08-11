@@ -1,9 +1,5 @@
-use sqlparser::ast::{Expr, Ident, ObjectName, Values};
-
 use crate::{
-    binder::{table_ref::base_table::BoundBaseTableRef, BinderContext},
-    catalog::column::Column,
-    dbtype::value::Value,
+    binder::table_ref::base_table::BoundBaseTableRef, catalog::column::Column, dbtype::value::Value,
 };
 
 #[derive(Debug)]

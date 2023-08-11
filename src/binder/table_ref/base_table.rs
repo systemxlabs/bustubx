@@ -12,7 +12,7 @@ impl BoundBaseTableRef {
         self.schema
             .columns
             .iter()
-            .map(|column| ColumnFullName::new(Some(self.table.clone()), column.column_name.clone()))
+            .map(|column| column.full_name.clone())
             .collect()
     }
 }
