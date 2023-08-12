@@ -1,5 +1,7 @@
 use sqlparser::ast::{Ident, ObjectName, Query, SetExpr};
 
+use crate::catalog::column::ColumnFullName;
+
 use super::{
     expression::BoundExpression, statement::insert::InsertStatement,
     table_ref::base_table::BoundBaseTableRef, Binder,
@@ -29,7 +31,11 @@ impl<'a> Binder<'a> {
                     columns = table_info.schema.columns.clone();
                 } else {
                     for column_ident in columns_ident {
-                        if let Some(column) = table_info.schema.get_by_col_name(&column_ident.value)
+                        if let Some(column) =
+                            table_info.schema.get_col_by_name(&ColumnFullName::new(
+                                Some(table_info.name.clone()),
+                                column_ident.value.clone(),
+                            ))
                         {
                             columns.push(column.clone());
                         } else {

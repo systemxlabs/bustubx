@@ -13,7 +13,7 @@ impl<'a> Binder<'a> {
         let table_name = name.to_string();
         let columns = column_defs
             .iter()
-            .map(|c| Column::from_sqlparser_column(c))
+            .map(|c| Column::from_sqlparser_column(Some(table_name.clone()), c))
             .collect();
         CreateTableStatement {
             table_name,

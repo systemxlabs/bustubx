@@ -2,10 +2,7 @@ use sqlparser::ast::{Expr, Offset, Query, SelectItem, SetExpr};
 
 use crate::binder::expression::{alias::BoundAlias, BoundExpression};
 
-use super::{
-    expression::column_ref::BoundColumnRef, statement::select::SelectStatement,
-    table_ref::BoundTableRef, Binder,
-};
+use super::{statement::select::SelectStatement, Binder};
 
 impl<'a> Binder<'a> {
     pub fn bind_select(&self, query: &Query) -> SelectStatement {
