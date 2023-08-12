@@ -53,6 +53,19 @@ impl Tuple {
             data,
         }
     }
+
+    // TODO add unit test to make sure this still works if tuple format changes
+    pub fn from_tuples(tuples: Vec<(Tuple, Schema)>) -> Self {
+        let mut data = vec![];
+        for (tuple, schema) in tuples {
+            data.extend(tuple.data);
+        }
+        Self {
+            rid: Rid::INVALID_RID,
+            data,
+        }
+    }
+
     pub fn is_zero(&self) -> bool {
         self.data.iter().all(|&x| x == 0)
     }

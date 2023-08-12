@@ -2,7 +2,7 @@ use crate::{binder::expression::BoundExpression, catalog::column::ColumnFullName
 
 use super::BoundTableRef;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JoinType {
     // select * from x inner join y on ...
     Inner,

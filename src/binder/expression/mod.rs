@@ -1,4 +1,8 @@
-use crate::{catalog::schema::Schema, dbtype::value::Value, storage::tuple::Tuple};
+use crate::{
+    catalog::schema::{self, Schema},
+    dbtype::value::Value,
+    storage::tuple::Tuple,
+};
 
 use self::{
     alias::BoundAlias, binary_op::BoundBinaryOp, column_ref::BoundColumnRef,
@@ -26,5 +30,21 @@ impl BoundExpression {
             BoundExpression::Alias(a) => a.evaluate(tuple, schema),
             _ => unimplemented!(),
         }
+    }
+
+    pub fn evaluate_join(
+        &self,
+        left_tuple: &Tuple,
+        left_schema: &Schema,
+        right_tuple: &Tuple,
+        right_schema: &Schema,
+    ) -> Value {
+        // combine left and right tuple, left and right schema
+        let tuple = Tuple::from_tuples(vec![
+            (left_tuple.clone(), left_schema.clone()),
+            (right_tuple.clone(), right_schema.clone()),
+        ]);
+        let schema = Schema::from_schemas(vec![left_schema.clone(), right_schema.clone()]);
+        self.evaluate(Some(&tuple), Some(&schema))
     }
 }

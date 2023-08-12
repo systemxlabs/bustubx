@@ -1,10 +1,4 @@
-use crate::{
-    binder::{
-        expression::{column_ref::BoundColumnRef, BoundExpression},
-        table_ref::join::JoinType,
-    },
-    catalog::schema::Schema,
-};
+use crate::binder::{expression::BoundExpression, table_ref::join::JoinType};
 
 #[derive(Debug)]
 pub struct LogicalJoinOperator {
