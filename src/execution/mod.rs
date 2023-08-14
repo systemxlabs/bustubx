@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::{
     catalog::catalog::Catalog,
     optimizer::{operator::PhysicalOperator, physical_plan::PhysicalPlan},
+    storage::tuple::Tuple,
 };
 
 use self::execution_plan::ExecutionPlan;
@@ -23,17 +24,19 @@ pub struct ExecutionEngine<'a> {
     pub context: ExecutionContext<'a>,
 }
 impl ExecutionEngine<'_> {
-    pub fn execute(&mut self, plan: ExecutionPlan) {
+    pub fn execute(&mut self, plan: ExecutionPlan) -> Vec<Tuple> {
         plan.init(&mut self.context);
+        let mut result = Vec::new();
         loop {
             let next_result = plan.next(&mut self.context);
             if next_result.tuple.is_some() {
-                println!("tuple: {:?}", next_result.tuple.unwrap());
+                result.push(next_result.tuple.unwrap());
             }
             if next_result.exhausted {
                 break;
             }
         }
+        result
     }
 
     // 生成执行计划
@@ -71,6 +74,9 @@ impl ExecutionEngine<'_> {
             PhysicalOperator::Filter(_) => ExecutionPlan::new_filter_node(physical_operator),
             PhysicalOperator::Project(_) => ExecutionPlan::new_project_node(physical_operator),
             PhysicalOperator::Limit(_) => ExecutionPlan::new_limit_node(physical_operator),
+            PhysicalOperator::NestedLoopJoin(_) => {
+                ExecutionPlan::new_nested_loop_join_node(physical_operator)
+            }
             _ => unimplemented!(),
         }
     }

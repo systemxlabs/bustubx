@@ -1,5 +1,5 @@
 use crate::{
-    catalog::schema::Schema,
+    catalog::{column::ColumnFullName, schema::Schema},
     common::{config::TransactionId, rid::Rid},
     dbtype::value::Value,
 };
@@ -61,6 +61,19 @@ impl Tuple {
         }
     }
 
+    // TODO add unit test to make sure this still works if tuple format changes
+    pub fn from_tuples(tuples: Vec<(Tuple, Schema)>) -> Self {
+        let mut data = vec![];
+        for (tuple, schema) in tuples {
+            data.extend(tuple.data);
+        }
+        Self {
+            rid: Rid::INVALID_RID,
+            data,
+        }
+    }
+
+
     pub fn is_zero(&self) -> bool {
         // Iterate over each element in the 'data' vector using the 'iter' method.
         // The closure '|&x| x == 0' checks if each element is equal to 0.
@@ -73,17 +86,22 @@ impl Tuple {
     }
 
     pub fn get_value_by_col_id(&self, schema: &Schema, column_index: usize) -> Value {
-        let column = schema.get_by_index(column_index).expect("column not found");
-
-        self.get_value_by_col(column)
-    }
-
-    pub fn get_value_by_col_name(&self, schema: &Schema, column_name: &str) -> Value {
         let column = schema
-            .get_by_col_name(column_name)
+            .get_col_by_index(column_index)
             .expect("column not found");
-
-        self.get_value_by_col(column)
+        let offset = column.column_offset;
+        let len = column.fixed_len;
+        let raw = &self.data[offset..offset + len];
+        Value::from_bytes(raw, column.column_type)
+    }
+    pub fn get_value_by_col_name(&self, schema: &Schema, column_name: &ColumnFullName) -> Value {
+        let column = schema
+            .get_col_by_name(column_name)
+            .expect("column not found");
+        let offset = column.column_offset;
+        let len = column.fixed_len;
+        let raw = &self.data[offset..offset + len];
+        Value::from_bytes(raw, column.column_type)
     }
 
     pub fn get_value_by_col(&self, column: &Column) -> Value {
@@ -126,8 +144,8 @@ mod tests {
     #[test]
     pub fn test_compare() {
         let schema = Schema::new(vec![
-            Column::new("a".to_string(), DataType::TinyInt, 0),
-            Column::new("b".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "a".to_string(), DataType::TinyInt, 0),
+            Column::new(None, "b".to_string(), DataType::SmallInt, 0),
         ]);
         let tuple1 = super::Tuple::new(vec![1u8, 1, 1]);
         let tuple2 = super::Tuple::new(vec![1u8, 1, 1]);

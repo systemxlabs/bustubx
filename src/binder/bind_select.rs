@@ -2,10 +2,7 @@ use sqlparser::ast::{Expr, Offset, Query, SelectItem, SetExpr};
 
 use crate::binder::expression::{alias::BoundAlias, BoundExpression};
 
-use super::{
-    expression::column_ref::BoundColumnRef, statement::select::SelectStatement,
-    table_ref::BoundTableRef, Binder,
-};
+use super::{statement::select::SelectStatement, Binder};
 
 impl<'a> Binder<'a> {
     pub fn bind_select(&self, query: &Query) -> SelectStatement {
@@ -14,10 +11,7 @@ impl<'a> Binder<'a> {
             _ => unimplemented!(),
         };
 
-        if select.from.len() != 1 {
-            panic!("Only support single table select")
-        }
-        let from_table = self.bind_table_ref(&select.from[0].relation);
+        let from_table = self.bind_from(&select.from);
 
         // bind select list
         let mut select_list = vec![];
@@ -42,19 +36,7 @@ impl<'a> Binder<'a> {
                     // )
                 }
                 SelectItem::Wildcard(_) => {
-                    select_list.extend(match from_table {
-                        BoundTableRef::BaseTable(ref base_table) => base_table
-                            .schema
-                            .columns
-                            .iter()
-                            .map(|c| {
-                                BoundExpression::ColumnRef(BoundColumnRef {
-                                    col_names: vec![c.column_name.clone()],
-                                })
-                            })
-                            .collect::<Vec<BoundExpression>>(),
-                        _ => unimplemented!(),
-                    });
+                    select_list.extend(from_table.gen_select_list());
                 }
             }
         }

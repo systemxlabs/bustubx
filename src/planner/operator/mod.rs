@@ -1,5 +1,5 @@
 use crate::{
-    binder::expression::BoundExpression,
+    binder::{expression::BoundExpression, table_ref::join::JoinType},
     catalog::{
         catalog::TableOid,
         column::Column,
@@ -10,13 +10,14 @@ use crate::{
 
 use self::{
     create_table::LogicalCreateTableOperator, filter::LogicalFilterOperator,
-    insert::LogicalInsertOperator, limit::LogicalLimitOperator, project::LogicalProjectOperator,
-    scan::LogicalScanOperator, values::LogicalValuesOperator,
+    insert::LogicalInsertOperator, join::LogicalJoinOperator, limit::LogicalLimitOperator,
+    project::LogicalProjectOperator, scan::LogicalScanOperator, values::LogicalValuesOperator,
 };
 
 pub mod create_table;
 pub mod filter;
 pub mod insert;
+pub mod join;
 pub mod limit;
 pub mod project;
 pub mod scan;
@@ -28,7 +29,7 @@ pub enum LogicalOperator {
     CreateTable(LogicalCreateTableOperator),
     // Aggregate(AggregateOperator),
     Filter(LogicalFilterOperator),
-    // Join(JoinOperator),
+    Join(LogicalJoinOperator),
     Project(LogicalProjectOperator),
     Scan(LogicalScanOperator),
     // Sort(SortOperator),
@@ -57,5 +58,11 @@ impl LogicalOperator {
     }
     pub fn new_limit_operator(limit: Option<usize>, offset: Option<usize>) -> LogicalOperator {
         LogicalOperator::Limit(limit::LogicalLimitOperator::new(limit, offset))
+    }
+    pub fn new_join_operator(
+        join_type: JoinType,
+        condition: Option<BoundExpression>,
+    ) -> LogicalOperator {
+        LogicalOperator::Join(LogicalJoinOperator::new(join_type, condition))
     }
 }

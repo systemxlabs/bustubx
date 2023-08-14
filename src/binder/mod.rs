@@ -1,4 +1,4 @@
-use sqlparser::ast::{Expr, Ident, ObjectName, Query, SetExpr, Statement, TableFactor};
+use sqlparser::ast::{Expr, JoinConstraint, JoinOperator, Statement, TableFactor, TableWithJoins};
 
 use crate::{
     binder::expression::{
@@ -7,9 +7,8 @@ use crate::{
     },
     catalog::{
         catalog::{Catalog, DEFAULT_DATABASE_NAME, DEFAULT_SCHEMA_NAME},
-        column::Column,
+        column::ColumnFullName,
     },
-    dbtype::value::Value,
 };
 
 use self::{
@@ -17,11 +16,12 @@ use self::{
         constant::{BoundConstant, Constant},
         BoundExpression,
     },
-    statement::{
-        create_table::CreateTableStatement, insert::InsertStatement, select::SelectStatement,
-        BoundStatement,
+    statement::BoundStatement,
+    table_ref::{
+        base_table::BoundBaseTableRef,
+        join::{BoundJoinRef, JoinType},
+        BoundTableRef,
     },
-    table_ref::{base_table::BoundBaseTableRef, BoundTableRef},
 };
 
 pub mod bind_create_table;
@@ -67,12 +67,100 @@ impl<'a> Binder<'a> {
                 value: Constant::from_sqlparser_value(value),
             }),
             Expr::Identifier(ident) => BoundExpression::ColumnRef(BoundColumnRef {
-                col_names: vec![ident.value.clone()],
+                col_name: ColumnFullName::new(None, ident.value.clone()),
             }),
+            Expr::CompoundIdentifier(idents) => {
+                if idents.len() == 0 {
+                    panic!("Invalid column name");
+                }
+                if idents.len() == 1 {
+                    BoundExpression::ColumnRef(BoundColumnRef {
+                        col_name: ColumnFullName::new(None, idents[0].value.clone()),
+                    })
+                } else {
+                    BoundExpression::ColumnRef(BoundColumnRef {
+                        col_name: ColumnFullName::new(
+                            Some(idents[0].value.clone()),
+                            idents[1].value.clone(),
+                        ),
+                    })
+                }
+            }
             _ => unimplemented!(),
         }
     }
-    pub fn bind_table_ref(&self, table: &TableFactor) -> BoundTableRef {
+    pub fn bind_from(&self, from: &Vec<TableWithJoins>) -> BoundTableRef {
+        let from_tables = from
+            .iter()
+            .map(|t| self.bind_joins(t))
+            .collect::<Vec<BoundTableRef>>();
+
+        // 每个表通过 cross join 连接
+        let mut left_table_ref = from_tables[0].clone();
+        for right_table_ref in from_tables.iter().skip(1) {
+            left_table_ref = BoundTableRef::Join(BoundJoinRef {
+                left: Box::new(left_table_ref),
+                right: Box::new(right_table_ref.clone()),
+                join_type: JoinType::CrossJoin,
+                condition: None,
+            });
+        }
+        return left_table_ref;
+    }
+
+    pub fn bind_joins(&self, table_with_joins: &TableWithJoins) -> BoundTableRef {
+        let mut left_table_ref = self.bind_table_ref(&table_with_joins.relation);
+        for join in table_with_joins.joins.iter() {
+            let right_table_ref = self.bind_table_ref(&join.relation);
+            match join.join_operator {
+                JoinOperator::Inner(ref constraint) => {
+                    left_table_ref = BoundTableRef::Join(BoundJoinRef {
+                        left: Box::new(left_table_ref),
+                        right: Box::new(right_table_ref),
+                        join_type: JoinType::Inner,
+                        condition: Some(self.bind_join_constraint(constraint)),
+                    });
+                }
+                JoinOperator::LeftOuter(ref constraint) => {
+                    left_table_ref = BoundTableRef::Join(BoundJoinRef {
+                        left: Box::new(left_table_ref),
+                        right: Box::new(right_table_ref),
+                        join_type: JoinType::LeftOuter,
+                        condition: Some(self.bind_join_constraint(constraint)),
+                    });
+                }
+                JoinOperator::RightOuter(ref constraint) => {
+                    left_table_ref = BoundTableRef::Join(BoundJoinRef {
+                        left: Box::new(left_table_ref),
+                        right: Box::new(right_table_ref),
+                        join_type: JoinType::RightOuter,
+                        condition: Some(self.bind_join_constraint(constraint)),
+                    });
+                }
+                JoinOperator::FullOuter(ref constraint) => {
+                    left_table_ref = BoundTableRef::Join(BoundJoinRef {
+                        left: Box::new(left_table_ref),
+                        right: Box::new(right_table_ref),
+                        join_type: JoinType::FullOuter,
+                        condition: Some(self.bind_join_constraint(constraint)),
+                    });
+                }
+                JoinOperator::CrossJoin => {
+                    left_table_ref = BoundTableRef::Join(BoundJoinRef {
+                        left: Box::new(left_table_ref),
+                        right: Box::new(right_table_ref),
+                        join_type: JoinType::CrossJoin,
+                        condition: None,
+                    });
+                }
+                _ => unimplemented!(),
+            }
+        }
+        return left_table_ref;
+    }
+
+    fn bind_table_ref(&self, table: &TableFactor) -> BoundTableRef {
+        println!("bind_base_table_ref {:?}", table);
         match table {
             TableFactor::Table { name, alias, .. } => {
                 let (_database, _schema, table) = match name.0.as_slice() {
@@ -109,6 +197,21 @@ impl<'a> Binder<'a> {
                     schema: table_info.schema.clone(),
                 })
             }
+            TableFactor::NestedJoin {
+                table_with_joins,
+                alias,
+            } => {
+                let table_ref = self.bind_joins(table_with_joins);
+                // TODO 记录alias
+                table_ref
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn bind_join_constraint(&self, constraint: &JoinConstraint) -> BoundExpression {
+        match constraint {
+            JoinConstraint::On(expr) => self.bind_expression(expr),
             _ => unimplemented!(),
         }
     }

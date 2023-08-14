@@ -1,9 +1,13 @@
-use crate::{catalog::schema::Schema, dbtype::value::Value, storage::tuple::Tuple};
+use crate::{
+    catalog::{column::ColumnFullName, schema::Schema},
+    dbtype::value::Value,
+    storage::tuple::Tuple,
+};
 
 /// A bound column reference, e.g., `y.x` in the SELECT list.
 #[derive(Debug, Clone)]
 pub struct BoundColumnRef {
-    pub col_names: Vec<String>,
+    pub col_name: ColumnFullName,
 }
 impl BoundColumnRef {
     pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> Value {
@@ -12,6 +16,6 @@ impl BoundColumnRef {
         }
         let tuple = tuple.unwrap();
         let schema = schema.unwrap();
-        tuple.get_value_by_col_name(schema, self.col_names[0].as_str())
+        tuple.get_value_by_col_name(schema, &self.col_name)
     }
 }

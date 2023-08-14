@@ -36,6 +36,15 @@ impl Planner {
                 operator: LogicalOperator::new_scan_operator(table.oid, table.schema.columns),
                 children: Vec::new(),
             },
+            BoundTableRef::Join(join) => {
+                let left_plan = self.plan_table_ref(*join.left);
+                let right_plan = self.plan_table_ref(*join.right);
+                let join_plan = LogicalPlan {
+                    operator: LogicalOperator::new_join_operator(join.join_type, join.condition),
+                    children: vec![Arc::new(left_plan), Arc::new(right_plan)],
+                };
+                join_plan
+            }
             _ => unimplemented!(),
         }
     }

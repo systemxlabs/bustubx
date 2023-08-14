@@ -17,6 +17,7 @@ impl PhysicalInsertOperator {
     }
     pub fn output_schema(&self) -> Schema {
         Schema::new(vec![Column::new(
+            None,
             "insert_rows".to_string(),
             DataType::Integer,
             0,

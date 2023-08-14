@@ -1,4 +1,4 @@
-use super::column::Column;
+use super::column::{Column, ColumnFullName};
 
 #[derive(Debug, Clone)]
 pub struct Schema {
@@ -16,6 +16,14 @@ impl Schema {
         Self { columns }
     }
 
+    pub fn from_schemas(schemas: Vec<Schema>) -> Self {
+        let mut columns = Vec::new();
+        for schema in schemas {
+            columns.extend(schema.columns);
+        }
+        Self::new(columns)
+    }
+
     pub fn copy_schema(from: &Schema, key_attrs: &[u32]) -> Self {
         let columns = key_attrs
             .iter()
@@ -24,11 +32,18 @@ impl Schema {
         Self::new(columns)
     }
 
-    pub fn get_by_col_name(&self, col_name: &str) -> Option<&Column> {
-        self.columns.iter().find(|c| c.column_name == col_name)
+    pub fn get_col_by_name(&self, col_full_name: &ColumnFullName) -> Option<&Column> {
+        // if table name not specified, then match column with the column name
+        self.columns.iter().find(|c| {
+            if col_full_name.table.is_none() {
+                c.full_name.column == col_full_name.column
+            } else {
+                c.full_name == *col_full_name
+            }
+        })
     }
 
-    pub fn get_by_index(&self, index: usize) -> Option<&Column> {
+    pub fn get_col_by_index(&self, index: usize) -> Option<&Column> {
         self.columns.get(index)
     }
 
