@@ -12,6 +12,7 @@ pub struct Column {
     // 列在元组中的偏移量
     pub column_offset: usize,
 }
+
 impl Column {
     pub fn new(column_name: String, column_type: DataType, variable_len: usize) -> Self {
         Self {
@@ -45,6 +46,7 @@ pub enum DataType {
     Varchar,
     Timestamp,
 }
+
 impl DataType {
     pub fn type_size(&self) -> usize {
         match self {

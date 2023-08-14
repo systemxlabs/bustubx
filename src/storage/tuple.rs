@@ -3,6 +3,7 @@ use crate::{
     common::{config::TransactionId, rid::Rid},
     dbtype::value::Value,
 };
+use crate::catalog::column::Column;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TupleMeta {
@@ -16,26 +17,31 @@ pub struct Tuple {
     pub rid: Rid,
     pub data: Vec<u8>,
 }
+
 impl Tuple {
     pub const INVALID_TUPLE: Self = Self {
         rid: Rid::INVALID_RID,
         data: vec![],
     };
+
     pub fn new(data: Vec<u8>) -> Self {
         Self {
             rid: Rid::INVALID_RID,
             data,
         }
     }
+
     pub fn new_with_rid(rid: Rid, data: Vec<u8>) -> Self {
         Self { rid, data }
     }
+
     pub fn empty(size: usize) -> Self {
         Self {
             rid: Rid::INVALID_RID,
             data: vec![0; size],
         }
     }
+
     pub fn from_values(values: Vec<Value>) -> Self {
         let mut data = vec![];
         for value in values {
@@ -46,6 +52,7 @@ impl Tuple {
             data,
         }
     }
+
     pub fn from_bytes(raw: &[u8]) -> Self {
         let data = raw.to_vec();
         Self {
@@ -53,26 +60,39 @@ impl Tuple {
             data,
         }
     }
+
     pub fn is_zero(&self) -> bool {
+        // Iterate over each element in the 'data' vector using the 'iter' method.
+        // The closure '|&x| x == 0' checks if each element is equal to 0.
+        // The 'all' method returns 'true' if the closure returns 'true' for all elements.
         self.data.iter().all(|&x| x == 0)
     }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         self.data.clone()
     }
+
     pub fn get_value_by_col_id(&self, schema: &Schema, column_index: usize) -> Value {
         let column = schema.get_by_index(column_index).expect("column not found");
-        let offset = column.column_offset;
-        let len = column.fixed_len;
-        let raw = &self.data[offset..offset + len];
-        Value::from_bytes(raw, column.column_type)
+
+        self.get_value_by_col(column)
     }
-    pub fn get_value_by_col_name(&self, schema: &Schema, columon_name: &str) -> Value {
+
+    pub fn get_value_by_col_name(&self, schema: &Schema, column_name: &str) -> Value {
         let column = schema
-            .get_by_col_name(columon_name)
+            .get_by_col_name(column_name)
             .expect("column not found");
+
+        self.get_value_by_col(column)
+    }
+
+    pub fn get_value_by_col(&self, column: &Column) -> Value {
         let offset = column.column_offset;
         let len = column.fixed_len;
+        // Intercept the byte sequence starting from offset,
+        // and get length len from data as the current col row bytes.
         let raw = &self.data[offset..offset + len];
+
         Value::from_bytes(raw, column.column_type)
     }
 

@@ -21,21 +21,32 @@ struct Inner {
 
 impl DiskManager {
     pub fn new(db_path: String) -> Self {
+        // Create a file handle db_file using the OpenOptions struct from the Rust standard library.
+        // By chaining calls, we set the read, write and create modes of the file.
         let db_file = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
             .open(&db_path)
             .unwrap();
+
+
+        // Gets the metadata of the database file, including the size of the file.
+        // Then it divides the file size by the page size.
+        // Convert the result to a page number PageId.
+        // Note: This is the next available page number.
         let next_page_id = db_file
             .metadata()
             .unwrap()
             .len()
             .div_euclid(TINYSQL_PAGE_SIZE as u64) as PageId;
         println!("Initialized disk_manager next_page_id: {}", next_page_id);
+
         Self {
             db_path,
             next_page_id: AtomicU32::new(next_page_id),
+            // Use a mutex to wrap the file handle to ensure that only one thread
+            // can access the file at the same time among multiple threads.
             inner: Mutex::new(Inner { db_file }),
         }
     }
@@ -44,13 +55,20 @@ impl DiskManager {
     pub fn read_page(&self, page_id: PageId) -> [u8; TINYSQL_PAGE_SIZE] {
         let mut guard = self.inner.lock().unwrap();
         let mut buf = [0; TINYSQL_PAGE_SIZE];
-        guard
-            .db_file
+
+        // guard.db_file is a file object, set the file pointer to
+        // the specified position through the .seek(...) method.
+        // Specifically, locate the file pointer to the starting
+        // position of the corresponding page.
+        // Here ... should be a suitable offset.
+        guard.db_file
             .seek(std::io::SeekFrom::Start(
                 (page_id as usize * TINYSQL_PAGE_SIZE) as u64,
             ))
             .unwrap();
+        // Read buf.len() bytes of data from the file, and store the data in the buf array.
         guard.db_file.read_exact(&mut buf).unwrap();
+
         buf
     }
 
@@ -63,20 +81,30 @@ impl DiskManager {
     // TODO 使用bitmap管理
     pub fn allocate_page(&self) -> PageId {
         let mut guard = self.inner.lock().unwrap();
+
+        // Load the current value of next_page_id using atomic load operation.
+        // Increment the next_page_id by 1 using atomic fetch_add operation.
         let page_id = self.next_page_id.load(std::sync::atomic::Ordering::SeqCst);
         self.next_page_id
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+
+        // Write an empty page (all zeros) to the allocated page.
         Self::_write_page(&mut guard, page_id, &[0; TINYSQL_PAGE_SIZE]);
+
         page_id
     }
 
     pub fn deallocate_page(&self, page_id: PageId) {
         // TODO 利用pageId或者释放的空间
         let mut guard = self.inner.lock().unwrap();
+
+        // Write an empty page (all zeros) to the deallocated page.
+        // But this page is not deallocated, only data will be written with null or zeros.
         Self::_write_page(&mut guard, page_id, &[0; TINYSQL_PAGE_SIZE]);
     }
 
     fn _write_page(guard: &mut MutexGuard<Inner>, page_id: PageId, data: &[u8]) {
+        // Seek to the start of the page in the database file and write the data.
         guard
             .db_file
             .seek(std::io::SeekFrom::Start(

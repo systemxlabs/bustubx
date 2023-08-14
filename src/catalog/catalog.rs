@@ -14,6 +14,7 @@ pub type IndexOid = u32;
 pub static DEFAULT_DATABASE_NAME: &str = "tinysql";
 pub static DEFAULT_SCHEMA_NAME: &str = "tinysql";
 
+// 表示 TableInfo 结构体会自动获得 Debug trait 的实现，这意味着你可以使用 println!("{:?}", table_info) 这样的语句来输出 table_info 的调试信息。
 // table元信息
 #[derive(Debug)]
 pub struct TableInfo {
@@ -59,6 +60,7 @@ impl Catalog {
         if self.table_names.contains_key(&table_name) {
             return None;
         }
+
         // 一个table对应一个buffer pool manager
         let buffer_pool_manager = BufferPoolManager::new(
             TABLE_HEAP_BUFFER_POOL_SIZE,
@@ -74,6 +76,7 @@ impl Catalog {
             table: table_heap,
             oid: table_oid,
         };
+
         self.tables.insert(table_oid, table_info);
         self.table_names.insert(table_name.clone(), table_oid);
         self.index_names.insert(table_name, HashMap::new());
