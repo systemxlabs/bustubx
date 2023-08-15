@@ -4,6 +4,7 @@ use crate::{
     dbtype::value::Value,
 };
 use crate::catalog::column::Column;
+use std::mem;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TupleMeta {
@@ -89,19 +90,15 @@ impl Tuple {
         let column = schema
             .get_col_by_index(column_index)
             .expect("column not found");
-        let offset = column.column_offset;
-        let len = column.fixed_len;
-        let raw = &self.data[offset..offset + len];
-        Value::from_bytes(raw, column.column_type)
+
+        self.get_value_by_col(column)
     }
     pub fn get_value_by_col_name(&self, schema: &Schema, column_name: &ColumnFullName) -> Value {
         let column = schema
             .get_col_by_name(column_name)
             .expect("column not found");
-        let offset = column.column_offset;
-        let len = column.fixed_len;
-        let raw = &self.data[offset..offset + len];
-        Value::from_bytes(raw, column.column_type)
+
+        self.get_value_by_col(column)
     }
 
     pub fn get_value_by_col(&self, column: &Column) -> Value {
@@ -136,10 +133,12 @@ impl Tuple {
 }
 
 mod tests {
+    use std::mem;
     use crate::catalog::{
         column::{Column, DataType},
         schema::Schema,
     };
+    use crate::storage::tuple::TupleMeta;
 
     #[test]
     pub fn test_compare() {
@@ -160,5 +159,11 @@ mod tests {
             tuple1.compare(&tuple5, &schema),
             std::cmp::Ordering::Greater
         );
+    }
+
+    #[test]
+    pub fn test_size_of_tuple_meta(){
+        let tuple_meta_size = mem::size_of::<TupleMeta>();
+        println!("TupleMeta size: {} bytes", tuple_meta_size);
     }
 }

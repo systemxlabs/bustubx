@@ -74,7 +74,7 @@ impl DiskManager {
 
     // 将数据写入磁盘指定页
     pub fn write_page(&self, page_id: PageId, data: &[u8]) {
-        assert!(data.len() == TINYSQL_PAGE_SIZE);
+        assert_eq!(data.len(), TINYSQL_PAGE_SIZE);
         let mut guard = self.inner.lock().unwrap();
         Self::_write_page(&mut guard, page_id, data);
     }
@@ -142,10 +142,10 @@ mod tests {
         let page_id = disk_manager.allocate_page();
         assert_eq!(page_id, 1);
         let page = disk_manager.read_page(page_id);
-        assert!(page == [0; 4096]);
+        assert_eq!(page, [0; 4096]);
 
         let db_file_len = disk_manager.db_file_len();
-        assert!(db_file_len == 8192);
+        assert_eq!(db_file_len, 8192);
 
         let _ = std::fs::remove_file(db_path);
     }
