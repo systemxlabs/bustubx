@@ -23,7 +23,7 @@ pub mod project;
 pub mod scan;
 pub mod values;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LogicalOperator {
     Dummy,
     CreateTable(LogicalCreateTableOperator),

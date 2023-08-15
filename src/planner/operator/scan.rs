@@ -1,6 +1,6 @@
 use crate::catalog::{catalog::TableOid, column::Column, schema::Schema};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LogicalScanOperator {
     pub table_oid: TableOid,
     pub columns: Vec<Column>,

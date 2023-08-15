@@ -3,7 +3,7 @@ use crate::{
     dbtype::value::Value,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LogicalValuesOperator {
     pub columns: Vec<Column>,
     pub tuples: Vec<Vec<Value>>,

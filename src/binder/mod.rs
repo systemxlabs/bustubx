@@ -160,7 +160,6 @@ impl<'a> Binder<'a> {
     }
 
     fn bind_table_ref(&self, table: &TableFactor) -> BoundTableRef {
-        println!("bind_base_table_ref {:?}", table);
         match table {
             TableFactor::Table { name, alias, .. } => {
                 let (_database, _schema, table) = match name.0.as_slice() {

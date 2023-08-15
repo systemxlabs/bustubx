@@ -1,6 +1,6 @@
 use crate::catalog::schema::{self, Schema};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LogicalCreateTableOperator {
     pub table_name: String,
     pub schema: Schema,
