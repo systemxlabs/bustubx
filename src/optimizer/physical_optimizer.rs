@@ -1,37 +1,15 @@
 use std::sync::Arc;
 
-use crate::planner::{logical_plan::{LogicalPlan, self}, operator::LogicalOperator};
+use crate::planner::{logical_plan::LogicalPlan, operator::LogicalOperator};
 
-use self::{physical_plan::PhysicalPlan, heuristic::HepOptimizer, physical_optimizer::PhysicalOptimizer};
+use super::physical_plan::PhysicalPlan;
 
-pub mod operator;
-pub mod physical_plan;
-pub mod heuristic;
-pub mod rule;
-pub mod physical_optimizer;
-
-pub struct Optimizer {
-    hep_optimizer: HepOptimizer,
-    physical_optimizer: PhysicalOptimizer,
-}
-impl Optimizer {
-    pub fn new() -> Self {
-        Self { hep_optimizer: HepOptimizer::default(), physical_optimizer: PhysicalOptimizer {}}
-    }
-
-    pub fn find_best(&self, logical_plan: LogicalPlan) -> PhysicalPlan {
-        // find best logical plan
-        let optimized_logical_plan = self.hep_optimizer.find_best(logical_plan);
-
-        // TODO find best physical plan
-        self.physical_optimizer.find_best(Arc::new(optimized_logical_plan))
-
-        // let physical_node = Self::build_physical_node(
-            // self.logical_plan.clone(),
-            // self.logical_plan.children.clone(),
-        // );
-        // TODO 递归
-        // Self::build_physical_plan(physical_node, self.logical_plan.clone())
+pub struct PhysicalOptimizer {}
+impl PhysicalOptimizer {
+    pub fn find_best(&self, logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
+        let physical_node =
+            Self::build_physical_node(logical_plan.clone(), logical_plan.children.clone());
+        Self::build_physical_plan(physical_node, logical_plan.clone())
     }
 
     fn build_physical_plan(
