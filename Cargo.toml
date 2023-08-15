@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 sqlparser = "0.34.0"
 petgraph = "0.6.3"
+lazy_static = "1.4.0"

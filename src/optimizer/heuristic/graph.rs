@@ -17,8 +17,10 @@ pub struct HepNode {
 }
 
 pub struct HepGraph {
-    graph: StableDiGraph<HepNode, usize, usize>,
-    root: HepNodeId,
+    pub graph: StableDiGraph<HepNode, usize, usize>,
+    pub root: HepNodeId,
+    // bump version if graph changed
+    pub version: usize,
 }
 impl HepGraph {
     pub fn new(plan: Arc<LogicalPlan>) -> Self {
@@ -28,6 +30,7 @@ impl HepGraph {
         Self {
             graph,
             root: root_node_id,
+            version: 0,
         }
     }
 
@@ -72,6 +75,10 @@ impl HepGraph {
         self.graph.node_weight(node_id)
     }
 
+    pub fn operator(&self, node_id: HepNodeId) -> Option<&LogicalOperator> {
+        self.node(node_id).map(|node| &node.operator)
+    }
+
     /// Traverse the graph in breadth first search order.
     pub fn bfs(&self, start: HepNodeId) -> Vec<HepNodeId> {
         let mut ids = Vec::with_capacity(self.graph.node_count());
@@ -92,6 +99,20 @@ impl HepGraph {
             HepMatchOrder::TopDown => Box::new(ids.into_iter()),
             HepMatchOrder::BottomUp => Box::new(ids.into_iter().rev()),
         }
+    }
+
+    pub fn to_plan(&self) -> LogicalPlan {
+        self.to_plan_at(self.root)
+    }
+
+    fn to_plan_at(&self, start: HepNodeId) -> LogicalPlan {
+        let operator = self.operator(start).unwrap().clone();
+        let children = self
+            .children_at(start)
+            .into_iter()
+            .map(|child| Arc::new(self.to_plan_at(child)))
+            .collect::<Vec<_>>();
+        LogicalPlan { operator, children }
     }
 }
 
@@ -177,6 +198,37 @@ mod tests {
         assert_eq!(ids[1], HepNodeId::new(1));
         assert!(ids[2] == HepNodeId::new(2) || ids[2] == HepNodeId::new(3));
         assert!(ids[3] == HepNodeId::new(2) || ids[3] == HepNodeId::new(3));
+
+        let _ = std::fs::remove_file(db_path);
+    }
+
+    #[test]
+    pub fn test_hep_graph_to_plan() {
+        let db_path = "test_hep_graph_to_plan.db";
+        let _ = std::fs::remove_file(db_path);
+
+        let mut db = Database::new_on_disk(db_path);
+        db.run("create table t1(a int, b int)");
+        db.run("create table t2(a int, b int)");
+        let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
+
+        let graph = super::HepGraph::new(Arc::new(logical_plan));
+        let output_plan = graph.to_plan();
+        assert!(matches!(output_plan.operator, LogicalOperator::Project(_)));
+        assert_eq!(output_plan.children.len(), 1);
+        assert!(matches!(
+            output_plan.children[0].operator,
+            LogicalOperator::Join(_)
+        ));
+        assert_eq!(output_plan.children[0].children.len(), 2);
+        assert!(matches!(
+            output_plan.children[0].children[0].operator,
+            LogicalOperator::Scan(_)
+        ));
+        assert!(matches!(
+            output_plan.children[0].children[1].operator,
+            LogicalOperator::Scan(_)
+        ));
 
         let _ = std::fs::remove_file(db_path);
     }

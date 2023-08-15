@@ -1,14 +1,23 @@
 use super::rule::Rule;
 
 // A batch of rules
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HepBatch {
     pub name: String,
     pub strategy: HepBatchStrategy,
     pub rules: Vec<Box<dyn Rule>>,
 }
+impl HepBatch {
+    pub fn new(name: &str, strategy: HepBatchStrategy, rules: Vec<Box<dyn Rule>>) -> Self {
+        Self {
+            name: name.to_string(),
+            strategy,
+            rules,
+        }
+    }
+}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HepBatchStrategy {
     pub max_iteration: usize,
     /// An order to traverse the plan tree nodes
