@@ -1,13 +1,12 @@
-use petgraph::stable_graph::{StableDiGraph, NodeIndex};
+use petgraph::stable_graph::{NodeIndex, StableDiGraph};
 
 use super::opt_expr::OptExprNodeId;
-
 
 pub type HepNodeId = NodeIndex<OptExprNodeId>;
 
 pub struct HepNode {
     id: HepNodeId,
-    // plan: 
+    // plan:
 }
 
 pub struct HepGraph {

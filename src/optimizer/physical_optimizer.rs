@@ -1,12 +1,18 @@
 use std::sync::Arc;
 
-use crate::planner::{logical_plan::LogicalPlan, operator::LogicalOperator};
+use crate::planner::{
+    logical_plan::{self, LogicalPlan},
+    operator::LogicalOperator,
+};
 
 use super::physical_plan::PhysicalPlan;
 
 pub struct PhysicalOptimizer {}
 impl PhysicalOptimizer {
-    pub fn find_best(&self, logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
+    // output optimized physical plan
+    pub fn find_best(&self, logical_plan: LogicalPlan) -> PhysicalPlan {
+        // TODO optimization
+        let logical_plan = Arc::new(logical_plan);
         let physical_node =
             Self::build_physical_node(logical_plan.clone(), logical_plan.children.clone());
         Self::build_physical_plan(physical_node, logical_plan.clone())

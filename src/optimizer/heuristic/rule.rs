@@ -1,6 +1,9 @@
 use std::fmt::Debug;
 
-use super::{pattern::Pattern, graph::{HepGraph, HepNodeId}};
+use super::{
+    graph::{HepGraph, HepNodeId},
+    pattern::Pattern,
+};
 
 pub trait Rule: Debug {
     fn pattern(&self) -> &Pattern;

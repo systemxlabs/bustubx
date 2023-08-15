@@ -1,3 +1,1 @@
-pub struct HepMatcher {
-    
-}
+pub struct HepMatcher {}
