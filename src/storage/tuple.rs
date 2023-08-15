@@ -1,10 +1,9 @@
+use crate::catalog::column::Column;
 use crate::{
     catalog::{column::ColumnFullName, schema::Schema},
     common::{config::TransactionId, rid::Rid},
     dbtype::value::Value,
 };
-use crate::catalog::column::Column;
-use std::mem;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TupleMeta {
@@ -74,7 +73,6 @@ impl Tuple {
         }
     }
 
-
     pub fn is_zero(&self) -> bool {
         // Iterate over each element in the 'data' vector using the 'iter' method.
         // The closure '|&x| x == 0' checks if each element is equal to 0.
@@ -133,12 +131,12 @@ impl Tuple {
 }
 
 mod tests {
-    use std::mem;
     use crate::catalog::{
         column::{Column, DataType},
         schema::Schema,
     };
     use crate::storage::tuple::TupleMeta;
+    use std::mem;
 
     #[test]
     pub fn test_compare() {
@@ -159,11 +157,5 @@ mod tests {
             tuple1.compare(&tuple5, &schema),
             std::cmp::Ordering::Greater
         );
-    }
-
-    #[test]
-    pub fn test_size_of_tuple_meta(){
-        let tuple_meta_size = mem::size_of::<TupleMeta>();
-        println!("TupleMeta size: {} bytes", tuple_meta_size);
     }
 }

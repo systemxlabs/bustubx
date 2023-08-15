@@ -30,7 +30,6 @@ impl DiskManager {
             .open(&db_path)
             .unwrap();
 
-
         // Gets the metadata of the database file, including the size of the file.
         // Then it divides the file size by the page size.
         // Convert the result to a page number PageId.
@@ -61,7 +60,8 @@ impl DiskManager {
         // Specifically, locate the file pointer to the starting
         // position of the corresponding page.
         // Here ... should be a suitable offset.
-        guard.db_file
+        guard
+            .db_file
             .seek(std::io::SeekFrom::Start(
                 (page_id as usize * TINYSQL_PAGE_SIZE) as u64,
             ))
