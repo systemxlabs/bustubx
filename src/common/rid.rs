@@ -6,6 +6,7 @@ pub struct Rid {
     pub page_id: PageId,
     pub slot_num: u32,
 }
+
 impl Rid {
     pub const INVALID_RID: Self = Self {
         page_id: std::u32::MAX,

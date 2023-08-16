@@ -23,6 +23,19 @@
 ```
 cargo run
 ```
+test command
+```mysql
+create table t1(a int, b int);
+
+insert into t1 values(1,1),(2,3),(5,4);
+
+select * from t1;
+
+select * from t1 where a <= b;
+
+select a from t1 where a <= b;
+```
+
 ![demo](./docs/tinysql-demo.png)
 
 ## 参考

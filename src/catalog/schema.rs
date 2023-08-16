@@ -4,6 +4,7 @@ use super::column::{Column, ColumnFullName};
 pub struct Schema {
     pub columns: Vec<Column>,
 }
+
 impl Schema {
     pub fn new(mut columns: Vec<Column>) -> Self {
         let mut curr_offset = 0;
