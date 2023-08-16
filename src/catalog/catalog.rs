@@ -14,7 +14,6 @@ pub type IndexOid = u32;
 pub static DEFAULT_DATABASE_NAME: &str = "tinysql";
 pub static DEFAULT_SCHEMA_NAME: &str = "tinysql";
 
-// 表示 TableInfo 结构体会自动获得 Debug trait 的实现，这意味着你可以使用 println!("{:?}", table_info) 这样的语句来输出 table_info 的调试信息。
 // table元信息
 #[derive(Debug)]
 pub struct TableInfo {

@@ -59,6 +59,9 @@ impl TableHeap {
             if last_table_page.get_next_tuple_offset(meta, tuple).is_some() {
                 break;
             }
+
+            // if there's no tuple in the page, and we can't insert the tuple,
+            // then this tuple is too large.
             assert!(
                 last_table_page.num_tuples > 0,
                 "tuple is too large, cannot insert"

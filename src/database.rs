@@ -67,7 +67,7 @@ impl Database {
         let execution_plan = execution_engine.plan(Arc::new(physical_plan));
         // println!("{:?}", execution_plan);
         let result = execution_engine.execute(execution_plan);
-        println!("test: {:?}", result);
+        println!("execution result: {:?}", result);
         result
     }
 }

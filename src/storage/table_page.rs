@@ -67,7 +67,7 @@ impl TablePage {
         let tuple_offset = slot_end_offset - tuple.data.len() as u16;
 
         // Calculate the minimum valid tuple insertion offset, including the table page header size,
-        // the number of inserted tuples, and the size of each tuple info.
+        // the total size of each tuple info (existing tuple infos and newly added tuple info).
         let min_tuple_offset = TABLE_PAGE_HEADER_SIZE as u16
             + (self.num_tuples as u16 + 1) * TABLE_PAGE_TUPLE_INFO_SIZE as u16;
         if tuple_offset < min_tuple_offset {
