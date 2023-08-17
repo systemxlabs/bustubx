@@ -98,7 +98,22 @@ impl HepGraph {
         child: Option<HepNodeId>,
         operator: LogicalOperator,
     ) {
-        // TODO
+        let new_node_id = self.graph.add_node(HepNode {
+            id: HepNodeId::default(),
+            operator,
+        });
+        self.graph[new_node_id].id = new_node_id;
+
+        let mut order = self.graph.edges(parent).count();
+
+        if let Some(child) = child {
+            self.graph.find_edge(parent, child).map(|old_edge_id| {
+                order = self.graph.remove_edge(old_edge_id).unwrap();
+                self.graph.add_edge(new_node_id, child, 0);
+            });
+        }
+
+        self.graph.add_edge(parent, new_node_id, order);
     }
 
     pub fn remove_node(
@@ -346,6 +361,63 @@ mod tests {
         ));
         assert!(matches!(
             graph.operator(ids[3]).unwrap(),
+            LogicalOperator::Scan(_)
+        ));
+
+        let _ = std::fs::remove_file(db_path);
+    }
+
+    #[test]
+    pub fn test_hep_graph_insert_node() {
+        let db_path = "test_hep_graph_insert_node.db";
+        let _ = std::fs::remove_file(db_path);
+
+        let mut db = Database::new_on_disk(db_path);
+        db.run("create table t1(a int, b int)");
+        db.run("create table t2(a int, b int)");
+        let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
+
+        let mut graph = super::HepGraph::new(Arc::new(logical_plan));
+        let ids = graph.bfs(graph.root);
+        assert_eq!(ids.len(), 4);
+        assert!(matches!(
+            graph.operator(ids[0]).unwrap(),
+            LogicalOperator::Project(_)
+        ));
+        assert!(matches!(
+            graph.operator(ids[1]).unwrap(),
+            LogicalOperator::Join(_)
+        ));
+        assert!(matches!(
+            graph.operator(ids[2]).unwrap(),
+            LogicalOperator::Scan(_)
+        ));
+        assert!(matches!(
+            graph.operator(ids[3]).unwrap(),
+            LogicalOperator::Scan(_)
+        ));
+
+        graph.insert_node(ids[1], Some(ids[2]), LogicalOperator::Dummy);
+        let ids = graph.bfs(graph.root);
+        assert_eq!(ids.len(), 5);
+        assert!(matches!(
+            graph.operator(ids[0]).unwrap(),
+            LogicalOperator::Project(_)
+        ));
+        assert!(matches!(
+            graph.operator(ids[1]).unwrap(),
+            LogicalOperator::Join(_)
+        ));
+        assert!(matches!(
+            graph.operator(ids[2]).unwrap(),
+            LogicalOperator::Dummy
+        ));
+        assert!(matches!(
+            graph.operator(ids[3]).unwrap(),
+            LogicalOperator::Scan(_)
+        ));
+        assert!(matches!(
+            graph.operator(ids[4]).unwrap(),
             LogicalOperator::Scan(_)
         ));
 
