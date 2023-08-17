@@ -12,14 +12,10 @@ use super::{logical_plan::LogicalPlan, Planner};
 
 impl Planner {
     pub fn plan_select(&mut self, stmt: SelectStatement) -> LogicalPlan {
+        // from table
         let mut plan = self.plan_table_ref(stmt.from_table);
 
-        if stmt.limit.is_some() || stmt.offset.is_some() {
-            let mut limit_plan = self.plan_limit(&stmt.limit, &stmt.offset);
-            limit_plan.children.push(Arc::new(plan));
-            plan = limit_plan;
-        }
-
+        // filter
         if stmt.where_clause.is_some() {
             let mut filter_plan = LogicalPlan {
                 operator: LogicalOperator::new_filter_operator(stmt.where_clause.unwrap()),
@@ -29,10 +25,22 @@ impl Planner {
             plan = filter_plan;
         }
 
-        let plan = LogicalPlan {
+        // project
+        let mut plan = LogicalPlan {
             operator: LogicalOperator::new_project_operator(stmt.select_list),
             children: vec![Arc::new(plan)],
         };
+
+        // TODO sort should be here
+        // order by clause may use computed column, so it should be after project
+        // for example, `select a+b from t order by a+b limit 10`
+
+        // limit
+        if stmt.limit.is_some() || stmt.offset.is_some() {
+            let mut limit_plan = self.plan_limit(&stmt.limit, &stmt.offset);
+            limit_plan.children.push(Arc::new(plan));
+            plan = limit_plan;
+        }
 
         plan
     }
