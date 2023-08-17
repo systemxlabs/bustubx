@@ -39,7 +39,6 @@ impl VolcanoExecutor for VolcanoCreateTableExecutor {
             let table_name = op.table_name.clone();
             let schema = op.schema.clone();
             context.catalog.create_table(table_name, schema);
-            println!("create table: {:?}, schema: {:?}", op.table_name, op.schema);
             NextResult::new(None, true)
         } else {
             panic!("not create table operator")

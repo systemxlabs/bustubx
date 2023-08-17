@@ -3,7 +3,7 @@ use crate::{
     catalog::schema::Schema,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LogicalProjectOperator {
     pub expressions: Vec<BoundExpression>,
 }

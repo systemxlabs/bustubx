@@ -7,7 +7,7 @@ use crate::{
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     execution::{ExecutionContext, ExecutionEngine},
     optimizer::Optimizer,
-    planner::Planner,
+    planner::{logical_plan::LogicalPlan, Planner},
     storage::{disk_manager::DiskManager, tuple::Tuple},
 };
 
@@ -28,7 +28,7 @@ impl Database {
         }
     }
 
-    pub fn run(&mut self, sql: &String) -> Vec<Tuple> {
+    pub fn run(&mut self, sql: &str) -> Vec<Tuple> {
         // sql -> ast
         let stmts = crate::parser::parse_sql(sql);
         if stmts.is_err() {
@@ -56,8 +56,8 @@ impl Database {
         // println!("{:?}", logical_plan);
 
         // logical plan -> physical plan
-        let optimizer = Optimizer::new();
-        let physical_plan = optimizer.find_best(logical_plan);
+        let mut optimizer = Optimizer::new(logical_plan);
+        let physical_plan = optimizer.find_best();
         // println!("{:?}", physical_plan);
 
         let execution_ctx = ExecutionContext::new(&mut self.catalog);
@@ -69,6 +69,30 @@ impl Database {
         let result = execution_engine.execute(execution_plan);
         println!("execution result: {:?}", result);
         result
+    }
+
+    pub fn build_logical_plan(&mut self, sql: &str) -> LogicalPlan {
+        // sql -> ast
+        let stmts = crate::parser::parse_sql(sql);
+        if stmts.is_err() {
+            panic!("parse sql error")
+        }
+        let stmts = stmts.unwrap();
+        if stmts.len() != 1 {
+            panic!("only support one sql statement")
+        }
+        let stmt = &stmts[0];
+        let mut binder = Binder {
+            context: BinderContext {
+                catalog: &self.catalog,
+            },
+        };
+        // ast -> statement
+        let statement = binder.bind(&stmt);
+
+        // statement -> logical plan
+        let mut planner = Planner {};
+        planner.plan(statement)
     }
 }
 
@@ -84,11 +108,11 @@ mod tests {
     #[test]
     pub fn test_crud_sql() {
         let mut db = super::Database::new_on_disk("test.db");
-        db.run(&"create table t1 (a int, b int)".to_string());
-        db.run(&"create table t2 (a int, b int)".to_string());
-        db.run(&"create table t3 (a int, b int)".to_string());
-        db.run(&"create table t4 (a int, b int)".to_string());
-        db.run(&"select * from t1, t2, t3 inner join t4 on t3.id = t4.id".to_string());
+        db.run("create table t1 (a int, b int)");
+        db.run("create table t2 (a int, b int)");
+        db.run("create table t3 (a int, b int)");
+        db.run("create table t4 (a int, b int)");
+        db.run("select * from t1, t2, t3 inner join t4 on t3.id = t4.id");
         // db.run(&"select * from (t1 inner join t2 on t1.a = t2.a) inner join t3 on t1.a = t3.a ".to_string());
     }
 
@@ -98,7 +122,7 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = super::Database::new_on_disk(db_path);
-        db.run(&"create table t1 (a int, b int)".to_string());
+        db.run("create table t1 (a int, b int)");
 
         let table = db.catalog.get_table_by_name("t1");
         assert!(table.is_some());
