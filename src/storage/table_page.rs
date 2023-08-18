@@ -35,6 +35,7 @@ pub struct TablePage {
     // TODO 可以通过memmove、memcpy优化，参考bustub
     pub data: [u8; TINYSQL_PAGE_SIZE],
 }
+
 impl TablePage {
     pub fn new(next_page_id: PageId) -> Self {
         Self {
@@ -46,35 +47,55 @@ impl TablePage {
         }
     }
 
-    // 获取下一个tuple的offset
+    // Get the offset for the next tuple insertion.
     pub fn get_next_tuple_offset(&self, meta: &TupleMeta, tuple: &Tuple) -> Option<u16> {
+        // Get the ending offset of the current slot. If there are inserted tuples,
+        // get the offset of the previous inserted tuple; otherwise, set it to the size of the page.
         let slot_end_offset = if self.num_tuples > 0 {
             self.tuple_info[self.num_tuples as usize - 1].0
         } else {
             TINYSQL_PAGE_SIZE as u16
         };
+
+        // Check if the current slot has enough space for the new tuple. Return None if not.
         if slot_end_offset < tuple.data.len() as u16 {
             return None;
         }
+
+        // Calculate the insertion offset for the new tuple by subtracting its data length
+        // from the ending offset of the current slot.
         let tuple_offset = slot_end_offset - tuple.data.len() as u16;
+
+        // Calculate the minimum valid tuple insertion offset, including the table page header size,
+        // the total size of each tuple info (existing tuple infos and newly added tuple info).
         let min_tuple_offset = TABLE_PAGE_HEADER_SIZE as u16
             + (self.num_tuples as u16 + 1) * TABLE_PAGE_TUPLE_INFO_SIZE as u16;
         if tuple_offset < min_tuple_offset {
             return None;
         }
+
+        // Return the calculated insertion offset for the new tuple.
         return Some(tuple_offset);
     }
 
     pub fn insert_tuple(&mut self, meta: &TupleMeta, tuple: &Tuple) -> Option<u16> {
+        // Get the offset for the next tuple insertion.
         let tuple_offset = self.get_next_tuple_offset(meta, tuple)?;
         let tuple_id = self.num_tuples;
+
+        // Store tuple information including offset, length, and metadata.
         self.tuple_info
             .push((tuple_offset, tuple.data.len() as u16, meta.clone()));
-        assert!(tuple_id == self.tuple_info.len() as u16 - 1);
+
+        // only check
+        assert_eq!(tuple_id, self.tuple_info.len() as u16 - 1);
+
         self.num_tuples += 1;
         if meta.is_deleted {
             self.num_deleted_tuples += 1;
         }
+
+        // Copy the tuple's data into the appropriate position within the page's data buffer.
         self.data[tuple_offset as usize..(tuple_offset + tuple.data.len() as u16) as usize]
             .copy_from_slice(&tuple.data);
         return Some(tuple_id);
@@ -88,6 +109,7 @@ impl TablePage {
         if meta.is_deleted && !self.tuple_info[tuple_id as usize].2.is_deleted {
             self.num_deleted_tuples += 1;
         }
+
         self.tuple_info[tuple_id as usize].2 = meta.clone();
     }
 
@@ -96,11 +118,13 @@ impl TablePage {
         if tuple_id >= self.num_tuples as u32 {
             panic!("tuple_id {} out of range", tuple_id);
         }
+
         let (offset, size, meta) = self.tuple_info[tuple_id as usize];
         let tuple = Tuple::new_with_rid(
             *rid,
             self.data[offset as usize..(offset + size) as usize].to_vec(),
         );
+
         return (meta, tuple);
     }
 
@@ -109,6 +133,7 @@ impl TablePage {
         if tuple_id >= self.num_tuples as u32 {
             panic!("tuple_id {} out of range", tuple_id);
         }
+
         return self.tuple_info[tuple_id as usize].2.clone();
     }
 
@@ -118,14 +143,17 @@ impl TablePage {
         if tuple_id + 1 >= self.num_tuples as u32 {
             return None;
         }
+
         return Some(Rid::new(rid.page_id, tuple_id + 1));
     }
 
+    // Parse real data from disk pages into memory pages.
     pub fn from_bytes(data: &[u8]) -> Self {
         let next_page_id = u32::from_be_bytes([data[0], data[1], data[2], data[3]]);
         let mut table_page = Self::new(next_page_id);
         table_page.num_tuples = u16::from_be_bytes([data[4], data[5]]);
         table_page.num_deleted_tuples = u16::from_be_bytes([data[6], data[7]]);
+
         for i in 0..table_page.num_tuples as usize {
             let offset = 8 + i * TABLE_PAGE_TUPLE_INFO_SIZE;
             let tuple_offset = u16::from_be_bytes([data[offset], data[offset + 1]]);
@@ -158,7 +186,9 @@ impl TablePage {
                 },
             ));
         }
+
         table_page.data.copy_from_slice(data);
+
         return table_page;
     }
 

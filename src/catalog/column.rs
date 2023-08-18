@@ -25,6 +25,7 @@ pub struct Column {
     // 列在元组中的偏移量
     pub column_offset: usize,
 }
+
 impl Column {
     pub fn new(
         table_name: Option<String>,
@@ -63,6 +64,7 @@ pub enum DataType {
     Varchar,
     Timestamp,
 }
+
 impl DataType {
     pub fn type_size(&self) -> usize {
         match self {

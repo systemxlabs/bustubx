@@ -11,6 +11,7 @@ pub struct Page {
     // 是否被写过
     pub is_dirty: bool,
 }
+
 impl Page {
     pub fn new(page_id: PageId) -> Self {
         Self {
