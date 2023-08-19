@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
+use itertools::Itertools;
 use petgraph::{
     stable_graph::{NodeIndex, StableDiGraph},
-    visit::Bfs,
+    visit::{Bfs, EdgeRef},
 };
 
 use crate::planner::{logical_plan::LogicalPlan, operator::LogicalOperator};
@@ -55,20 +56,11 @@ impl HepGraph {
 
     /// If input node is join, we use the edge weight to control the join chilren order.
     pub fn children_at(&self, node_id: HepNodeId) -> Vec<HepNodeId> {
-        let mut children = self
-            .graph
-            .neighbors_directed(node_id, petgraph::Direction::Outgoing)
-            .collect::<Vec<_>>();
-        if children.len() > 1 {
-            children.sort_by(|a, b| {
-                let a_edge = self.graph.find_edge(node_id, *a).unwrap();
-                let a_weight = self.graph.edge_weight(a_edge).unwrap();
-                let b_edge = self.graph.find_edge(node_id, *b).unwrap();
-                let b_weight = self.graph.edge_weight(b_edge).unwrap();
-                a_weight.cmp(b_weight)
-            })
-        }
-        children
+        self.graph
+            .edges(node_id)
+            .sorted_by_key(|edge| edge.weight())
+            .map(|edge| edge.target())
+            .collect_vec()
     }
 
     pub fn node(&self, node_id: HepNodeId) -> Option<&HepNode> {
