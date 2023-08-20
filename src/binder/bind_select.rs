@@ -1,8 +1,12 @@
-use sqlparser::ast::{Expr, Offset, Query, SelectItem, SetExpr};
+use sqlparser::ast::{Expr, Offset, OrderByExpr, Query, SelectItem, SetExpr};
 
 use crate::binder::expression::{alias::BoundAlias, BoundExpression};
 
-use super::{statement::select::SelectStatement, Binder};
+use super::{
+    order_by::{BoundOrderBy, OrderByType},
+    statement::select::SelectStatement,
+    Binder,
+};
 
 impl<'a> Binder<'a> {
     pub fn bind_select(&self, query: &Query) -> SelectStatement {
@@ -50,12 +54,16 @@ impl<'a> Binder<'a> {
         // bind limit and offset
         let (limit, offset) = self.bind_limit(&query.limit, &query.offset);
 
+        // bind order by clause
+        let sort = self.bind_order_by(&query.order_by);
+
         SelectStatement {
             select_list,
             from_table,
             where_clause,
             limit,
             offset,
+            sort,
         }
     }
 
@@ -69,5 +77,18 @@ impl<'a> Binder<'a> {
             .as_ref()
             .map(|offset| self.bind_expression(&offset.value));
         (limit, offset)
+    }
+
+    pub fn bind_order_by(&self, order_by_list: &Vec<OrderByExpr>) -> Vec<BoundOrderBy> {
+        order_by_list
+            .iter()
+            .map(|expr| BoundOrderBy {
+                expression: self.bind_expression(&expr.expr),
+                order_by_type: match expr.asc.unwrap_or(true) {
+                    true => OrderByType::ASC,
+                    false => OrderByType::DESC,
+                },
+            })
+            .collect::<Vec<BoundOrderBy>>()
     }
 }
