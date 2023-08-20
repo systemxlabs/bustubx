@@ -11,7 +11,8 @@ use crate::{
 use self::{
     create_table::LogicalCreateTableOperator, filter::LogicalFilterOperator,
     insert::LogicalInsertOperator, join::LogicalJoinOperator, limit::LogicalLimitOperator,
-    project::LogicalProjectOperator, scan::LogicalScanOperator, values::LogicalValuesOperator,
+    project::LogicalProjectOperator, scan::LogicalScanOperator, sort::LogicalSortOperator,
+    values::LogicalValuesOperator,
 };
 
 pub mod create_table;
@@ -21,6 +22,7 @@ pub mod join;
 pub mod limit;
 pub mod project;
 pub mod scan;
+pub mod sort;
 pub mod values;
 
 #[derive(Debug, Clone)]
@@ -32,7 +34,7 @@ pub enum LogicalOperator {
     Join(LogicalJoinOperator),
     Project(LogicalProjectOperator),
     Scan(LogicalScanOperator),
-    // Sort(SortOperator),
+    Sort(LogicalSortOperator),
     Limit(LogicalLimitOperator),
     Insert(LogicalInsertOperator),
     Values(LogicalValuesOperator),
@@ -64,5 +66,8 @@ impl LogicalOperator {
         condition: Option<BoundExpression>,
     ) -> LogicalOperator {
         LogicalOperator::Join(LogicalJoinOperator::new(join_type, condition))
+    }
+    pub fn new_sort_operator(expr: BoundExpression, desc: bool) -> LogicalOperator {
+        LogicalOperator::Sort(LogicalSortOperator::new(expr, desc))
     }
 }

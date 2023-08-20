@@ -34,6 +34,14 @@ impl Planner {
         // TODO sort should be here
         // order by clause may use computed column, so it should be after project
         // for example, `select a+b from t order by a+b limit 10`
+        for order_by in stmt.sort {
+            let mut sort_plan = LogicalPlan {
+                operator: LogicalOperator::new_sort_operator(order_by.expression, order_by.desc),
+                children: Vec::new(),
+            };
+            sort_plan.children.push(Arc::new(plan));
+            plan = sort_plan;
+        }
 
         // limit
         if stmt.limit.is_some() || stmt.offset.is_some() {

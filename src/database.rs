@@ -48,12 +48,12 @@ impl Database {
         };
         // ast -> statement
         let statement = binder.bind(&stmt);
-        println!("{:?}", statement);
+        // println!("{:?}", statement);
 
         // statement -> logical plan
         let mut planner = Planner {};
         let logical_plan = planner.plan(statement);
-        // println!("{:?}", logical_plan);
+        // println!("{:#?}", logical_plan);
 
         // logical plan -> physical plan
         let mut optimizer = Optimizer::new(logical_plan);
@@ -112,7 +112,7 @@ mod tests {
         // db.run("create table t2 (a int, b int)");
         // db.run("create table t3 (a int, b int)");
         // db.run("create table t4 (a int, b int)");
-        db.run("select * from t1 order by a desc, b");
+        // db.run("select * from t1 order by a desc, b");
         // db.run("select * from t1, t2, t3 inner join t4 on t3.id = t4.id");
         // db.run(&"select * from (t1 inner join t2 on t1.a = t2.a) inner join t3 on t1.a = t3.a ".to_string());
     }

@@ -2,11 +2,7 @@ use sqlparser::ast::{Expr, Offset, OrderByExpr, Query, SelectItem, SetExpr};
 
 use crate::binder::expression::{alias::BoundAlias, BoundExpression};
 
-use super::{
-    order_by::{BoundOrderBy, OrderByType},
-    statement::select::SelectStatement,
-    Binder,
-};
+use super::{order_by::BoundOrderBy, statement::select::SelectStatement, Binder};
 
 impl<'a> Binder<'a> {
     pub fn bind_select(&self, query: &Query) -> SelectStatement {
@@ -84,10 +80,7 @@ impl<'a> Binder<'a> {
             .iter()
             .map(|expr| BoundOrderBy {
                 expression: self.bind_expression(&expr.expr),
-                order_by_type: match expr.asc.unwrap_or(true) {
-                    true => OrderByType::ASC,
-                    false => OrderByType::DESC,
-                },
+                desc: expr.asc.map_or(false, |asc| !asc),
             })
             .collect::<Vec<BoundOrderBy>>()
     }
