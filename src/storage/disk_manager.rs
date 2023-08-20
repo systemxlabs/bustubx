@@ -3,7 +3,7 @@ use std::{
     sync::{atomic::AtomicU32, Mutex, MutexGuard},
 };
 
-use crate::common::config::TINYSQL_PAGE_SIZE;
+use crate::common::config::BUSTUBX_PAGE_SIZE;
 
 use super::page::PageId;
 
@@ -38,7 +38,7 @@ impl DiskManager {
             .metadata()
             .unwrap()
             .len()
-            .div_euclid(TINYSQL_PAGE_SIZE as u64) as PageId;
+            .div_euclid(BUSTUBX_PAGE_SIZE as u64) as PageId;
         println!("Initialized disk_manager next_page_id: {}", next_page_id);
 
         Self {
@@ -51,9 +51,9 @@ impl DiskManager {
     }
 
     // 读取磁盘指定页的数据
-    pub fn read_page(&self, page_id: PageId) -> [u8; TINYSQL_PAGE_SIZE] {
+    pub fn read_page(&self, page_id: PageId) -> [u8; BUSTUBX_PAGE_SIZE] {
         let mut guard = self.inner.lock().unwrap();
-        let mut buf = [0; TINYSQL_PAGE_SIZE];
+        let mut buf = [0; BUSTUBX_PAGE_SIZE];
 
         // guard.db_file is a file object, set the file pointer to
         // the specified position through the .seek(...) method.
@@ -63,7 +63,7 @@ impl DiskManager {
         guard
             .db_file
             .seek(std::io::SeekFrom::Start(
-                (page_id as usize * TINYSQL_PAGE_SIZE) as u64,
+                (page_id as usize * BUSTUBX_PAGE_SIZE) as u64,
             ))
             .unwrap();
         // Read buf.len() bytes of data from the file, and store the data in the buf array.
@@ -74,7 +74,7 @@ impl DiskManager {
 
     // 将数据写入磁盘指定页
     pub fn write_page(&self, page_id: PageId, data: &[u8]) {
-        assert_eq!(data.len(), TINYSQL_PAGE_SIZE);
+        assert_eq!(data.len(), BUSTUBX_PAGE_SIZE);
         let mut guard = self.inner.lock().unwrap();
         Self::_write_page(&mut guard, page_id, data);
     }
@@ -90,7 +90,7 @@ impl DiskManager {
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
         // Write an empty page (all zeros) to the allocated page.
-        Self::_write_page(&mut guard, page_id, &[0; TINYSQL_PAGE_SIZE]);
+        Self::_write_page(&mut guard, page_id, &[0; BUSTUBX_PAGE_SIZE]);
 
         page_id
     }
@@ -102,7 +102,7 @@ impl DiskManager {
 
         // Write an empty page (all zeros) to the deallocated page.
         // But this page is not deallocated, only data will be written with null or zeros.
-        Self::_write_page(&mut guard, page_id, &[0; TINYSQL_PAGE_SIZE]);
+        Self::_write_page(&mut guard, page_id, &[0; BUSTUBX_PAGE_SIZE]);
     }
 
     fn _write_page(guard: &mut MutexGuard<Inner>, page_id: PageId, data: &[u8]) {
@@ -110,7 +110,7 @@ impl DiskManager {
         guard
             .db_file
             .seek(std::io::SeekFrom::Start(
-                (page_id as usize * TINYSQL_PAGE_SIZE) as u64,
+                (page_id as usize * BUSTUBX_PAGE_SIZE) as u64,
             ))
             .unwrap();
         guard.db_file.write_all(data).unwrap();
@@ -125,7 +125,7 @@ impl DiskManager {
 mod tests {
     use std::io::{Read, Seek, Write};
 
-    use crate::common::config::TINYSQL_PAGE_SIZE;
+    use crate::common::config::BUSTUBX_PAGE_SIZE;
 
     #[test]
     pub fn test_disk_manager_allocate_page() {
@@ -161,12 +161,12 @@ mod tests {
         let page_id2 = disk_manager.allocate_page();
 
         let mut page1 = vec![1, 2, 3];
-        page1.extend(vec![0; TINYSQL_PAGE_SIZE - 3]);
+        page1.extend(vec![0; BUSTUBX_PAGE_SIZE - 3]);
         disk_manager.write_page(page_id1, &page1);
         let page = disk_manager.read_page(page_id1);
         assert_eq!(page, page1.as_slice());
 
-        let mut page2 = vec![0; TINYSQL_PAGE_SIZE - 3];
+        let mut page2 = vec![0; BUSTUBX_PAGE_SIZE - 3];
         page2.extend(vec![1, 2, 3]);
         disk_manager.write_page(page_id2, &page2);
         let page = disk_manager.read_page(page_id2);

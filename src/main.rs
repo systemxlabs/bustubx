@@ -15,7 +15,7 @@ mod planner;
 mod storage;
 
 fn main() {
-    println!(":) Welcome to the tinysql, please input sql.");
+    println!(":) Welcome to the bustubx, please input sql.");
 
     let mut db = Database::new_on_disk("test.db");
     loop {

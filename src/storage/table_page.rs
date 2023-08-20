@@ -1,4 +1,4 @@
-use crate::common::{config::TINYSQL_PAGE_SIZE, rid::Rid};
+use crate::common::{config::BUSTUBX_PAGE_SIZE, rid::Rid};
 
 use super::{
     page::PageId,
@@ -33,7 +33,7 @@ pub struct TablePage {
     pub tuple_info: Vec<(u16, u16, TupleMeta)>,
     // 整个页原始数据
     // TODO 可以通过memmove、memcpy优化，参考bustub
-    pub data: [u8; TINYSQL_PAGE_SIZE],
+    pub data: [u8; BUSTUBX_PAGE_SIZE],
 }
 
 impl TablePage {
@@ -42,8 +42,8 @@ impl TablePage {
             next_page_id,
             num_tuples: 0,
             num_deleted_tuples: 0,
-            tuple_info: Vec::with_capacity(TINYSQL_PAGE_SIZE / TABLE_PAGE_TUPLE_INFO_SIZE),
-            data: [0; TINYSQL_PAGE_SIZE],
+            tuple_info: Vec::with_capacity(BUSTUBX_PAGE_SIZE / TABLE_PAGE_TUPLE_INFO_SIZE),
+            data: [0; BUSTUBX_PAGE_SIZE],
         }
     }
 
@@ -54,7 +54,7 @@ impl TablePage {
         let slot_end_offset = if self.num_tuples > 0 {
             self.tuple_info[self.num_tuples as usize - 1].0
         } else {
-            TINYSQL_PAGE_SIZE as u16
+            BUSTUBX_PAGE_SIZE as u16
         };
 
         // Check if the current slot has enough space for the new tuple. Return None if not.
@@ -192,8 +192,8 @@ impl TablePage {
         return table_page;
     }
 
-    pub fn to_bytes(&self) -> [u8; TINYSQL_PAGE_SIZE] {
-        let mut bytes = [0; TINYSQL_PAGE_SIZE];
+    pub fn to_bytes(&self) -> [u8; BUSTUBX_PAGE_SIZE] {
+        let mut bytes = [0; BUSTUBX_PAGE_SIZE];
         bytes[0..4].copy_from_slice(&self.next_page_id.to_be_bytes());
         bytes[4..6].copy_from_slice(&self.num_tuples.to_be_bytes());
         bytes[6..8].copy_from_slice(&self.num_deleted_tuples.to_be_bytes());
@@ -218,7 +218,7 @@ impl TablePage {
 
 mod tests {
     use crate::{
-        common::{config::TINYSQL_PAGE_SIZE, rid::Rid},
+        common::{config::BUSTUBX_PAGE_SIZE, rid::Rid},
         storage::tuple::Tuple,
     };
 
@@ -237,7 +237,7 @@ mod tests {
         assert_eq!(table_page.tuple_info.len(), 1);
         assert_eq!(
             table_page.tuple_info[tuple_id.unwrap() as usize].0,
-            TINYSQL_PAGE_SIZE as u16 - 3
+            BUSTUBX_PAGE_SIZE as u16 - 3
         );
         assert_eq!(table_page.tuple_info[tuple_id.unwrap() as usize].1, 3);
         assert_eq!(table_page.tuple_info[tuple_id.unwrap() as usize].2, meta);
@@ -249,7 +249,7 @@ mod tests {
         assert_eq!(table_page.tuple_info.len(), 2);
         assert_eq!(
             table_page.tuple_info[tuple_id.unwrap() as usize].0,
-            TINYSQL_PAGE_SIZE as u16 - 3 - 3
+            BUSTUBX_PAGE_SIZE as u16 - 3 - 3
         );
         assert_eq!(table_page.tuple_info[tuple_id.unwrap() as usize].1, 3);
         assert_eq!(table_page.tuple_info[tuple_id.unwrap() as usize].2, meta);
@@ -321,18 +321,18 @@ mod tests {
         assert_eq!(table_page2.num_tuples, 3);
         assert_eq!(table_page2.num_deleted_tuples, 0);
         assert_eq!(table_page2.tuple_info.len(), 3);
-        assert_eq!(table_page2.tuple_info[0].0, TINYSQL_PAGE_SIZE as u16 - 3);
+        assert_eq!(table_page2.tuple_info[0].0, BUSTUBX_PAGE_SIZE as u16 - 3);
         assert_eq!(table_page2.tuple_info[0].1, 3);
         assert_eq!(table_page2.tuple_info[0].2, meta);
         assert_eq!(
             table_page2.tuple_info[1].0,
-            TINYSQL_PAGE_SIZE as u16 - 3 - 3
+            BUSTUBX_PAGE_SIZE as u16 - 3 - 3
         );
         assert_eq!(table_page2.tuple_info[1].1, 3);
         assert_eq!(table_page2.tuple_info[1].2, meta);
         assert_eq!(
             table_page2.tuple_info[2].0,
-            TINYSQL_PAGE_SIZE as u16 - 3 - 3 - 3
+            BUSTUBX_PAGE_SIZE as u16 - 3 - 3 - 3
         );
         assert_eq!(table_page2.tuple_info[2].1, 3);
         assert_eq!(table_page2.tuple_info[2].2, meta);
