@@ -1,25 +1,75 @@
-[English](./README_EN.md)
+# tinysql - A tiny relational database (CMU 15-445)
+- DDL
+  - [ ] Create
+    - [x] Create Table
+    - [ ] Create Index
+  - [ ] Drop
+  - [ ] Alter
+  - [ ] Truncate
+- DQL
+  - [x] Select
+  - [x] Where
+  - [ ] Distinct
+  - [ ] Aggregation: Count / Sum / Avg / Min / Max
+  - [ ] Subquery
+  - [ ] Join: Left Outer / Right Outer / Full Outer / Inner / Cross
+  - [ ] Group By
+  - [ ] Having
+  - [ ] Order By
+  - [x] Limit
+- DML
+  - [x] Insert
+  - [ ] Update
+  - [ ] Delete
+- Data Types
+  - [x] Bool
+  - [x] TinyInt
+  - [x] SmallInt
+  - [x] Int
+  - [ ] BigInt
+  - [ ] Float
+  - [ ] Varchar
+- Optimizer rules
+  - [x] Limit Project Transpose
+  - [x] Eliminate Limits
+  - [x] Push Limit Through Join
+  - [ ] Push Limit Into Scan
+  - [ ] Combine Filters
+  - [ ] Column Pruning
+  - [ ] Collapse Project
+- Executors
+  - [x] Create Table
+  - [x] Table Scan
+  - [ ] Index Scan
+  - [x] Filter
+  - [x] Project
+  - [x] Limit
+  - [x] Nested Loop Join
+  - [ ] Hash Join
+  - [x] Insert
+  - [x] Values
+  - [ ] Update
+  - [ ] Delete
+- Transaction
+  - [ ] Begin
+  - [ ] Commit
+  - [ ] Rollback
+  - [ ] Isolation Level
+    - [ ] Read Uncommitted
+    - [ ] Read Committed
+    - [ ] Repeatable Read
+    - [ ] Serializable
+- Recovery
+  - [ ] Redo
+  - [ ] Undo
+  - [ ] Checkpoint
 
-# tinysql - 简单关系型数据库 (基于 CMU 15-445 课程)
-- [x] Disk Manager 磁盘管理
-- [x] LRU-K置换算法
-- [ ] 可扩展哈希表
-- [x] 缓冲池管理
-- [x] B+树索引
-- [x] Table Heap 表堆
-- [x] Catalog 元数据
-- [x] Binder 绑定器
-- [x] Planner 计划器
-- [ ] 优化器
-- [x] 火山模型执行器
-- [ ] MVCC多版本并发控制
-- [ ] 事务
-
-## 架构
+## Architecture
 ![architecture](./docs/tinysql-architecture.png)
 
-## 运行
-安装rust工具链
+
+## Get started
+Install rust toolchain first.
 ```
 cargo run
 ```
@@ -38,7 +88,7 @@ select a from t1 where a <= b;
 
 ![demo](./docs/tinysql-demo.png)
 
-## 参考
+## Reference
 - [CMU 15-445/645 Database Systems](https://15445.courses.cs.cmu.edu/fall2022/)
 - [cmu-db/bustub](https://github.com/cmu-db/bustub)
 - [Fedomn/sqlrs](https://github.com/Fedomn/sqlrs) and [blogs](https://frankma.me/categories/sqlrs/)
@@ -48,7 +98,7 @@ select a from t1 where a <= b;
 - [CMU15-445 22Fall通关记录 - 知乎](https://www.zhihu.com/column/c_1605901992903004160)
 - [B+ Tree Visualization](https://www.cs.usfca.edu/~galles/visualization/BPlusTree.html)
 
-## 问题
-**1.如何处理B+树节点上相同的key？**
+## Questions
+**1.What if same keys in B+ tree node?**
 
-**2.如果B+树节点的key大小超过页容量怎么处理？**
+**2.What if key size exceeds b+ tree index page capacity?**
