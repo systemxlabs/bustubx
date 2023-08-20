@@ -31,7 +31,6 @@ impl Planner {
             children: vec![Arc::new(plan)],
         };
 
-        // TODO sort should be here
         // order by clause may use computed column, so it should be after project
         // for example, `select a+b from t order by a+b limit 10`
         for order_by in stmt.sort {
