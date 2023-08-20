@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    common::config::TINYSQL_PAGE_SIZE,
+    common::config::BUSTUBX_PAGE_SIZE,
     storage::{
         disk_manager::DiskManager,
         page::{Page, PageId},
@@ -161,7 +161,7 @@ impl BufferPoolManager {
         }
     }
 
-    pub fn write_page(&mut self, page_id: PageId, data: [u8; TINYSQL_PAGE_SIZE]) {
+    pub fn write_page(&mut self, page_id: PageId, data: [u8; BUSTUBX_PAGE_SIZE]) {
         if self.page_table.contains_key(&page_id) {
             let frame_id = self.page_table[&page_id];
             let page = &mut self.pool[frame_id as usize];

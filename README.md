@@ -1,4 +1,4 @@
-# tinysql - A tiny relational database (CMU 15-445)
+# bustubx - A tiny relational database (CMU 15-445)
 - DDL
   - [ ] Create
     - [x] Create Table
@@ -65,7 +65,7 @@
   - [ ] Checkpoint
 
 ## Architecture
-![architecture](./docs/tinysql-architecture.png)
+![architecture](./docs/bustubx-architecture.png)
 
 
 ## Get started
@@ -86,7 +86,7 @@ select * from t1 where a <= b;
 select a from t1 where a <= b;
 ```
 
-![demo](./docs/tinysql-demo.png)
+![demo](./docs/bustubx-demo.png)
 
 ## Reference
 - [CMU 15-445/645 Database Systems](https://15445.courses.cs.cmu.edu/fall2022/)
