@@ -48,7 +48,7 @@ impl Database {
         };
         // ast -> statement
         let statement = binder.bind(&stmt);
-        // println!("{:?}", statement);
+        println!("{:?}", statement);
 
         // statement -> logical plan
         let mut planner = Planner {};
