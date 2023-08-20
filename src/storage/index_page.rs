@@ -4,7 +4,7 @@ use super::{page::PageId, tuple::Tuple};
 use crate::{
     catalog::schema::Schema,
     common::{
-        config::{INVALID_PAGE_ID, BUSTUBX_PAGE_SIZE},
+        config::{BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID},
         rid::Rid,
     },
 };
