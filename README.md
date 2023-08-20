@@ -1,4 +1,4 @@
-# bustubx - A tiny relational database (CMU 15-445)
+# bustubx - a relational database for educational purpose (CMU 15-445)
 - DDL
   - [ ] Create
     - [x] Create Table
