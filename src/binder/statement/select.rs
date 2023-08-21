@@ -1,4 +1,6 @@
-use crate::binder::{expression::BoundExpression, table_ref::BoundTableRef};
+use crate::binder::{
+    expression::BoundExpression, order_by::BoundOrderBy, table_ref::BoundTableRef,
+};
 
 #[derive(Debug, Clone)]
 pub struct SelectStatement {
@@ -7,4 +9,5 @@ pub struct SelectStatement {
     pub where_clause: Option<BoundExpression>,
     pub limit: Option<BoundExpression>,
     pub offset: Option<BoundExpression>,
+    pub sort: Vec<BoundOrderBy>,
 }
