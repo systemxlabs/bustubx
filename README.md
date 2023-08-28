@@ -29,6 +29,7 @@
   - [ ] BigInt
   - [ ] Float
   - [ ] Varchar
+  - [ ] Null
 - Optimizer rules
   - [x] Limit Project Transpose
   - [x] Eliminate Limits

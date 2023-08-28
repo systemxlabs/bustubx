@@ -9,6 +9,7 @@ impl PhysicalProjectOperator {
         PhysicalProjectOperator { expressions }
     }
     pub fn output_schema(&self) -> Schema {
-        unimplemented!()
+        // TODO implementation
+        Schema::new(vec![])
     }
 }
