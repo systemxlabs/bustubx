@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    catalog::catalog::Catalog,
+    catalog::{catalog::Catalog, schema::Schema},
     optimizer::{operator::PhysicalOperator, physical_plan::PhysicalPlan},
     storage::tuple::Tuple,
 };
@@ -24,7 +24,7 @@ pub struct ExecutionEngine<'a> {
     pub context: ExecutionContext<'a>,
 }
 impl ExecutionEngine<'_> {
-    pub fn execute(&mut self, plan: ExecutionPlan) -> Vec<Tuple> {
+    pub fn execute(&mut self, plan: ExecutionPlan) -> (Vec<Tuple>, Schema) {
         plan.init(&mut self.context);
         let mut result = Vec::new();
         loop {
@@ -36,7 +36,8 @@ impl ExecutionEngine<'_> {
                 break;
             }
         }
-        result
+        let schema = plan.operator.output_schema();
+        (result, schema)
     }
 
     // 生成执行计划

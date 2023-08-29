@@ -1,3 +1,5 @@
+use std::fmt::Formatter;
+
 use crate::catalog::column::DataType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -75,5 +77,17 @@ impl Value {
         } else {
             vec![0]
         }
+    }
+}
+
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            Value::Boolean(e) => write!(f, "{}", e)?,
+            Value::TinyInt(e) => write!(f, "{}", e)?,
+            Value::SmallInt(e) => write!(f, "{}", e)?,
+            Value::Integer(e) => write!(f, "{}", e)?,
+        };
+        Ok(())
     }
 }
