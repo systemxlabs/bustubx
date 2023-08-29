@@ -7,6 +7,7 @@ use crate::planner::{
 
 use self::{
     heuristic::HepOptimizer, physical_optimizer::PhysicalOptimizer, physical_plan::PhysicalPlan,
+    physical_plan_v2::PhysicalPlanV2,
 };
 
 pub mod heuristic;
@@ -33,5 +34,13 @@ impl Optimizer {
 
         // optimize physical plan
         self.physical_optimizer.find_best(optimized_logical_plan)
+    }
+
+    pub fn find_best_v2(&mut self) -> PhysicalPlanV2 {
+        // optimize logical plan
+        let optimized_logical_plan = self.hep_optimizer.find_best();
+
+        // optimize physical plan
+        self.physical_optimizer.find_best_v2(optimized_logical_plan)
     }
 }

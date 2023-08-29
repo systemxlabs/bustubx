@@ -5,7 +5,10 @@ use crate::planner::{
     operator::LogicalOperator,
 };
 
-use super::physical_plan::PhysicalPlan;
+use super::{
+    physical_plan::PhysicalPlan,
+    physical_plan_v2::{build_plan_v2, PhysicalPlanV2},
+};
 
 pub struct PhysicalOptimizer {}
 impl PhysicalOptimizer {
@@ -16,6 +19,13 @@ impl PhysicalOptimizer {
         let physical_node =
             Self::build_physical_node(logical_plan.clone(), logical_plan.children.clone());
         Self::build_physical_plan(physical_node, logical_plan.clone())
+    }
+
+    // output optimized physical plan
+    pub fn find_best_v2(&self, logical_plan: LogicalPlan) -> PhysicalPlanV2 {
+        // TODO optimization
+        let logical_plan = Arc::new(logical_plan);
+        build_plan_v2(logical_plan.clone())
     }
 
     fn build_physical_plan(

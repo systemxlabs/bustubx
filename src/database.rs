@@ -71,6 +71,50 @@ impl Database {
         result
     }
 
+    pub fn run_v2(&mut self, sql: &str) -> Vec<Tuple> {
+        // sql -> ast
+        let stmts = crate::parser::parse_sql(sql);
+        if stmts.is_err() {
+            println!("parse sql error");
+            return Vec::new();
+        }
+        let stmts = stmts.unwrap();
+        if stmts.len() != 1 {
+            println!("only support one sql statement");
+            return Vec::new();
+        }
+        let stmt = &stmts[0];
+        let mut binder = Binder {
+            context: BinderContext {
+                catalog: &self.catalog,
+            },
+        };
+        // ast -> statement
+        let statement = binder.bind(&stmt);
+        // println!("{:?}", statement);
+
+        // statement -> logical plan
+        let mut planner = Planner {};
+        let logical_plan = planner.plan(statement);
+        // println!("{:#?}", logical_plan);
+
+        // logical plan -> physical plan
+        let mut optimizer = Optimizer::new(logical_plan);
+        let physical_plan = optimizer.find_best_v2();
+        println!("{:?}", physical_plan);
+
+        let execution_ctx = ExecutionContext::new(&mut self.catalog);
+        let mut execution_engine = ExecutionEngine {
+            context: execution_ctx,
+        };
+        // let execution_plan = execution_engine.plan(Arc::new(physical_plan));
+        // println!("{:?}", execution_plan);
+        // let result = execution_engine.execute(execution_plan);
+        // println!("execution result: {:?}", result);
+        // result
+        vec![]
+    }
+
     pub fn build_logical_plan(&mut self, sql: &str) -> LogicalPlan {
         // sql -> ast
         let stmts = crate::parser::parse_sql(sql);
@@ -108,11 +152,11 @@ mod tests {
     #[test]
     pub fn test_crud_sql() {
         let mut db = super::Database::new_on_disk("test.db");
-        db.run("create table t1 (a int, b int)");
+        // db.run_v2("create table t1 (a int, b int)");
         // db.run("create table t2 (a int, b int)");
         // db.run("create table t3 (a int, b int)");
         // db.run("create table t4 (a int, b int)");
-        // db.run("select * from t1 order by a desc, b");
+        // db.run_v2("select * from t1 where a > 3");
         // db.run("select * from t1, t2, t3 inner join t4 on t3.id = t4.id");
         // db.run(&"select * from (t1 inner join t2 on t1.a = t2.a) inner join t3 on t1.a = t3.a ".to_string());
     }
