@@ -107,12 +107,9 @@ impl Database {
         let mut execution_engine = ExecutionEngine {
             context: execution_ctx,
         };
-        // let execution_plan = execution_engine.plan(Arc::new(physical_plan));
-        // println!("{:?}", execution_plan);
-        // let result = execution_engine.execute(execution_plan);
+        let result = execution_engine.execute_v2(Arc::new(physical_plan));
         // println!("execution result: {:?}", result);
-        // result
-        vec![]
+        result
     }
 
     pub fn build_logical_plan(&mut self, sql: &str) -> LogicalPlan {
@@ -167,7 +164,7 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = super::Database::new_on_disk(db_path);
-        db.run("create table t1 (a int, b int)");
+        db.run_v2("create table t1 (a int, b int)");
 
         let table = db.catalog.get_table_by_name("t1");
         assert!(table.is_some());
@@ -194,7 +191,7 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = super::Database::new_on_disk(db_path);
-        db.run(&"create table t1 (a int, b int)".to_string());
+        db.run_v2(&"create table t1 (a int, b int)".to_string());
         let insert_rows = db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
         assert_eq!(insert_rows.len(), 1);
 
@@ -216,14 +213,14 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = super::Database::new_on_disk(db_path);
-        db.run(&"create table t1 (a int, b int)".to_string());
+        db.run_v2(&"create table t1 (a int, b int)".to_string());
 
-        let select_result = db.run(&"select * from t1".to_string());
+        let select_result = db.run_v2(&"select * from t1".to_string());
         assert_eq!(select_result.len(), 0);
 
-        db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
+        db.run_v2(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
 
-        let select_result = db.run(&"select * from t1".to_string());
+        let select_result = db.run_v2(&"select * from t1".to_string());
         assert_eq!(select_result.len(), 3);
 
         let schema = Schema::new(vec![
@@ -274,9 +271,9 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = super::Database::new_on_disk(db_path);
-        db.run(&"create table t1 (a int, b int)".to_string());
-        db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
-        let select_result = db.run(&"select a from t1 where a <= b".to_string());
+        db.run_v2(&"create table t1 (a int, b int)".to_string());
+        db.run_v2(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
+        let select_result = db.run_v2(&"select a from t1 where a <= b".to_string());
         assert_eq!(select_result.len(), 2);
 
         let schema = Schema::new(vec![Column::new(
@@ -303,9 +300,9 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = super::Database::new_on_disk(db_path);
-        db.run(&"create table t1 (a int, b int)".to_string());
-        db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
-        let select_result = db.run(&"select * from t1 limit 1 offset 1".to_string());
+        db.run_v2(&"create table t1 (a int, b int)".to_string());
+        db.run_v2(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
+        let select_result = db.run_v2(&"select * from t1 limit 1 offset 1".to_string());
         assert_eq!(select_result.len(), 1);
 
         let schema = Schema::new(vec![
@@ -340,11 +337,11 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = super::Database::new_on_disk(db_path);
-        db.run(&"create table t1 (a int, b int)".to_string());
-        db.run(&"create table t2 (a int, b int)".to_string());
-        db.run(&"insert into t1 values (1, 2), (3, 4)".to_string());
-        db.run(&"insert into t2 values (5, 6), (7, 8)".to_string());
-        let select_result = db.run(&"select * from t1, t2".to_string());
+        db.run_v2(&"create table t1 (a int, b int)".to_string());
+        db.run_v2(&"create table t2 (a int, b int)".to_string());
+        db.run_v2(&"insert into t1 values (1, 2), (3, 4)".to_string());
+        db.run_v2(&"insert into t2 values (5, 6), (7, 8)".to_string());
+        let select_result = db.run_v2(&"select * from t1, t2".to_string());
         assert_eq!(select_result.len(), 4);
 
         let schema = Schema::new(vec![
@@ -454,11 +451,11 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = super::Database::new_on_disk(db_path);
-        db.run(&"create table t1 (a int, b int)".to_string());
-        db.run(&"create table t2 (a int, b int)".to_string());
-        db.run(&"insert into t1 values (1, 2), (5, 6)".to_string());
-        db.run(&"insert into t2 values (3, 4), (7, 8)".to_string());
-        let select_result = db.run(&"select * from t1 inner join t2 on t1.a > t2.a".to_string());
+        db.run_v2(&"create table t1 (a int, b int)".to_string());
+        db.run_v2(&"create table t2 (a int, b int)".to_string());
+        db.run_v2(&"insert into t1 values (1, 2), (5, 6)".to_string());
+        db.run_v2(&"insert into t2 values (3, 4), (7, 8)".to_string());
+        let select_result = db.run_v2(&"select * from t1 inner join t2 on t1.a > t2.a".to_string());
         assert_eq!(select_result.len(), 1);
 
         let schema = Schema::new(vec![

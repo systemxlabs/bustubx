@@ -11,6 +11,11 @@ use self::execution_plan::ExecutionPlan;
 pub mod execution_plan;
 pub mod volcano_executor;
 
+pub trait VolcanoExecutorV2 {
+    fn init(&self, context: &mut ExecutionContext);
+    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple>;
+}
+
 pub struct ExecutionContext<'a> {
     pub catalog: &'a mut Catalog,
 }
@@ -33,6 +38,20 @@ impl ExecutionEngine<'_> {
                 result.push(next_result.tuple.unwrap());
             }
             if next_result.exhausted {
+                break;
+            }
+        }
+        result
+    }
+
+    pub fn execute_v2(&mut self, plan: Arc<PhysicalPlanV2>) -> Vec<Tuple> {
+        plan.init(&mut self.context);
+        let mut result = Vec::new();
+        loop {
+            let next_tuple = plan.next(&mut self.context);
+            if next_tuple.is_some() {
+                result.push(next_tuple.unwrap());
+            } else {
                 break;
             }
         }

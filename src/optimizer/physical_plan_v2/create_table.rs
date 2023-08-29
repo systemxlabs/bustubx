@@ -1,4 +1,8 @@
-use crate::catalog::schema::Schema;
+use crate::{
+    catalog::schema::Schema,
+    execution::{ExecutionContext, VolcanoExecutorV2},
+    storage::tuple::Tuple,
+};
 
 #[derive(Debug)]
 pub struct PhysicalCreateTable {
@@ -11,5 +15,16 @@ impl PhysicalCreateTable {
     }
     pub fn output_schema(&self) -> Schema {
         self.schema.clone()
+    }
+}
+impl VolcanoExecutorV2 for PhysicalCreateTable {
+    fn init(&self, context: &mut ExecutionContext) {
+        println!("init create table executor");
+    }
+    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
+        context
+            .catalog
+            .create_table(self.table_name.clone(), self.schema.clone());
+        None
     }
 }

@@ -2,7 +2,9 @@ use std::sync::Arc;
 
 use crate::{
     catalog::schema::Schema,
+    execution::{ExecutionContext, VolcanoExecutorV2},
     planner::{logical_plan::LogicalPlan, operator::LogicalOperator},
+    storage::tuple::Tuple,
 };
 
 use self::{
@@ -117,4 +119,32 @@ pub fn build_plan_v2(logical_plan: Arc<LogicalPlan>) -> PhysicalPlanV2 {
         _ => unimplemented!(),
     };
     plan
+}
+impl VolcanoExecutorV2 for PhysicalPlanV2 {
+    fn init(&self, context: &mut ExecutionContext) {
+        match self {
+            PhysicalPlanV2::Dummy => {}
+            PhysicalPlanV2::CreateTable(op) => op.init(context),
+            PhysicalPlanV2::Insert(op) => op.init(context),
+            PhysicalPlanV2::Values(op) => op.init(context),
+            PhysicalPlanV2::Project(op) => op.init(context),
+            PhysicalPlanV2::Filter(op) => op.init(context),
+            PhysicalPlanV2::TableScan(op) => op.init(context),
+            PhysicalPlanV2::Limit(op) => op.init(context),
+            PhysicalPlanV2::NestedLoopJoin(op) => op.init(context),
+        }
+    }
+    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
+        match self {
+            PhysicalPlanV2::Dummy => None,
+            PhysicalPlanV2::CreateTable(op) => op.next(context),
+            PhysicalPlanV2::Insert(op) => op.next(context),
+            PhysicalPlanV2::Values(op) => op.next(context),
+            PhysicalPlanV2::Project(op) => op.next(context),
+            PhysicalPlanV2::Filter(op) => op.next(context),
+            PhysicalPlanV2::TableScan(op) => op.next(context),
+            PhysicalPlanV2::Limit(op) => op.next(context),
+            PhysicalPlanV2::NestedLoopJoin(op) => op.next(context),
+        }
+    }
 }
