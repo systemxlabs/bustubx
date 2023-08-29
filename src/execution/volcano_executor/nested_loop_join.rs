@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::{
     dbtype::value::Value,
     execution::{execution_plan::ExecutionPlan, ExecutionContext},
-    optimizer::operator::PhysicalOperator,
+    optimizer::operator::PhysicalPlanV2,
     storage::tuple::Tuple,
 };
 
@@ -24,10 +24,10 @@ impl VolcanoExecutor for VolcanNestedLoopJoinExecutor {
     fn init(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) {
-        if let PhysicalOperator::NestedLoopJoin(op) = op.as_ref() {
+        if let PhysicalPlanV2::NestedLoopJoin(op) = op.as_ref() {
             println!("init nested loop join executor");
             for child in children {
                 child.init(context);
@@ -39,10 +39,10 @@ impl VolcanoExecutor for VolcanNestedLoopJoinExecutor {
     fn next(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) -> NextResult {
-        if let PhysicalOperator::NestedLoopJoin(op) = op.as_ref() {
+        if let PhysicalPlanV2::NestedLoopJoin(op) = op.as_ref() {
             let left_executor = children[0].clone();
             let right_executor = children[1].clone();
 

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    optimizer::operator::PhysicalOperator,
+    optimizer::operator::PhysicalPlanV2,
     storage::{table_heap::TableIterator, tuple::Tuple},
 };
 
@@ -32,67 +32,67 @@ pub enum Executor {
 #[derive(Debug)]
 pub struct ExecutionPlan {
     pub executor: Executor,
-    pub operator: Arc<PhysicalOperator>,
+    pub operator: Arc<PhysicalPlanV2>,
     pub children: Vec<Arc<ExecutionPlan>>,
 }
 impl ExecutionPlan {
     pub fn dummy() -> Self {
         Self {
             executor: Executor::Dummy,
-            operator: Arc::new(PhysicalOperator::Dummy),
+            operator: Arc::new(PhysicalPlanV2::Dummy),
             children: Vec::new(),
         }
     }
-    pub fn new_create_table_node(operator: Arc<PhysicalOperator>) -> Self {
+    pub fn new_create_table_node(operator: Arc<PhysicalPlanV2>) -> Self {
         Self {
             executor: Executor::VolcanoCreateTable(VolcanoCreateTableExecutor {}),
             operator,
             children: Vec::new(),
         }
     }
-    pub fn new_insert_node(operator: Arc<PhysicalOperator>) -> Self {
+    pub fn new_insert_node(operator: Arc<PhysicalPlanV2>) -> Self {
         Self {
             executor: Executor::VolcanoInsert(VolcanoInsertExecutor::new()),
             operator,
             children: Vec::new(),
         }
     }
-    pub fn new_values_node(operator: Arc<PhysicalOperator>) -> Self {
+    pub fn new_values_node(operator: Arc<PhysicalPlanV2>) -> Self {
         Self {
             executor: Executor::VolcanoValues(VolcanValuesExecutor::new()),
             operator,
             children: Vec::new(),
         }
     }
-    pub fn new_table_scan_node(operator: Arc<PhysicalOperator>) -> Self {
+    pub fn new_table_scan_node(operator: Arc<PhysicalPlanV2>) -> Self {
         Self {
             executor: Executor::VolcanoTableScan(VolcanoTableScanExecutor::default()),
             operator,
             children: Vec::new(),
         }
     }
-    pub fn new_filter_node(operator: Arc<PhysicalOperator>) -> Self {
+    pub fn new_filter_node(operator: Arc<PhysicalPlanV2>) -> Self {
         Self {
             executor: Executor::VolcanoFilter(VolcanoFilterExecutor {}),
             operator,
             children: Vec::new(),
         }
     }
-    pub fn new_project_node(operator: Arc<PhysicalOperator>) -> Self {
+    pub fn new_project_node(operator: Arc<PhysicalPlanV2>) -> Self {
         Self {
             executor: Executor::VolcanoProject(VolcanoProjectExecutor {}),
             operator,
             children: Vec::new(),
         }
     }
-    pub fn new_limit_node(operator: Arc<PhysicalOperator>) -> Self {
+    pub fn new_limit_node(operator: Arc<PhysicalPlanV2>) -> Self {
         Self {
             executor: Executor::VolcanoLimit(VolcanLimitExecutor::new()),
             operator,
             children: Vec::new(),
         }
     }
-    pub fn new_nested_loop_join_node(operator: Arc<PhysicalOperator>) -> Self {
+    pub fn new_nested_loop_join_node(operator: Arc<PhysicalPlanV2>) -> Self {
         Self {
             executor: Executor::VolcanoNestedLoopJoin(VolcanNestedLoopJoinExecutor::new()),
             operator,

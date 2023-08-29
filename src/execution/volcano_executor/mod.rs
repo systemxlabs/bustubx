@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{optimizer::operator::PhysicalOperator, storage::tuple::Tuple};
+use crate::{optimizer::operator::PhysicalPlanV2, storage::tuple::Tuple};
 
 use super::{execution_plan::ExecutionPlan, ExecutionContext};
 
@@ -28,13 +28,13 @@ pub trait VolcanoExecutor {
     fn init(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     );
     fn next(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) -> NextResult;
 }

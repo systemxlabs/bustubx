@@ -48,13 +48,30 @@ impl PhysicalOptimizer {
                 )
             }
             LogicalOperator::Insert(ref logic_insert) => {
-                PhysicalPlan::new_insert_node(&logic_insert.table_name, &logic_insert.columns)
+                let child_logical_node = logical_node_children[0].clone();
+                let child_physical_node = Self::build_physical_node(
+                    child_logical_node.clone(),
+                    child_logical_node.children.clone(),
+                );
+                PhysicalPlan::new_insert_node(
+                    &logic_insert.table_name,
+                    &logic_insert.columns,
+                    child_physical_node.operator.clone(),
+                )
             }
             LogicalOperator::Values(ref logical_values) => {
                 PhysicalPlan::new_values_node(&logical_values.columns, &logical_values.tuples)
             }
             LogicalOperator::Project(ref logical_project) => {
-                PhysicalPlan::new_project_node(&logical_project.expressions)
+                let child_logical_node = logical_node_children[0].clone();
+                let child_physical_node = Self::build_physical_node(
+                    child_logical_node.clone(),
+                    child_logical_node.children.clone(),
+                );
+                PhysicalPlan::new_project_node(
+                    &logical_project.expressions,
+                    child_physical_node.operator.clone(),
+                )
             }
             LogicalOperator::Filter(ref logical_filter) => {
                 // filter下只有一个子节点

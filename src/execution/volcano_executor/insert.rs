@@ -4,7 +4,7 @@ use crate::{
     catalog::column::Column,
     dbtype::value::Value,
     execution::{execution_plan::ExecutionPlan, ExecutionContext},
-    optimizer::operator::PhysicalOperator,
+    optimizer::operator::PhysicalPlanV2,
     storage::{
         table_heap,
         tuple::{Tuple, TupleMeta},
@@ -28,10 +28,10 @@ impl VolcanoExecutor for VolcanoInsertExecutor {
     fn init(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) {
-        if let PhysicalOperator::Insert(op) = op.as_ref() {
+        if let PhysicalPlanV2::Insert(op) = op.as_ref() {
             println!("init insert executor");
             *self.insert_rows.lock().unwrap() = 0;
             for child in children {
@@ -44,10 +44,10 @@ impl VolcanoExecutor for VolcanoInsertExecutor {
     fn next(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) -> NextResult {
-        if let PhysicalOperator::Insert(op) = op.as_ref() {
+        if let PhysicalPlanV2::Insert(op) = op.as_ref() {
             let child = children[0].clone();
             let mut insert_rows = self.insert_rows.lock().unwrap();
             let next_result = child.next(context);

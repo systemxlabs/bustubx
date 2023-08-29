@@ -16,7 +16,7 @@ pub mod table_scan;
 pub mod values;
 
 #[derive(Debug)]
-pub enum PhysicalOperator {
+pub enum PhysicalPlanV2 {
     Dummy,
     CreateTable(PhysicalCreateTable),
     Project(PhysicalProject),
@@ -27,7 +27,7 @@ pub enum PhysicalOperator {
     Values(PhysicalValues),
     NestedLoopJoin(PhysicalNestedLoopJoin),
 }
-impl PhysicalOperator {
+impl PhysicalPlanV2 {
     pub fn output_schema(&self) -> Schema {
         match self {
             Self::Dummy => Schema::new(vec![]),

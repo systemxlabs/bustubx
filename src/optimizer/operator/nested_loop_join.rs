@@ -5,21 +5,21 @@ use crate::{
     catalog::schema::Schema,
 };
 
-use super::PhysicalOperator;
+use super::PhysicalPlanV2;
 
 #[derive(Debug)]
 pub struct PhysicalNestedLoopJoin {
     pub join_type: JoinType,
     pub condition: Option<BoundExpression>,
-    pub left_input: Arc<PhysicalOperator>,
-    pub right_input: Arc<PhysicalOperator>,
+    pub left_input: Arc<PhysicalPlanV2>,
+    pub right_input: Arc<PhysicalPlanV2>,
 }
 impl PhysicalNestedLoopJoin {
     pub fn new(
         join_type: JoinType,
         condition: Option<BoundExpression>,
-        left_input: Arc<PhysicalOperator>,
-        right_input: Arc<PhysicalOperator>,
+        left_input: Arc<PhysicalPlanV2>,
+        right_input: Arc<PhysicalPlanV2>,
     ) -> Self {
         PhysicalNestedLoopJoin {
             join_type,

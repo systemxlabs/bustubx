@@ -1,7 +1,7 @@
 use crate::{
     catalog::column::Column,
     execution::{execution_plan::ExecutionPlan, ExecutionContext},
-    optimizer::operator::PhysicalOperator,
+    optimizer::operator::PhysicalPlanV2,
     storage::{
         table_heap,
         tuple::{Tuple, TupleMeta},
@@ -17,10 +17,10 @@ impl VolcanoExecutor for VolcanoCreateTableExecutor {
     fn init(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) {
-        if let PhysicalOperator::CreateTable(op) = op.as_ref() {
+        if let PhysicalPlanV2::CreateTable(op) = op.as_ref() {
             println!("init create table executor");
             for child in children {
                 child.init(context);
@@ -32,10 +32,10 @@ impl VolcanoExecutor for VolcanoCreateTableExecutor {
     fn next(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) -> NextResult {
-        if let PhysicalOperator::CreateTable(op) = op.as_ref() {
+        if let PhysicalPlanV2::CreateTable(op) = op.as_ref() {
             let table_name = op.table_name.clone();
             let schema = op.schema.clone();
             context.catalog.create_table(table_name, schema);

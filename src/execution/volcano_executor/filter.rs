@@ -4,7 +4,7 @@ use crate::binder::expression::BoundExpression;
 use crate::dbtype::value::Value;
 use crate::execution::execution_plan::ExecutionPlan;
 use crate::{
-    execution::ExecutionContext, optimizer::operator::PhysicalOperator, storage::tuple::Tuple,
+    execution::ExecutionContext, optimizer::operator::PhysicalPlanV2, storage::tuple::Tuple,
 };
 use std::sync::Arc;
 
@@ -16,10 +16,10 @@ impl VolcanoExecutor for VolcanoFilterExecutor {
     fn init(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) {
-        if let PhysicalOperator::Filter(op) = op.as_ref() {
+        if let PhysicalPlanV2::Filter(op) = op.as_ref() {
             println!("init filter executor");
             for child in children {
                 child.init(context);
@@ -31,10 +31,10 @@ impl VolcanoExecutor for VolcanoFilterExecutor {
     fn next(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) -> NextResult {
-        if let PhysicalOperator::Filter(op) = op.as_ref() {
+        if let PhysicalPlanV2::Filter(op) = op.as_ref() {
             if children.len() != 1 {
                 panic!("filter should have only one child")
             }

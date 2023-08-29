@@ -1,7 +1,7 @@
 use crate::execution::execution_plan::ExecutionPlan;
 use crate::storage::table_heap::TableIterator;
 use crate::{
-    execution::ExecutionContext, optimizer::operator::PhysicalOperator, storage::tuple::Tuple,
+    execution::ExecutionContext, optimizer::operator::PhysicalPlanV2, storage::tuple::Tuple,
 };
 use std::sync::{Arc, Mutex};
 
@@ -22,10 +22,10 @@ impl VolcanoExecutor for VolcanoTableScanExecutor {
     fn init(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) {
-        if let PhysicalOperator::TableScan(op) = op.as_ref() {
+        if let PhysicalPlanV2::TableScan(op) = op.as_ref() {
             println!("init table scan executor");
             let table_info = context.catalog.get_mut_table_by_oid(op.table_oid).unwrap();
             let inited_iterator = table_info.table.iter(None, None);
@@ -41,10 +41,10 @@ impl VolcanoExecutor for VolcanoTableScanExecutor {
     fn next(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) -> NextResult {
-        if let PhysicalOperator::TableScan(op) = op.as_ref() {
+        if let PhysicalPlanV2::TableScan(op) = op.as_ref() {
             let table_info = context.catalog.get_mut_table_by_oid(op.table_oid).unwrap();
             let mut iterator = self.iterator.lock().unwrap();
             let tuple = iterator.next(&mut table_info.table);

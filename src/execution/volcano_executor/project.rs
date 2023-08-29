@@ -1,6 +1,6 @@
 use crate::execution::execution_plan::ExecutionPlan;
 use crate::{
-    execution::ExecutionContext, optimizer::operator::PhysicalOperator, storage::tuple::Tuple,
+    execution::ExecutionContext, optimizer::operator::PhysicalPlanV2, storage::tuple::Tuple,
 };
 use std::sync::Arc;
 
@@ -12,10 +12,10 @@ impl VolcanoExecutor for VolcanoProjectExecutor {
     fn init(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) {
-        if let PhysicalOperator::Project(op) = op.as_ref() {
+        if let PhysicalPlanV2::Project(op) = op.as_ref() {
             println!("init project executor");
             for child in children {
                 child.init(context);
@@ -27,10 +27,10 @@ impl VolcanoExecutor for VolcanoProjectExecutor {
     fn next(
         &self,
         context: &mut ExecutionContext,
-        op: Arc<PhysicalOperator>,
+        op: Arc<PhysicalPlanV2>,
         children: Vec<Arc<ExecutionPlan>>,
     ) -> NextResult {
-        if let PhysicalOperator::Project(op) = op.as_ref() {
+        if let PhysicalPlanV2::Project(op) = op.as_ref() {
             let child = children[0].clone();
             let next_result = child.next(context);
             if next_result.tuple.is_none() {

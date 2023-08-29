@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     catalog::catalog::Catalog,
-    optimizer::{operator::PhysicalOperator, physical_plan::PhysicalPlan},
+    optimizer::{operator::PhysicalPlanV2, physical_plan::PhysicalPlan},
     storage::tuple::Tuple,
 };
 
@@ -64,17 +64,17 @@ impl ExecutionEngine<'_> {
     fn build_execution_node(physical_node: Arc<PhysicalPlan>) -> ExecutionPlan {
         let physical_operator = physical_node.operator.clone();
         match physical_node.operator.as_ref() {
-            PhysicalOperator::Dummy => ExecutionPlan::dummy(),
-            PhysicalOperator::CreateTable(_) => {
+            PhysicalPlanV2::Dummy => ExecutionPlan::dummy(),
+            PhysicalPlanV2::CreateTable(_) => {
                 ExecutionPlan::new_create_table_node(physical_operator)
             }
-            PhysicalOperator::Insert(_) => ExecutionPlan::new_insert_node(physical_operator),
-            PhysicalOperator::Values(_) => ExecutionPlan::new_values_node(physical_operator),
-            PhysicalOperator::TableScan(_) => ExecutionPlan::new_table_scan_node(physical_operator),
-            PhysicalOperator::Filter(_) => ExecutionPlan::new_filter_node(physical_operator),
-            PhysicalOperator::Project(_) => ExecutionPlan::new_project_node(physical_operator),
-            PhysicalOperator::Limit(_) => ExecutionPlan::new_limit_node(physical_operator),
-            PhysicalOperator::NestedLoopJoin(_) => {
+            PhysicalPlanV2::Insert(_) => ExecutionPlan::new_insert_node(physical_operator),
+            PhysicalPlanV2::Values(_) => ExecutionPlan::new_values_node(physical_operator),
+            PhysicalPlanV2::TableScan(_) => ExecutionPlan::new_table_scan_node(physical_operator),
+            PhysicalPlanV2::Filter(_) => ExecutionPlan::new_filter_node(physical_operator),
+            PhysicalPlanV2::Project(_) => ExecutionPlan::new_project_node(physical_operator),
+            PhysicalPlanV2::Limit(_) => ExecutionPlan::new_limit_node(physical_operator),
+            PhysicalPlanV2::NestedLoopJoin(_) => {
                 ExecutionPlan::new_nested_loop_join_node(physical_operator)
             }
             _ => unimplemented!(),
