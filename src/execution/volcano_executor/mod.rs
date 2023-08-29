@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{optimizer::operator::PhysicalPlanV2, storage::tuple::Tuple};
+use crate::{optimizer::physical_plan_v2::PhysicalPlanV2, storage::tuple::Tuple};
 
 use super::{execution_plan::ExecutionPlan, ExecutionContext};
 

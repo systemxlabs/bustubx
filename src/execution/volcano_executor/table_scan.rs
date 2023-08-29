@@ -1,7 +1,7 @@
 use crate::execution::execution_plan::ExecutionPlan;
 use crate::storage::table_heap::TableIterator;
 use crate::{
-    execution::ExecutionContext, optimizer::operator::PhysicalPlanV2, storage::tuple::Tuple,
+    execution::ExecutionContext, optimizer::physical_plan_v2::PhysicalPlanV2, storage::tuple::Tuple,
 };
 use std::sync::{Arc, Mutex};
 

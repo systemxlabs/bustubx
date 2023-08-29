@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    optimizer::operator::PhysicalPlanV2,
+    optimizer::physical_plan_v2::PhysicalPlanV2,
     storage::{table_heap::TableIterator, tuple::Tuple},
 };
 

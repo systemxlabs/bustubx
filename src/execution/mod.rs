@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     catalog::catalog::Catalog,
-    optimizer::{operator::PhysicalPlanV2, physical_plan::PhysicalPlan},
+    optimizer::{physical_plan::PhysicalPlan, physical_plan_v2::PhysicalPlanV2},
     storage::tuple::Tuple,
 };
 

@@ -1,7 +1,7 @@
 use crate::{
     catalog::column::Column,
     execution::{execution_plan::ExecutionPlan, ExecutionContext},
-    optimizer::operator::PhysicalPlanV2,
+    optimizer::physical_plan_v2::PhysicalPlanV2,
     storage::{
         table_heap,
         tuple::{Tuple, TupleMeta},

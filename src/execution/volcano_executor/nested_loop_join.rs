@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::{
     dbtype::value::Value,
     execution::{execution_plan::ExecutionPlan, ExecutionContext},
-    optimizer::operator::PhysicalPlanV2,
+    optimizer::physical_plan_v2::PhysicalPlanV2,
     storage::tuple::Tuple,
 };
 

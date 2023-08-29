@@ -10,9 +10,9 @@ use self::{
 };
 
 pub mod heuristic;
-pub mod operator;
 pub mod physical_optimizer;
 pub mod physical_plan;
+pub mod physical_plan_v2;
 pub mod rule;
 
 pub struct Optimizer {

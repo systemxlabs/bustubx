@@ -10,7 +10,7 @@ use crate::{
     dbtype::value::Value,
 };
 
-use super::operator::{
+use super::physical_plan_v2::{
     create_table::PhysicalCreateTable, filter::PhysicalFilter, insert::PhysicalInsert,
     limit::PhysicalLimit, nested_loop_join::PhysicalNestedLoopJoin, project::PhysicalProject,
     table_scan::PhysicalTableScan, values::PhysicalValues, PhysicalPlanV2,
