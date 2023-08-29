@@ -1,10 +1,9 @@
 use crate::catalog::schema::Schema;
 
 use self::{
-    create_table::PhysicalCreateTableOperator, filter::PhysicalFilterOperator,
-    insert::PhysicalInsertOperator, limit::PhysicalLimitOperator,
-    nested_loop_join::PhysicalNestedLoopJoinOperator, project::PhysicalProjectOperator,
-    table_scan::PhysicalTableScanOperator, values::PhysicalValuesOperator,
+    create_table::PhysicalCreateTable, filter::PhysicalFilter, insert::PhysicalInsert,
+    limit::PhysicalLimit, nested_loop_join::PhysicalNestedLoopJoin, project::PhysicalProject,
+    table_scan::PhysicalTableScan, values::PhysicalValues,
 };
 
 pub mod create_table;
@@ -19,14 +18,14 @@ pub mod values;
 #[derive(Debug)]
 pub enum PhysicalOperator {
     Dummy,
-    CreateTable(PhysicalCreateTableOperator),
-    Project(PhysicalProjectOperator),
-    Filter(PhysicalFilterOperator),
-    TableScan(PhysicalTableScanOperator),
-    Limit(PhysicalLimitOperator),
-    Insert(PhysicalInsertOperator),
-    Values(PhysicalValuesOperator),
-    NestedLoopJoin(PhysicalNestedLoopJoinOperator),
+    CreateTable(PhysicalCreateTable),
+    Project(PhysicalProject),
+    Filter(PhysicalFilter),
+    TableScan(PhysicalTableScan),
+    Limit(PhysicalLimit),
+    Insert(PhysicalInsert),
+    Values(PhysicalValues),
+    NestedLoopJoin(PhysicalNestedLoopJoin),
 }
 impl PhysicalOperator {
     pub fn output_schema(&self) -> Schema {

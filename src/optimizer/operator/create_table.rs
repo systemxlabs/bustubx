@@ -1,11 +1,11 @@
 use crate::catalog::schema::Schema;
 
 #[derive(Debug)]
-pub struct PhysicalCreateTableOperator {
+pub struct PhysicalCreateTable {
     pub table_name: String,
     pub schema: Schema,
 }
-impl PhysicalCreateTableOperator {
+impl PhysicalCreateTable {
     pub fn new(table_name: String, schema: Schema) -> Self {
         Self { table_name, schema }
     }

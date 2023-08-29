@@ -1,12 +1,12 @@
 use crate::{binder::expression::BoundExpression, catalog::schema::Schema};
 
 #[derive(Debug)]
-pub struct PhysicalProjectOperator {
+pub struct PhysicalProject {
     pub expressions: Vec<BoundExpression>,
 }
-impl PhysicalProjectOperator {
+impl PhysicalProject {
     pub fn new(expressions: Vec<BoundExpression>) -> Self {
-        PhysicalProjectOperator { expressions }
+        PhysicalProject { expressions }
     }
     pub fn output_schema(&self) -> Schema {
         unimplemented!()

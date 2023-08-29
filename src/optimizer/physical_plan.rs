@@ -11,10 +11,9 @@ use crate::{
 };
 
 use super::operator::{
-    create_table::PhysicalCreateTableOperator, filter::PhysicalFilterOperator,
-    insert::PhysicalInsertOperator, limit::PhysicalLimitOperator,
-    nested_loop_join::PhysicalNestedLoopJoinOperator, project::PhysicalProjectOperator,
-    table_scan::PhysicalTableScanOperator, values::PhysicalValuesOperator, PhysicalOperator,
+    create_table::PhysicalCreateTable, filter::PhysicalFilter, insert::PhysicalInsert,
+    limit::PhysicalLimit, nested_loop_join::PhysicalNestedLoopJoin, project::PhysicalProject,
+    table_scan::PhysicalTableScan, values::PhysicalValues, PhysicalOperator,
 };
 
 #[derive(Debug)]
@@ -34,15 +33,16 @@ impl PhysicalPlan {
     }
     pub fn new_create_table_node(table_name: &String, schema: &Schema) -> Self {
         Self {
-            operator: Arc::new(PhysicalOperator::CreateTable(
-                PhysicalCreateTableOperator::new(table_name.clone(), schema.clone()),
-            )),
+            operator: Arc::new(PhysicalOperator::CreateTable(PhysicalCreateTable::new(
+                table_name.clone(),
+                schema.clone(),
+            ))),
             children: Vec::new(),
         }
     }
     pub fn new_insert_node(table_name: &String, columns: &Vec<Column>) -> Self {
         Self {
-            operator: Arc::new(PhysicalOperator::Insert(PhysicalInsertOperator::new(
+            operator: Arc::new(PhysicalOperator::Insert(PhysicalInsert::new(
                 table_name.clone(),
                 columns.clone(),
             ))),
@@ -51,7 +51,7 @@ impl PhysicalPlan {
     }
     pub fn new_values_node(columns: &Vec<Column>, tuples: &Vec<Vec<Value>>) -> Self {
         Self {
-            operator: Arc::new(PhysicalOperator::Values(PhysicalValuesOperator::new(
+            operator: Arc::new(PhysicalOperator::Values(PhysicalValues::new(
                 columns.clone(),
                 tuples.clone(),
             ))),
@@ -60,7 +60,7 @@ impl PhysicalPlan {
     }
     pub fn new_project_node(expressions: &Vec<BoundExpression>) -> Self {
         Self {
-            operator: Arc::new(PhysicalOperator::Project(PhysicalProjectOperator::new(
+            operator: Arc::new(PhysicalOperator::Project(PhysicalProject::new(
                 expressions.clone(),
             ))),
             children: Vec::new(),
@@ -68,7 +68,7 @@ impl PhysicalPlan {
     }
     pub fn new_filter_node(predicate: &BoundExpression, input: Arc<PhysicalOperator>) -> Self {
         Self {
-            operator: Arc::new(PhysicalOperator::Filter(PhysicalFilterOperator::new(
+            operator: Arc::new(PhysicalOperator::Filter(PhysicalFilter::new(
                 predicate.clone(),
                 input,
             ))),
@@ -77,7 +77,7 @@ impl PhysicalPlan {
     }
     pub fn new_table_scan_node(table_oid: &TableOid, columns: &Vec<Column>) -> Self {
         Self {
-            operator: Arc::new(PhysicalOperator::TableScan(PhysicalTableScanOperator::new(
+            operator: Arc::new(PhysicalOperator::TableScan(PhysicalTableScan::new(
                 table_oid.clone(),
                 columns.clone(),
             ))),
@@ -90,7 +90,7 @@ impl PhysicalPlan {
         input: Arc<PhysicalOperator>,
     ) -> Self {
         Self {
-            operator: Arc::new(PhysicalOperator::Limit(PhysicalLimitOperator::new(
+            operator: Arc::new(PhysicalOperator::Limit(PhysicalLimit::new(
                 offset.clone(),
                 limit.clone(),
                 input,
@@ -106,7 +106,7 @@ impl PhysicalPlan {
     ) -> Self {
         Self {
             operator: Arc::new(PhysicalOperator::NestedLoopJoin(
-                PhysicalNestedLoopJoinOperator::new(join_type, condition, left_input, right_input),
+                PhysicalNestedLoopJoin::new(join_type, condition, left_input, right_input),
             )),
             children: Vec::new(),
         }

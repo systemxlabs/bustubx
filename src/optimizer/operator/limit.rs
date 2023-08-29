@@ -1,21 +1,18 @@
 use std::sync::Arc;
 
-use crate::{
-    catalog::{column::Column, schema::Schema},
-    dbtype::value::Value,
-};
+use crate::catalog::schema::Schema;
 
 use super::PhysicalOperator;
 
 #[derive(Debug)]
-pub struct PhysicalLimitOperator {
+pub struct PhysicalLimit {
     pub limit: Option<usize>,
     pub offset: Option<usize>,
     pub input: Arc<PhysicalOperator>,
 }
-impl PhysicalLimitOperator {
+impl PhysicalLimit {
     pub fn new(limit: Option<usize>, offset: Option<usize>, input: Arc<PhysicalOperator>) -> Self {
-        PhysicalLimitOperator {
+        PhysicalLimit {
             limit,
             offset,
             input,

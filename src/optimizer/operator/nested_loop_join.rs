@@ -8,20 +8,20 @@ use crate::{
 use super::PhysicalOperator;
 
 #[derive(Debug)]
-pub struct PhysicalNestedLoopJoinOperator {
+pub struct PhysicalNestedLoopJoin {
     pub join_type: JoinType,
     pub condition: Option<BoundExpression>,
     pub left_input: Arc<PhysicalOperator>,
     pub right_input: Arc<PhysicalOperator>,
 }
-impl PhysicalNestedLoopJoinOperator {
+impl PhysicalNestedLoopJoin {
     pub fn new(
         join_type: JoinType,
         condition: Option<BoundExpression>,
         left_input: Arc<PhysicalOperator>,
         right_input: Arc<PhysicalOperator>,
     ) -> Self {
-        PhysicalNestedLoopJoinOperator {
+        PhysicalNestedLoopJoin {
             join_type,
             condition,
             left_input,

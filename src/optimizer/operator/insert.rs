@@ -4,11 +4,11 @@ use crate::catalog::{
 };
 
 #[derive(Debug)]
-pub struct PhysicalInsertOperator {
+pub struct PhysicalInsert {
     pub table_name: String,
     pub columns: Vec<Column>,
 }
-impl PhysicalInsertOperator {
+impl PhysicalInsert {
     pub fn new(table_name: String, columns: Vec<Column>) -> Self {
         Self {
             table_name,
