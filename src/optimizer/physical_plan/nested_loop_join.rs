@@ -6,18 +6,18 @@ use crate::{
     binder::{expression::BoundExpression, table_ref::join::JoinType},
     catalog::schema::Schema,
     dbtype::value::Value,
-    execution::{ExecutionContext, VolcanoExecutorV2},
+    execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::Tuple,
 };
 
-use super::PhysicalPlanV2;
+use super::PhysicalPlan;
 
 #[derive(Debug)]
 pub struct PhysicalNestedLoopJoin {
     pub join_type: JoinType,
     pub condition: Option<BoundExpression>,
-    pub left_input: Arc<PhysicalPlanV2>,
-    pub right_input: Arc<PhysicalPlanV2>,
+    pub left_input: Arc<PhysicalPlan>,
+    pub right_input: Arc<PhysicalPlan>,
 
     left_tuple: Mutex<Option<Tuple>>,
 }
@@ -25,8 +25,8 @@ impl PhysicalNestedLoopJoin {
     pub fn new(
         join_type: JoinType,
         condition: Option<BoundExpression>,
-        left_input: Arc<PhysicalPlanV2>,
-        right_input: Arc<PhysicalPlanV2>,
+        left_input: Arc<PhysicalPlan>,
+        right_input: Arc<PhysicalPlan>,
     ) -> Self {
         PhysicalNestedLoopJoin {
             join_type,
@@ -43,7 +43,7 @@ impl PhysicalNestedLoopJoin {
         ])
     }
 }
-impl VolcanoExecutorV2 for PhysicalNestedLoopJoin {
+impl VolcanoExecutor for PhysicalNestedLoopJoin {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init nested loop join executor");
         *self.left_tuple.lock().unwrap() = None;

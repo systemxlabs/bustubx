@@ -23,7 +23,7 @@ fn main() {
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {
             Ok(_) => {
-                db.run_v2(&input);
+                db.run(&input);
             }
             Err(_) => {
                 println!("Error reading from stdin");

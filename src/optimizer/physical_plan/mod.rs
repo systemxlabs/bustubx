@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     catalog::schema::Schema,
-    execution::{ExecutionContext, VolcanoExecutorV2},
+    execution::{ExecutionContext, VolcanoExecutor},
     planner::{logical_plan::LogicalPlan, operator::LogicalOperator},
     storage::tuple::Tuple,
 };
@@ -23,7 +23,7 @@ pub mod table_scan;
 pub mod values;
 
 #[derive(Debug)]
-pub enum PhysicalPlanV2 {
+pub enum PhysicalPlan {
     Dummy,
     CreateTable(PhysicalCreateTable),
     Project(PhysicalProject),
@@ -34,7 +34,7 @@ pub enum PhysicalPlanV2 {
     Values(PhysicalValues),
     NestedLoopJoin(PhysicalNestedLoopJoin),
 }
-impl PhysicalPlanV2 {
+impl PhysicalPlan {
     pub fn output_schema(&self) -> Schema {
         match self {
             Self::Dummy => Schema::new(vec![]),
@@ -50,32 +50,32 @@ impl PhysicalPlanV2 {
     }
 }
 
-pub fn build_plan_v2(logical_plan: Arc<LogicalPlan>) -> PhysicalPlanV2 {
+pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
     let plan = match logical_plan.operator {
-        LogicalOperator::Dummy => PhysicalPlanV2::Dummy,
+        LogicalOperator::Dummy => PhysicalPlan::Dummy,
         LogicalOperator::CreateTable(ref logic_create_table) => {
-            PhysicalPlanV2::CreateTable(PhysicalCreateTable::new(
+            PhysicalPlan::CreateTable(PhysicalCreateTable::new(
                 logic_create_table.table_name.clone(),
                 logic_create_table.schema.clone(),
             ))
         }
         LogicalOperator::Insert(ref logic_insert) => {
             let child_logical_node = logical_plan.children[0].clone();
-            let child_physical_node = build_plan_v2(child_logical_node.clone());
-            PhysicalPlanV2::Insert(PhysicalInsert::new(
+            let child_physical_node = build_plan(child_logical_node.clone());
+            PhysicalPlan::Insert(PhysicalInsert::new(
                 logic_insert.table_name.clone(),
                 logic_insert.columns.clone(),
                 Arc::new(child_physical_node),
             ))
         }
-        LogicalOperator::Values(ref logical_values) => PhysicalPlanV2::Values(PhysicalValues::new(
+        LogicalOperator::Values(ref logical_values) => PhysicalPlan::Values(PhysicalValues::new(
             logical_values.columns.clone(),
             logical_values.tuples.clone(),
         )),
         LogicalOperator::Project(ref logical_project) => {
             let child_logical_node = logical_plan.children[0].clone();
-            let child_physical_node = build_plan_v2(child_logical_node.clone());
-            PhysicalPlanV2::Project(PhysicalProject::new(
+            let child_physical_node = build_plan(child_logical_node.clone());
+            PhysicalPlan::Project(PhysicalProject::new(
                 logical_project.expressions.clone(),
                 Arc::new(child_physical_node),
             ))
@@ -83,22 +83,22 @@ pub fn build_plan_v2(logical_plan: Arc<LogicalPlan>) -> PhysicalPlanV2 {
         LogicalOperator::Filter(ref logical_filter) => {
             // filter下只有一个子节点
             let child_logical_node = logical_plan.children[0].clone();
-            let child_physical_node = build_plan_v2(child_logical_node.clone());
-            PhysicalPlanV2::Filter(PhysicalFilter::new(
+            let child_physical_node = build_plan(child_logical_node.clone());
+            PhysicalPlan::Filter(PhysicalFilter::new(
                 logical_filter.predicate.clone(),
                 Arc::new(child_physical_node),
             ))
         }
         LogicalOperator::Scan(ref logical_table_scan) => {
-            PhysicalPlanV2::TableScan(PhysicalTableScan::new(
+            PhysicalPlan::TableScan(PhysicalTableScan::new(
                 logical_table_scan.table_oid.clone(),
                 logical_table_scan.columns.clone(),
             ))
         }
         LogicalOperator::Limit(ref logical_limit) => {
             let child_logical_node = logical_plan.children[0].clone();
-            let child_physical_node = build_plan_v2(child_logical_node.clone());
-            PhysicalPlanV2::Limit(PhysicalLimit::new(
+            let child_physical_node = build_plan(child_logical_node.clone());
+            PhysicalPlan::Limit(PhysicalLimit::new(
                 logical_limit.limit,
                 logical_limit.offset,
                 Arc::new(child_physical_node),
@@ -106,10 +106,10 @@ pub fn build_plan_v2(logical_plan: Arc<LogicalPlan>) -> PhysicalPlanV2 {
         }
         LogicalOperator::Join(ref logical_nested_loop_join) => {
             let left_logical_node = logical_plan.children[0].clone();
-            let left_physical_node = build_plan_v2(left_logical_node.clone());
+            let left_physical_node = build_plan(left_logical_node.clone());
             let right_logical_node = logical_plan.children[1].clone();
-            let right_physical_node = build_plan_v2(right_logical_node.clone());
-            PhysicalPlanV2::NestedLoopJoin(PhysicalNestedLoopJoin::new(
+            let right_physical_node = build_plan(right_logical_node.clone());
+            PhysicalPlan::NestedLoopJoin(PhysicalNestedLoopJoin::new(
                 logical_nested_loop_join.join_type.clone(),
                 logical_nested_loop_join.condition.clone(),
                 Arc::new(left_physical_node),
@@ -120,31 +120,31 @@ pub fn build_plan_v2(logical_plan: Arc<LogicalPlan>) -> PhysicalPlanV2 {
     };
     plan
 }
-impl VolcanoExecutorV2 for PhysicalPlanV2 {
+impl VolcanoExecutor for PhysicalPlan {
     fn init(&self, context: &mut ExecutionContext) {
         match self {
-            PhysicalPlanV2::Dummy => {}
-            PhysicalPlanV2::CreateTable(op) => op.init(context),
-            PhysicalPlanV2::Insert(op) => op.init(context),
-            PhysicalPlanV2::Values(op) => op.init(context),
-            PhysicalPlanV2::Project(op) => op.init(context),
-            PhysicalPlanV2::Filter(op) => op.init(context),
-            PhysicalPlanV2::TableScan(op) => op.init(context),
-            PhysicalPlanV2::Limit(op) => op.init(context),
-            PhysicalPlanV2::NestedLoopJoin(op) => op.init(context),
+            PhysicalPlan::Dummy => {}
+            PhysicalPlan::CreateTable(op) => op.init(context),
+            PhysicalPlan::Insert(op) => op.init(context),
+            PhysicalPlan::Values(op) => op.init(context),
+            PhysicalPlan::Project(op) => op.init(context),
+            PhysicalPlan::Filter(op) => op.init(context),
+            PhysicalPlan::TableScan(op) => op.init(context),
+            PhysicalPlan::Limit(op) => op.init(context),
+            PhysicalPlan::NestedLoopJoin(op) => op.init(context),
         }
     }
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
         match self {
-            PhysicalPlanV2::Dummy => None,
-            PhysicalPlanV2::CreateTable(op) => op.next(context),
-            PhysicalPlanV2::Insert(op) => op.next(context),
-            PhysicalPlanV2::Values(op) => op.next(context),
-            PhysicalPlanV2::Project(op) => op.next(context),
-            PhysicalPlanV2::Filter(op) => op.next(context),
-            PhysicalPlanV2::TableScan(op) => op.next(context),
-            PhysicalPlanV2::Limit(op) => op.next(context),
-            PhysicalPlanV2::NestedLoopJoin(op) => op.next(context),
+            PhysicalPlan::Dummy => None,
+            PhysicalPlan::CreateTable(op) => op.next(context),
+            PhysicalPlan::Insert(op) => op.next(context),
+            PhysicalPlan::Values(op) => op.next(context),
+            PhysicalPlan::Project(op) => op.next(context),
+            PhysicalPlan::Filter(op) => op.next(context),
+            PhysicalPlan::TableScan(op) => op.next(context),
+            PhysicalPlan::Limit(op) => op.next(context),
+            PhysicalPlan::NestedLoopJoin(op) => op.next(context),
         }
     }
 }

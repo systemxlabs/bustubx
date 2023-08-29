@@ -2,22 +2,22 @@ use std::sync::{atomic::AtomicU32, Arc};
 
 use crate::{
     catalog::schema::Schema,
-    execution::{ExecutionContext, VolcanoExecutorV2},
+    execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::Tuple,
 };
 
-use super::PhysicalPlanV2;
+use super::PhysicalPlan;
 
 #[derive(Debug)]
 pub struct PhysicalLimit {
     pub limit: Option<usize>,
     pub offset: Option<usize>,
-    pub input: Arc<PhysicalPlanV2>,
+    pub input: Arc<PhysicalPlan>,
 
     cursor: AtomicU32,
 }
 impl PhysicalLimit {
-    pub fn new(limit: Option<usize>, offset: Option<usize>, input: Arc<PhysicalPlanV2>) -> Self {
+    pub fn new(limit: Option<usize>, offset: Option<usize>, input: Arc<PhysicalPlan>) -> Self {
         PhysicalLimit {
             limit,
             offset,
@@ -29,7 +29,7 @@ impl PhysicalLimit {
         return self.input.output_schema();
     }
 }
-impl VolcanoExecutorV2 for PhysicalLimit {
+impl VolcanoExecutor for PhysicalLimit {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init limit executor");
         self.cursor.store(0, std::sync::atomic::Ordering::SeqCst);

@@ -3,7 +3,7 @@ use std::sync::atomic::AtomicU32;
 use crate::{
     catalog::{column::Column, schema::Schema},
     dbtype::value::Value,
-    execution::{ExecutionContext, VolcanoExecutorV2},
+    execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::Tuple,
 };
 
@@ -26,7 +26,7 @@ impl PhysicalValues {
         return Schema::new(self.columns.clone());
     }
 }
-impl VolcanoExecutorV2 for PhysicalValues {
+impl VolcanoExecutor for PhysicalValues {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init values executor");
         self.cursor.store(0, std::sync::atomic::Ordering::SeqCst);

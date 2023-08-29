@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use crate::{
     catalog::{catalog::TableOid, column::Column, schema::Schema},
-    execution::{ExecutionContext, VolcanoExecutorV2},
+    execution::{ExecutionContext, VolcanoExecutor},
     storage::{table_heap::TableIterator, tuple::Tuple},
 };
 
@@ -25,7 +25,7 @@ impl PhysicalTableScan {
         Schema::new(self.columns.clone())
     }
 }
-impl VolcanoExecutorV2 for PhysicalTableScan {
+impl VolcanoExecutor for PhysicalTableScan {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init table scan executor");
         let table_info = context

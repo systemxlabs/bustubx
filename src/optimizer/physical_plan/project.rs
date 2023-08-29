@@ -3,26 +3,26 @@ use std::sync::Arc;
 use crate::{
     binder::expression::BoundExpression,
     catalog::schema::Schema,
-    execution::{ExecutionContext, VolcanoExecutorV2},
+    execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::Tuple,
 };
 
-use super::PhysicalPlanV2;
+use super::PhysicalPlan;
 
 #[derive(Debug)]
 pub struct PhysicalProject {
     pub expressions: Vec<BoundExpression>,
-    pub input: Arc<PhysicalPlanV2>,
+    pub input: Arc<PhysicalPlan>,
 }
 impl PhysicalProject {
-    pub fn new(expressions: Vec<BoundExpression>, input: Arc<PhysicalPlanV2>) -> Self {
+    pub fn new(expressions: Vec<BoundExpression>, input: Arc<PhysicalPlan>) -> Self {
         PhysicalProject { expressions, input }
     }
     pub fn output_schema(&self) -> Schema {
         unimplemented!()
     }
 }
-impl VolcanoExecutorV2 for PhysicalProject {
+impl VolcanoExecutor for PhysicalProject {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init project executor");
         self.input.init(context);

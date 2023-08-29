@@ -4,26 +4,26 @@ use crate::{
     binder::expression::BoundExpression,
     catalog::schema::Schema,
     dbtype::value::Value,
-    execution::{ExecutionContext, VolcanoExecutorV2},
+    execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::Tuple,
 };
 
-use super::PhysicalPlanV2;
+use super::PhysicalPlan;
 
 #[derive(Debug)]
 pub struct PhysicalFilter {
     pub predicate: BoundExpression,
-    pub input: Arc<PhysicalPlanV2>,
+    pub input: Arc<PhysicalPlan>,
 }
 impl PhysicalFilter {
-    pub fn new(predicate: BoundExpression, input: Arc<PhysicalPlanV2>) -> Self {
+    pub fn new(predicate: BoundExpression, input: Arc<PhysicalPlan>) -> Self {
         PhysicalFilter { predicate, input }
     }
     pub fn output_schema(&self) -> Schema {
         self.input.output_schema()
     }
 }
-impl VolcanoExecutorV2 for PhysicalFilter {
+impl VolcanoExecutor for PhysicalFilter {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init filter executor");
         self.input.init(context);

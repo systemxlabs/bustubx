@@ -1,13 +1,12 @@
 use crate::planner::logical_plan::LogicalPlan;
 
 use self::{
-    heuristic::HepOptimizer, physical_optimizer::PhysicalOptimizer,
-    physical_plan_v2::PhysicalPlanV2,
+    heuristic::HepOptimizer, physical_optimizer::PhysicalOptimizer, physical_plan::PhysicalPlan,
 };
 
 pub mod heuristic;
 pub mod physical_optimizer;
-pub mod physical_plan_v2;
+pub mod physical_plan;
 pub mod rule;
 
 pub struct Optimizer {
@@ -22,11 +21,11 @@ impl Optimizer {
         }
     }
 
-    pub fn find_best_v2(&mut self) -> PhysicalPlanV2 {
+    pub fn find_best(&mut self) -> PhysicalPlan {
         // optimize logical plan
         let optimized_logical_plan = self.hep_optimizer.find_best();
 
         // optimize physical plan
-        self.physical_optimizer.find_best_v2(optimized_logical_plan)
+        self.physical_optimizer.find_best(optimized_logical_plan)
     }
 }

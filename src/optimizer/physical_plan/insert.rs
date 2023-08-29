@@ -6,22 +6,22 @@ use crate::{
         schema::Schema,
     },
     dbtype::value::Value,
-    execution::{ExecutionContext, VolcanoExecutorV2},
+    execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::{Tuple, TupleMeta},
 };
 
-use super::PhysicalPlanV2;
+use super::PhysicalPlan;
 
 #[derive(Debug)]
 pub struct PhysicalInsert {
     pub table_name: String,
     pub columns: Vec<Column>,
-    pub input: Arc<PhysicalPlanV2>,
+    pub input: Arc<PhysicalPlan>,
 
     insert_rows: AtomicU32,
 }
 impl PhysicalInsert {
-    pub fn new(table_name: String, columns: Vec<Column>, input: Arc<PhysicalPlanV2>) -> Self {
+    pub fn new(table_name: String, columns: Vec<Column>, input: Arc<PhysicalPlan>) -> Self {
         Self {
             table_name,
             columns,
@@ -38,7 +38,7 @@ impl PhysicalInsert {
         )])
     }
 }
-impl VolcanoExecutorV2 for PhysicalInsert {
+impl VolcanoExecutor for PhysicalInsert {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init insert executor");
         self.insert_rows
