@@ -195,8 +195,8 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = Database::new_on_disk(db_path);
-        db.run("create table t1(a int, b int)");
-        db.run("create table t2(a int, b int)");
+        db.run_v2("create table t1(a int, b int)");
+        db.run_v2("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
 
         // 0: project
@@ -249,8 +249,8 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = Database::new_on_disk(db_path);
-        db.run("create table t1(a int, b int)");
-        db.run("create table t2(a int, b int)");
+        db.run_v2("create table t1(a int, b int)");
+        db.run_v2("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
 
         let graph = super::HepGraph::new(Arc::new(logical_plan));
@@ -270,8 +270,8 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = Database::new_on_disk(db_path);
-        db.run("create table t1(a int, b int)");
-        db.run("create table t2(a int, b int)");
+        db.run_v2("create table t1(a int, b int)");
+        db.run_v2("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
 
         let mut graph = super::HepGraph::new(Arc::new(logical_plan));
@@ -311,8 +311,8 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = Database::new_on_disk(db_path);
-        db.run("create table t1(a int, b int)");
-        db.run("create table t2(a int, b int)");
+        db.run_v2("create table t1(a int, b int)");
+        db.run_v2("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
 
         let mut graph = super::HepGraph::new(Arc::new(logical_plan));
@@ -365,8 +365,8 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = Database::new_on_disk(db_path);
-        db.run("create table t1(a int, b int)");
-        db.run("create table t2(a int, b int)");
+        db.run_v2("create table t1(a int, b int)");
+        db.run_v2("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
 
         let mut graph = super::HepGraph::new(Arc::new(logical_plan));
@@ -422,8 +422,8 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = Database::new_on_disk(db_path);
-        db.run("create table t1(a int, b int)");
-        db.run("create table t2(a int, b int)");
+        db.run_v2("create table t1(a int, b int)");
+        db.run_v2("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
 
         let mut graph = super::HepGraph::new(Arc::new(logical_plan));
@@ -482,8 +482,8 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = Database::new_on_disk(db_path);
-        db.run("create table t1(a int, b int)");
-        db.run("create table t2(a int, b int)");
+        db.run_v2("create table t1(a int, b int)");
+        db.run_v2("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
 
         let graph = super::HepGraph::new(Arc::new(logical_plan));
