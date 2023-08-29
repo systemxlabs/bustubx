@@ -84,6 +84,14 @@ impl Tuple {
         self.data.clone()
     }
 
+    pub fn all_values(&self, schema: &Schema) -> Vec<Value> {
+        let mut values = vec![];
+        for column in &schema.columns {
+            values.push(self.get_value_by_col(column));
+        }
+        values
+    }
+
     pub fn get_value_by_col_id(&self, schema: &Schema, column_index: usize) -> Value {
         let column = schema
             .get_col_by_index(column_index)

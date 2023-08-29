@@ -19,7 +19,8 @@ impl PhysicalProject {
         PhysicalProject { expressions, input }
     }
     pub fn output_schema(&self) -> Schema {
-        unimplemented!()
+        // TODO implementation
+        Schema::new(vec![])
     }
 }
 impl VolcanoExecutor for PhysicalProject {

@@ -4,7 +4,7 @@ use crate::{
     binder::{Binder, BinderContext},
     buffer::buffer_pool::BufferPoolManager,
     catalog::catalog::Catalog,
-    common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
+    common::{config::TABLE_HEAP_BUFFER_POOL_SIZE, util::print_tuples},
     execution::{ExecutionContext, ExecutionEngine},
     optimizer::Optimizer,
     planner::{logical_plan::LogicalPlan, Planner},
@@ -64,9 +64,10 @@ impl Database {
         let mut execution_engine = ExecutionEngine {
             context: execution_ctx,
         };
-        let result = execution_engine.execute(Arc::new(physical_plan));
-        // println!("execution result: {:?}", result);
-        result
+        let (tuples, schema) = execution_engine.execute(Arc::new(physical_plan));
+        // println!("execution result: {:?}", tuples);
+        // print_tuples(&tuples, &schema);
+        tuples
     }
 
     pub fn build_logical_plan(&mut self, sql: &str) -> LogicalPlan {

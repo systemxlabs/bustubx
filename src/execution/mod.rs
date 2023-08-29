@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use crate::{
-    catalog::catalog::Catalog, optimizer::physical_plan::PhysicalPlan, storage::tuple::Tuple,
+    catalog::{catalog::Catalog, schema::Schema},
+    optimizer::physical_plan::PhysicalPlan,
+    storage::tuple::Tuple,
 };
 
 pub trait VolcanoExecutor {
@@ -22,7 +24,7 @@ pub struct ExecutionEngine<'a> {
     pub context: ExecutionContext<'a>,
 }
 impl ExecutionEngine<'_> {
-    pub fn execute(&mut self, plan: Arc<PhysicalPlan>) -> Vec<Tuple> {
+    pub fn execute(&mut self, plan: Arc<PhysicalPlan>) -> (Vec<Tuple>, Schema) {
         plan.init(&mut self.context);
         let mut result = Vec::new();
         loop {
@@ -33,6 +35,7 @@ impl ExecutionEngine<'_> {
                 break;
             }
         }
-        result
+        let schema = plan.output_schema();
+        (result, schema)
     }
 }
