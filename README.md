@@ -15,7 +15,7 @@
   - [ ] Join: Left Outer / Right Outer / Full Outer / Inner / Cross
   - [ ] Group By
   - [ ] Having
-  - [ ] Order By
+  - [x] Order By
   - [x] Limit
 - DML
   - [x] Insert
@@ -47,6 +47,7 @@
   - [x] Limit
   - [x] Nested Loop Join
   - [ ] Hash Join
+  - [x] Sort
   - [x] Insert
   - [x] Values
   - [ ] Update
