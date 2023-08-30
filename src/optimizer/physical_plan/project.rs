@@ -19,8 +19,8 @@ impl PhysicalProject {
         PhysicalProject { expressions, input }
     }
     pub fn output_schema(&self) -> Schema {
-        // TODO implementation
-        Schema::new(vec![])
+        // TODO consider aggr/alias
+        self.input.output_schema()
     }
 }
 impl VolcanoExecutor for PhysicalProject {

@@ -33,9 +33,9 @@ impl Planner {
 
         // order by clause may use computed column, so it should be after project
         // for example, `select a+b from t order by a+b limit 10`
-        for order_by in stmt.sort {
+        if !stmt.sort.is_empty() {
             let mut sort_plan = LogicalPlan {
-                operator: LogicalOperator::new_sort_operator(order_by.expression, order_by.desc),
+                operator: LogicalOperator::new_sort_operator(stmt.sort),
                 children: Vec::new(),
             };
             sort_plan.children.push(Arc::new(plan));

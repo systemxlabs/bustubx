@@ -1,5 +1,5 @@
 use crate::{
-    binder::{expression::BoundExpression, table_ref::join::JoinType},
+    binder::{expression::BoundExpression, order_by::BoundOrderBy, table_ref::join::JoinType},
     catalog::{
         catalog::TableOid,
         column::Column,
@@ -67,7 +67,7 @@ impl LogicalOperator {
     ) -> LogicalOperator {
         LogicalOperator::Join(LogicalJoinOperator::new(join_type, condition))
     }
-    pub fn new_sort_operator(expr: BoundExpression, desc: bool) -> LogicalOperator {
-        LogicalOperator::Sort(LogicalSortOperator::new(expr, desc))
+    pub fn new_sort_operator(order_bys: Vec<BoundOrderBy>) -> LogicalOperator {
+        LogicalOperator::Sort(LogicalSortOperator::new(order_bys))
     }
 }

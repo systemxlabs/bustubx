@@ -1,12 +1,11 @@
-use crate::binder::expression::BoundExpression;
+use crate::binder::order_by::BoundOrderBy;
 
 #[derive(Debug, Clone)]
 pub struct LogicalSortOperator {
-    pub expr: BoundExpression,
-    pub desc: bool,
+    pub order_bys: Vec<BoundOrderBy>,
 }
 impl LogicalSortOperator {
-    pub fn new(expr: BoundExpression, desc: bool) -> Self {
-        Self { expr, desc }
+    pub fn new(order_bys: Vec<BoundOrderBy>) -> Self {
+        Self { order_bys }
     }
 }
