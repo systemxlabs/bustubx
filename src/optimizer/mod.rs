@@ -1,16 +1,10 @@
-use std::sync::Arc;
-
-use crate::planner::{
-    logical_plan::{self, LogicalPlan},
-    operator::LogicalOperator,
-};
+use crate::planner::logical_plan::LogicalPlan;
 
 use self::{
     heuristic::HepOptimizer, physical_optimizer::PhysicalOptimizer, physical_plan::PhysicalPlan,
 };
 
 pub mod heuristic;
-pub mod operator;
 pub mod physical_optimizer;
 pub mod physical_plan;
 pub mod rule;
