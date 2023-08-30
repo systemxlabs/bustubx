@@ -44,9 +44,6 @@ impl VolcanoExecutor for PhysicalSort {
             all_tuples.push(next_tuple.unwrap());
         }
 
-        println!("sort tuples: {:?}", all_tuples);
-        println!("sort input.output_schema: {:?}", self.input.output_schema());
-
         // sort all tuples
         all_tuples.sort_by(|a, b| {
             let mut ordering = std::cmp::Ordering::Equal;
