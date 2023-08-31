@@ -48,7 +48,7 @@ impl Database {
         };
         // ast -> statement
         let statement = binder.bind(&stmt);
-        // println!("{:?}", statement);
+        println!("{:?}", statement);
 
         // statement -> logical plan
         let mut planner = Planner {};
@@ -111,6 +111,7 @@ mod tests {
         // db.run("create table t2 (a int, b int)");
         // db.run("create table t3 (a int, b int)");
         // db.run("create table t4 (a int, b int)");
+        // db.run("create index idx1 on t1 (a)");
         // db.run("select * from t1 where a > 3");
         // db.run("select * from t1, t2, t3 inner join t4 on t3.id = t4.id");
         // db.run(&"select * from (t1 inner join t2 on t1.a = t2.a) inner join t3 on t1.a = t3.a ".to_string());
@@ -139,6 +140,25 @@ mod tests {
             ColumnFullName::new(Some("t1".to_string()), "b".to_string())
         );
         assert_eq!(table.schema.columns[1].column_type, DataType::Integer);
+
+        let _ = std::fs::remove_file(db_path);
+    }
+
+    #[test]
+    pub fn test_create_index_sql() {
+        let db_path = "test_create_index_sql.db";
+        let _ = std::fs::remove_file(db_path);
+
+        let mut db = super::Database::new_on_disk(db_path);
+        db.run("create table t1 (a int, b int)");
+        db.run("create index idx1 on t1 (a)");
+
+        let index = db.catalog.get_index_by_name("t1", "idx1");
+        assert!(index.is_some());
+        let index = index.unwrap();
+        assert_eq!(index.name, "idx1");
+        assert_eq!(index.table_name, "t1");
+        assert_eq!(index.key_schema.column_count(), 1);
 
         let _ = std::fs::remove_file(db_path);
     }

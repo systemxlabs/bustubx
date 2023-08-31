@@ -47,6 +47,17 @@ impl Schema {
         self.columns.get(index)
     }
 
+    pub fn get_index_by_name(&self, col_full_name: &ColumnFullName) -> Option<usize> {
+        // if table name not specified, then match column with the column name
+        self.columns.iter().position(|c| {
+            if col_full_name.table.is_none() {
+                c.full_name.column == col_full_name.column
+            } else {
+                c.full_name == *col_full_name
+            }
+        })
+    }
+
     pub fn is_inlined(&self) -> bool {
         self.columns.iter().all(|c| c.is_inlined())
     }
