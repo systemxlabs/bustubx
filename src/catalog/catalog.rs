@@ -122,10 +122,12 @@ impl Catalog {
             &tuple_schema,
             key_attrs,
         );
+        // one buffer pool manager for one index
         let buffer_pool_manager = BufferPoolManager::new(
             TABLE_HEAP_BUFFER_POOL_SIZE,
             self.buffer_pool_manager.disk_manager.clone(),
         );
+        // TODO compute leaf_max_size and internal_max_size
         let b_plus_tree_index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 10, 10);
 
         let index_oid = self
