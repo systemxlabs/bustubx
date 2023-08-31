@@ -10,7 +10,7 @@ use crate::{
 use self::{
     create_table::PhysicalCreateTable, filter::PhysicalFilter, insert::PhysicalInsert,
     limit::PhysicalLimit, nested_loop_join::PhysicalNestedLoopJoin, project::PhysicalProject,
-    table_scan::PhysicalTableScan, values::PhysicalValues,
+    sort::PhysicalSort, table_scan::PhysicalTableScan, values::PhysicalValues,
 };
 
 pub mod create_table;
@@ -19,6 +19,7 @@ pub mod insert;
 pub mod limit;
 pub mod nested_loop_join;
 pub mod project;
+pub mod sort;
 pub mod table_scan;
 pub mod values;
 
@@ -33,6 +34,7 @@ pub enum PhysicalPlan {
     Insert(PhysicalInsert),
     Values(PhysicalValues),
     NestedLoopJoin(PhysicalNestedLoopJoin),
+    Sort(PhysicalSort),
 }
 impl PhysicalPlan {
     pub fn output_schema(&self) -> Schema {
@@ -46,6 +48,7 @@ impl PhysicalPlan {
             Self::TableScan(op) => op.output_schema(),
             Self::Limit(op) => op.output_schema(),
             Self::NestedLoopJoin(op) => op.output_schema(),
+            Self::Sort(op) => op.output_schema(),
         }
     }
 }
@@ -104,16 +107,24 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
                 Arc::new(child_physical_node),
             ))
         }
-        LogicalOperator::Join(ref logical_nested_loop_join) => {
+        LogicalOperator::Join(ref logical_join) => {
             let left_logical_node = logical_plan.children[0].clone();
             let left_physical_node = build_plan(left_logical_node.clone());
             let right_logical_node = logical_plan.children[1].clone();
             let right_physical_node = build_plan(right_logical_node.clone());
             PhysicalPlan::NestedLoopJoin(PhysicalNestedLoopJoin::new(
-                logical_nested_loop_join.join_type.clone(),
-                logical_nested_loop_join.condition.clone(),
+                logical_join.join_type.clone(),
+                logical_join.condition.clone(),
                 Arc::new(left_physical_node),
                 Arc::new(right_physical_node),
+            ))
+        }
+        LogicalOperator::Sort(ref logical_sort) => {
+            let child_logical_node = logical_plan.children[0].clone();
+            let child_physical_node = build_plan(child_logical_node.clone());
+            PhysicalPlan::Sort(PhysicalSort::new(
+                logical_sort.order_bys.clone(),
+                Arc::new(child_physical_node),
             ))
         }
         _ => unimplemented!(),
@@ -132,6 +143,7 @@ impl VolcanoExecutor for PhysicalPlan {
             PhysicalPlan::TableScan(op) => op.init(context),
             PhysicalPlan::Limit(op) => op.init(context),
             PhysicalPlan::NestedLoopJoin(op) => op.init(context),
+            PhysicalPlan::Sort(op) => op.init(context),
         }
     }
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
@@ -145,6 +157,7 @@ impl VolcanoExecutor for PhysicalPlan {
             PhysicalPlan::TableScan(op) => op.next(context),
             PhysicalPlan::Limit(op) => op.next(context),
             PhysicalPlan::NestedLoopJoin(op) => op.next(context),
+            PhysicalPlan::Sort(op) => op.next(context),
         }
     }
 }

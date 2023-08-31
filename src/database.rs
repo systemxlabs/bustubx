@@ -462,4 +462,63 @@ mod tests {
 
         let _ = std::fs::remove_file(db_path);
     }
+
+    #[test]
+    pub fn test_select_order_by_sql() {
+        let db_path = "test_select_order_by_sql.db";
+        let _ = std::fs::remove_file(db_path);
+
+        let mut db = super::Database::new_on_disk(db_path);
+        db.run(&"create table t1 (a int, b int)".to_string());
+        db.run(&"insert into t1 values (5, 6), (1, 2), (1, 4)".to_string());
+        let select_result = db.run(&"select * from t1 order by a, b desc".to_string());
+        assert_eq!(select_result.len(), 3);
+
+        let schema = Schema::new(vec![
+            Column::new(
+                Some("t1".to_string()),
+                "a".to_string(),
+                DataType::Integer,
+                0,
+            ),
+            Column::new(
+                Some("t1".to_string()),
+                "b".to_string(),
+                DataType::Integer,
+                0,
+            ),
+        ]);
+
+        // 1st row
+        assert_eq!(
+            select_result[0].get_value_by_col_id(&schema, 0),
+            Value::Integer(1)
+        );
+        assert_eq!(
+            select_result[0].get_value_by_col_id(&schema, 1),
+            Value::Integer(4)
+        );
+
+        // 2nd row
+        assert_eq!(
+            select_result[1].get_value_by_col_id(&schema, 0),
+            Value::Integer(1)
+        );
+        assert_eq!(
+            select_result[1].get_value_by_col_id(&schema, 1),
+            Value::Integer(2)
+        );
+
+        // 3th row
+        assert_eq!(
+            select_result[2].get_value_by_col_id(&schema, 0),
+            Value::Integer(5)
+        );
+        assert_eq!(
+            select_result[2].get_value_by_col_id(&schema, 1),
+            Value::Integer(6)
+        );
+
+        let _ = std::fs::remove_file(db_path);
+    }
 }
