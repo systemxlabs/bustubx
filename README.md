@@ -1,8 +1,8 @@
 # bustubx - a relational database for educational purpose (CMU 15-445)
 - DDL
-  - [ ] Create
+  - [x] Create
     - [x] Create Table
-    - [ ] Create Index
+    - [x] Create Index
   - [ ] Drop
   - [ ] Alter
   - [ ] Truncate

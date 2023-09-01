@@ -3,7 +3,10 @@ use std::{collections::HashMap, sync::atomic::AtomicU32};
 use crate::{
     buffer::buffer_pool::BufferPoolManager,
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
-    storage::{index::BPlusTreeIndex, table_heap::TableHeap},
+    storage::{
+        index::{BPlusTreeIndex, IndexMetadata},
+        table_heap::TableHeap,
+    },
 };
 
 use super::schema::Schema;
@@ -105,21 +108,73 @@ impl Catalog {
         &mut self,
         index_name: String,
         table_name: String,
-        key_attrs: &[u32],
+        key_attrs: Vec<u32>,
     ) -> &IndexInfo {
-        unimplemented!()
+        let table_info = self
+            .get_table_by_name(&table_name)
+            .expect("table not found");
+        let tuple_schema = table_info.schema.clone();
+        let key_schema = Schema::copy_schema(&tuple_schema, &key_attrs);
+
+        let index_metadata = IndexMetadata::new(
+            index_name.clone(),
+            table_name.clone(),
+            &tuple_schema,
+            key_attrs,
+        );
+        // one buffer pool manager for one index
+        let buffer_pool_manager = BufferPoolManager::new(
+            TABLE_HEAP_BUFFER_POOL_SIZE,
+            self.buffer_pool_manager.disk_manager.clone(),
+        );
+        // TODO compute leaf_max_size and internal_max_size
+        let b_plus_tree_index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 10, 10);
+
+        let index_oid = self
+            .next_index_oid
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let index_info = IndexInfo {
+            key_schema,
+            name: index_name.clone(),
+            index: b_plus_tree_index,
+            table_name: table_name.clone(),
+            oid: index_oid,
+        };
+        self.indexes.insert(index_oid, index_info);
+        if self.index_names.contains_key(&table_name) {
+            self.index_names
+                .get_mut(&table_name)
+                .unwrap()
+                .insert(index_name, index_oid);
+        } else {
+            let mut index_names = HashMap::new();
+            index_names.insert(index_name, index_oid);
+            self.index_names.insert(table_name, index_names);
+        }
+        self.indexes.get(&index_oid).unwrap()
     }
 
     pub fn get_index_by_oid(&self, oid: IndexOid) -> Option<&IndexInfo> {
-        unimplemented!()
+        self.indexes.get(&oid)
     }
 
     pub fn get_index_by_name(&self, table_name: &str, index_name: &str) -> Option<&IndexInfo> {
-        unimplemented!()
+        self.index_names
+            .get(table_name)
+            .and_then(|index_names| index_names.get(index_name))
+            .and_then(|index_oid| self.indexes.get(index_oid))
     }
 
     pub fn get_table_indexes(&self, table_name: &str) -> Vec<&IndexInfo> {
-        unimplemented!()
+        self.index_names
+            .get(table_name)
+            .map(|index_names| {
+                index_names
+                    .iter()
+                    .map(|(_, index_oid)| self.indexes.get(index_oid).unwrap())
+                    .collect()
+            })
+            .unwrap_or(vec![])
     }
 }
 
@@ -335,6 +390,108 @@ mod tests {
 
         let table_info = catalog.get_table_by_oid(2);
         assert!(table_info.is_none());
+
+        let _ = remove_file(db_path);
+    }
+
+    #[test]
+    pub fn test_catalog_create_index() {
+        let db_path = "./test_catalog_create_index.db";
+        let _ = remove_file(db_path);
+
+        let disk_manager = disk_manager::DiskManager::new(db_path.to_string());
+        let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
+        let mut catalog = super::Catalog::new(buffer_pool_manager);
+
+        let table_name = "test_table1".to_string();
+        let schema = Schema::new(vec![
+            Column::new(
+                Some(table_name.clone()),
+                "a".to_string(),
+                DataType::TinyInt,
+                0,
+            ),
+            Column::new(
+                Some(table_name.clone()),
+                "b".to_string(),
+                DataType::SmallInt,
+                0,
+            ),
+            Column::new(
+                Some(table_name.clone()),
+                "c".to_string(),
+                DataType::Integer,
+                0,
+            ),
+        ]);
+        let _ = catalog.create_table(table_name.clone(), schema);
+
+        let index_name1 = "test_index1".to_string();
+        let key_attrs = vec![0, 2];
+        let index_info = catalog.create_index(index_name1.clone(), table_name.clone(), key_attrs);
+        assert_eq!(index_info.name, index_name1);
+        assert_eq!(index_info.table_name, table_name);
+        assert_eq!(index_info.key_schema.column_count(), 2);
+        assert_eq!(
+            index_info.key_schema.get_col_by_index(0).unwrap().full_name,
+            ColumnFullName::new(Some(table_name.clone()), "a".to_string())
+        );
+        assert_eq!(
+            index_info
+                .key_schema
+                .get_col_by_index(0)
+                .unwrap()
+                .column_type,
+            DataType::TinyInt
+        );
+        assert_eq!(
+            index_info.key_schema.get_col_by_index(1).unwrap().full_name,
+            ColumnFullName::new(Some(table_name.clone()), "c".to_string())
+        );
+        assert_eq!(
+            index_info
+                .key_schema
+                .get_col_by_index(1)
+                .unwrap()
+                .column_type,
+            DataType::Integer
+        );
+        assert_eq!(index_info.oid, 0);
+
+        let index_name2 = "test_index2".to_string();
+        let key_attrs = vec![1];
+        let index_info = catalog.create_index(index_name2.clone(), table_name.clone(), key_attrs);
+        assert_eq!(index_info.name, index_name2);
+        assert_eq!(index_info.table_name, table_name);
+        assert_eq!(index_info.key_schema.column_count(), 1);
+        assert_eq!(
+            index_info.key_schema.get_col_by_index(0).unwrap().full_name,
+            ColumnFullName::new(Some(table_name.clone()), "b".to_string())
+        );
+        assert_eq!(
+            index_info
+                .key_schema
+                .get_col_by_index(0)
+                .unwrap()
+                .column_type,
+            DataType::SmallInt
+        );
+        assert_eq!(index_info.oid, 1);
+
+        let index_info = catalog.get_index_by_name(table_name.as_str(), index_name1.as_str());
+        assert!(index_info.is_some());
+        let index_info = index_info.unwrap();
+        assert_eq!(index_info.name, index_name1);
+
+        let index_info = catalog.get_index_by_oid(1);
+        assert!(index_info.is_some());
+        let index_info = index_info.unwrap();
+        assert_eq!(index_info.name, index_name2);
+
+        let table_indexes = catalog.get_table_indexes(table_name.as_str());
+        assert_eq!(table_indexes.len(), 2);
+        assert!(table_indexes[0].name == index_name1 || table_indexes[0].name == index_name2);
+        assert!(table_indexes[1].name == index_name1 || table_indexes[1].name == index_name2);
 
         let _ = remove_file(db_path);
     }

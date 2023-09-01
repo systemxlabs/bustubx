@@ -24,6 +24,7 @@ use self::{
     },
 };
 
+pub mod bind_create_index;
 pub mod bind_create_table;
 pub mod bind_insert;
 pub mod bind_select;
@@ -45,6 +46,12 @@ impl<'a> Binder<'a> {
             Statement::CreateTable { name, columns, .. } => {
                 BoundStatement::CreateTable(self.bind_create_table(name, columns))
             }
+            Statement::CreateIndex {
+                name,
+                table_name,
+                columns,
+                ..
+            } => BoundStatement::CreateIndex(self.bind_create_index(name, table_name, columns)),
             Statement::Query(query) => BoundStatement::Select(self.bind_select(query)),
             Statement::Insert {
                 table_name,
@@ -67,29 +74,39 @@ impl<'a> Binder<'a> {
             Expr::Value(value) => BoundExpression::Constant(BoundConstant {
                 value: Constant::from_sqlparser_value(value),
             }),
-            Expr::Identifier(ident) => BoundExpression::ColumnRef(BoundColumnRef {
+            Expr::Identifier(_) | Expr::CompoundIdentifier(_) => {
+                BoundExpression::ColumnRef(self.bind_column_ref_expr(expr))
+            }
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn bind_column_ref_expr(&self, expr: &Expr) -> BoundColumnRef {
+        match expr {
+            Expr::Identifier(ident) => BoundColumnRef {
                 col_name: ColumnFullName::new(None, ident.value.clone()),
-            }),
+            },
             Expr::CompoundIdentifier(idents) => {
                 if idents.len() == 0 {
                     panic!("Invalid column name");
                 }
                 if idents.len() == 1 {
-                    BoundExpression::ColumnRef(BoundColumnRef {
+                    BoundColumnRef {
                         col_name: ColumnFullName::new(None, idents[0].value.clone()),
-                    })
+                    }
                 } else {
-                    BoundExpression::ColumnRef(BoundColumnRef {
+                    BoundColumnRef {
                         col_name: ColumnFullName::new(
                             Some(idents[0].value.clone()),
                             idents[1].value.clone(),
                         ),
-                    })
+                    }
                 }
             }
-            _ => unimplemented!(),
+            _ => unreachable!(),
         }
     }
+
     pub fn bind_from(&self, from: &Vec<TableWithJoins>) -> BoundTableRef {
         let from_tables = from
             .iter()
@@ -182,20 +199,8 @@ impl<'a> Binder<'a> {
                     _ => unimplemented!(),
                 };
 
-                let table_info = self.context.catalog.get_table_by_name(table);
-                if table_info.is_none() {
-                    panic!("Table {} not found", table);
-                }
-                let table_info = table_info.unwrap();
-
                 let alias = alias.as_ref().map(|a| a.name.value.clone());
-
-                BoundTableRef::BaseTable(BoundBaseTableRef {
-                    table: table.to_string(),
-                    oid: table_info.oid,
-                    alias,
-                    schema: table_info.schema.clone(),
-                })
+                BoundTableRef::BaseTable(self.bind_base_table_by_name(table, alias))
             }
             TableFactor::NestedJoin {
                 table_with_joins,
@@ -206,6 +211,25 @@ impl<'a> Binder<'a> {
                 table_ref
             }
             _ => unimplemented!(),
+        }
+    }
+
+    pub fn bind_base_table_by_name(
+        &self,
+        table_name: &str,
+        alias: Option<String>,
+    ) -> BoundBaseTableRef {
+        let table_info = self.context.catalog.get_table_by_name(table_name);
+        if table_info.is_none() {
+            panic!("Table {} not found", table_name);
+        }
+        let table_info = table_info.unwrap();
+
+        BoundBaseTableRef {
+            table: table_name.to_string(),
+            oid: table_info.oid,
+            alias,
+            schema: table_info.schema.clone(),
         }
     }
 

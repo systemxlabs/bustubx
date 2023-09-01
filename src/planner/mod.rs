@@ -9,6 +9,8 @@ use self::{logical_plan::LogicalPlan, operator::LogicalOperator};
 
 pub mod logical_plan;
 pub mod operator;
+pub mod plan_create_index;
+pub mod plan_create_table;
 pub mod plan_insert;
 pub mod plan_select;
 
@@ -17,14 +19,9 @@ impl Planner {
     // 根据BoundStatement生成逻辑计划
     pub fn plan(&mut self, statement: BoundStatement) -> LogicalPlan {
         match statement {
+            BoundStatement::CreateTable(stmt) => self.plan_create_table(stmt),
+            BoundStatement::CreateIndex(stmt) => self.plan_create_index(stmt),
             BoundStatement::Insert(stmt) => self.plan_insert(stmt),
-            BoundStatement::CreateTable(stmt) => {
-                let schema = Schema::new(stmt.columns);
-                LogicalPlan {
-                    operator: LogicalOperator::new_create_table_operator(stmt.table_name, schema),
-                    children: Vec::new(),
-                }
-            }
             BoundStatement::Select(stmt) => self.plan_select(stmt),
             _ => unimplemented!(),
         }

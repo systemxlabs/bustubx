@@ -1,5 +1,9 @@
 use crate::{
-    binder::{expression::BoundExpression, order_by::BoundOrderBy, table_ref::join::JoinType},
+    binder::{
+        expression::{column_ref::BoundColumnRef, BoundExpression},
+        order_by::BoundOrderBy,
+        table_ref::{base_table::BoundBaseTableRef, join::JoinType},
+    },
     catalog::{
         catalog::TableOid,
         column::Column,
@@ -9,12 +13,13 @@ use crate::{
 };
 
 use self::{
-    create_table::LogicalCreateTableOperator, filter::LogicalFilterOperator,
-    insert::LogicalInsertOperator, join::LogicalJoinOperator, limit::LogicalLimitOperator,
-    project::LogicalProjectOperator, scan::LogicalScanOperator, sort::LogicalSortOperator,
-    values::LogicalValuesOperator,
+    create_index::LogicalCreateIndexOperator, create_table::LogicalCreateTableOperator,
+    filter::LogicalFilterOperator, insert::LogicalInsertOperator, join::LogicalJoinOperator,
+    limit::LogicalLimitOperator, project::LogicalProjectOperator, scan::LogicalScanOperator,
+    sort::LogicalSortOperator, values::LogicalValuesOperator,
 };
 
+pub mod create_index;
 pub mod create_table;
 pub mod filter;
 pub mod insert;
@@ -29,6 +34,7 @@ pub mod values;
 pub enum LogicalOperator {
     Dummy,
     CreateTable(LogicalCreateTableOperator),
+    CreateIndex(LogicalCreateIndexOperator),
     // Aggregate(AggregateOperator),
     Filter(LogicalFilterOperator),
     Join(LogicalJoinOperator),
@@ -42,6 +48,19 @@ pub enum LogicalOperator {
 impl LogicalOperator {
     pub fn new_create_table_operator(table_name: String, schema: Schema) -> LogicalOperator {
         LogicalOperator::CreateTable(LogicalCreateTableOperator::new(table_name, schema))
+    }
+    pub fn new_create_index_operator(
+        index_name: String,
+        table_name: String,
+        table_schema: Schema,
+        key_attrs: Vec<u32>,
+    ) -> LogicalOperator {
+        LogicalOperator::CreateIndex(LogicalCreateIndexOperator::new(
+            index_name,
+            table_name,
+            table_schema,
+            key_attrs,
+        ))
     }
     pub fn new_insert_operator(table_name: String, columns: Vec<Column>) -> LogicalOperator {
         LogicalOperator::Insert(LogicalInsertOperator::new(table_name, columns))

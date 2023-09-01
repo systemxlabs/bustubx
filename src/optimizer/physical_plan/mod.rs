@@ -8,11 +8,13 @@ use crate::{
 };
 
 use self::{
-    create_table::PhysicalCreateTable, filter::PhysicalFilter, insert::PhysicalInsert,
-    limit::PhysicalLimit, nested_loop_join::PhysicalNestedLoopJoin, project::PhysicalProject,
-    sort::PhysicalSort, table_scan::PhysicalTableScan, values::PhysicalValues,
+    create_index::PhysicalCreateIndex, create_table::PhysicalCreateTable, filter::PhysicalFilter,
+    insert::PhysicalInsert, limit::PhysicalLimit, nested_loop_join::PhysicalNestedLoopJoin,
+    project::PhysicalProject, sort::PhysicalSort, table_scan::PhysicalTableScan,
+    values::PhysicalValues,
 };
 
+pub mod create_index;
 pub mod create_table;
 pub mod filter;
 pub mod insert;
@@ -27,6 +29,7 @@ pub mod values;
 pub enum PhysicalPlan {
     Dummy,
     CreateTable(PhysicalCreateTable),
+    CreateIndex(PhysicalCreateIndex),
     Project(PhysicalProject),
     Filter(PhysicalFilter),
     TableScan(PhysicalTableScan),
@@ -41,6 +44,7 @@ impl PhysicalPlan {
         match self {
             Self::Dummy => Schema::new(vec![]),
             Self::CreateTable(op) => op.output_schema(),
+            Self::CreateIndex(op) => op.output_schema(),
             Self::Insert(op) => op.output_schema(),
             Self::Values(op) => op.output_schema(),
             Self::Project(op) => op.output_schema(),
@@ -60,6 +64,14 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
             PhysicalPlan::CreateTable(PhysicalCreateTable::new(
                 logic_create_table.table_name.clone(),
                 logic_create_table.schema.clone(),
+            ))
+        }
+        LogicalOperator::CreateIndex(ref logic_create_index) => {
+            PhysicalPlan::CreateIndex(PhysicalCreateIndex::new(
+                logic_create_index.index_name.clone(),
+                logic_create_index.table_name.clone(),
+                logic_create_index.table_schema.clone(),
+                logic_create_index.key_attrs.clone(),
             ))
         }
         LogicalOperator::Insert(ref logic_insert) => {
@@ -131,11 +143,13 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
     };
     plan
 }
+
 impl VolcanoExecutor for PhysicalPlan {
     fn init(&self, context: &mut ExecutionContext) {
         match self {
             PhysicalPlan::Dummy => {}
             PhysicalPlan::CreateTable(op) => op.init(context),
+            PhysicalPlan::CreateIndex(op) => op.init(context),
             PhysicalPlan::Insert(op) => op.init(context),
             PhysicalPlan::Values(op) => op.init(context),
             PhysicalPlan::Project(op) => op.init(context),
@@ -150,6 +164,7 @@ impl VolcanoExecutor for PhysicalPlan {
         match self {
             PhysicalPlan::Dummy => None,
             PhysicalPlan::CreateTable(op) => op.next(context),
+            PhysicalPlan::CreateIndex(op) => op.next(context),
             PhysicalPlan::Insert(op) => op.next(context),
             PhysicalPlan::Values(op) => op.next(context),
             PhysicalPlan::Project(op) => op.next(context),
