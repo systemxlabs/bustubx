@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use tracing::span;
+
 use crate::{
     catalog::{catalog::Catalog, schema::Schema},
     optimizer::physical_plan::PhysicalPlan,
@@ -25,6 +27,7 @@ pub struct ExecutionEngine<'a> {
 }
 impl ExecutionEngine<'_> {
     pub fn execute(&mut self, plan: Arc<PhysicalPlan>) -> (Vec<Tuple>, Schema) {
+        let _execute_span = span!(tracing::Level::INFO, "executionengine.execute").entered();
         plan.init(&mut self.context);
         let mut result = Vec::new();
         loop {
