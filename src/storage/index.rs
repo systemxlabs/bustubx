@@ -762,11 +762,9 @@ mod tests {
 
     use crate::{
         buffer::buffer_pool,
-        catalog::{
-            column::{Column, DataType},
-            schema::Schema,
-        },
+        catalog::{column::Column, schema::Schema},
         common::{config::INVALID_PAGE_ID, rid::Rid},
+        dbtype::data_type::DataType,
         storage::{disk_manager, tuple::Tuple},
     };
 

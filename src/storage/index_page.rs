@@ -583,11 +583,9 @@ mod tests {
     use std::mem::size_of;
 
     use crate::{
-        catalog::{
-            column::{Column, DataType},
-            schema::Schema,
-        },
+        catalog::{column::Column, schema::Schema},
         common::rid::Rid,
+        dbtype::data_type::DataType,
         storage::{
             index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePageType, InternalKV},
             tuple::Tuple,

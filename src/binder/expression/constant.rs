@@ -1,4 +1,4 @@
-use crate::{catalog::column::DataType, dbtype::value::Value};
+use crate::{dbtype::data_type::DataType, dbtype::value::Value};
 
 #[derive(Debug, Clone)]
 pub enum Constant {

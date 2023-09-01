@@ -1,6 +1,6 @@
 use std::fmt::Formatter;
 
-use crate::catalog::column::DataType;
+use crate::dbtype::data_type::DataType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {

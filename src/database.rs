@@ -98,10 +98,10 @@ impl Database {
 mod tests {
     use crate::{
         catalog::{
-            column::{Column, ColumnFullName, DataType},
+            column::{Column, ColumnFullName},
             schema::Schema,
         },
-        dbtype::value::Value,
+        dbtype::{data_type::DataType, value::Value},
     };
 
     #[test]
