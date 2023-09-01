@@ -10,6 +10,7 @@ pub enum Value {
     TinyInt(i8),
     SmallInt(i16),
     Integer(i32),
+    BigInt(i64),
 }
 impl Value {
     pub fn from_bytes(bytes: &[u8], data_type: DataType) -> Self {
@@ -20,6 +21,9 @@ impl Value {
             DataType::Integer => {
                 Self::Integer(i32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
             }
+            DataType::BigInt => Self::BigInt(i64::from_be_bytes([
+                bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+            ])),
             _ => panic!("Not implemented"),
         }
     }
@@ -30,6 +34,7 @@ impl Value {
             Self::TinyInt(v) => v.to_be_bytes().to_vec(),
             Self::SmallInt(v) => v.to_be_bytes().to_vec(),
             Self::Integer(v) => v.to_be_bytes().to_vec(),
+            Self::BigInt(v) => v.to_be_bytes().to_vec(),
         }
     }
 
@@ -39,6 +44,7 @@ impl Value {
                 DataType::TinyInt => Self::TinyInt(v.parse::<i8>().unwrap()),
                 DataType::SmallInt => Self::SmallInt(v.parse::<i16>().unwrap()),
                 DataType::Integer => Self::Integer(v.parse::<i32>().unwrap()),
+                DataType::BigInt => Self::BigInt(v.parse::<i64>().unwrap()),
                 _ => panic!("Not implemented"),
             },
             // sqlparser::ast::Value::SingleQuotedString(_) => {}
@@ -47,6 +53,7 @@ impl Value {
         }
     }
 
+    // TODO compare value with different data type
     pub fn compare(&self, other: &Self) -> std::cmp::Ordering {
         match self {
             Self::Boolean(v1) => match other {
@@ -63,6 +70,10 @@ impl Value {
             },
             Self::Integer(v1) => match other {
                 Self::Integer(v2) => v1.cmp(v2),
+                _ => panic!("Not implemented"),
+            },
+            Self::BigInt(v1) => match other {
+                Self::BigInt(v2) => v1.cmp(v2),
                 _ => panic!("Not implemented"),
             },
         }
@@ -87,6 +98,7 @@ impl std::fmt::Display for Value {
             Value::TinyInt(e) => write!(f, "{}", e)?,
             Value::SmallInt(e) => write!(f, "{}", e)?,
             Value::Integer(e) => write!(f, "{}", e)?,
+            Value::BigInt(e) => write!(f, "{}", e)?,
         };
         Ok(())
     }
