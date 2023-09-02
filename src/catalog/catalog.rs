@@ -184,9 +184,10 @@ mod tests {
     use crate::{
         buffer::buffer_pool::BufferPoolManager,
         catalog::{
-            column::{Column, ColumnFullName, DataType},
+            column::{Column, ColumnFullName},
             schema::Schema,
         },
+        dbtype::data_type::DataType,
         storage::disk_manager,
     };
 

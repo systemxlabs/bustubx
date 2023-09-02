@@ -1,4 +1,4 @@
-use crate::{catalog::column::DataType, dbtype::value::Value};
+use crate::{dbtype::data_type::DataType, dbtype::value::Value};
 
 #[derive(Debug, Clone)]
 pub enum Constant {
@@ -25,6 +25,7 @@ impl Constant {
                 DataType::TinyInt => Value::TinyInt(n.parse::<i8>().unwrap()),
                 DataType::SmallInt => Value::SmallInt(n.parse::<i16>().unwrap()),
                 DataType::Integer => Value::Integer(n.parse::<i32>().unwrap()),
+                DataType::BigInt => Value::BigInt(n.parse::<i64>().unwrap()),
                 _ => unimplemented!(),
             },
             Constant::Boolean(b) => Value::Boolean(*b),

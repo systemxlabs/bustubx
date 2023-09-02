@@ -139,11 +139,11 @@ impl Tuple {
 }
 
 mod tests {
-    use crate::catalog::{
-        column::{Column, DataType},
-        schema::Schema,
-    };
     use crate::storage::tuple::TupleMeta;
+    use crate::{
+        catalog::{column::Column, schema::Schema},
+        dbtype::data_type::DataType,
+    };
     use std::mem;
 
     #[test]

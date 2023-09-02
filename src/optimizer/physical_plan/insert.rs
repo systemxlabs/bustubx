@@ -1,11 +1,8 @@
 use std::sync::{atomic::AtomicU32, Arc};
 
 use crate::{
-    catalog::{
-        column::{Column, DataType},
-        schema::Schema,
-    },
-    dbtype::value::Value,
+    catalog::{column::Column, schema::Schema},
+    dbtype::{data_type::DataType, value::Value},
     execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::{Tuple, TupleMeta},
 };

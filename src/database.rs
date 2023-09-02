@@ -98,10 +98,10 @@ impl Database {
 mod tests {
     use crate::{
         catalog::{
-            column::{Column, ColumnFullName, DataType},
+            column::{Column, ColumnFullName},
             schema::Schema,
         },
-        dbtype::value::Value,
+        dbtype::{data_type::DataType, value::Value},
     };
 
     #[test]
@@ -191,7 +191,7 @@ mod tests {
         let _ = std::fs::remove_file(db_path);
 
         let mut db = super::Database::new_on_disk(db_path);
-        db.run(&"create table t1 (a int, b int)".to_string());
+        db.run(&"create table t1 (a int, b bigint)".to_string());
 
         let select_result = db.run(&"select * from t1".to_string());
         assert_eq!(select_result.len(), 0);
@@ -208,12 +208,7 @@ mod tests {
                 DataType::Integer,
                 0,
             ),
-            Column::new(
-                Some("t1".to_string()),
-                "b".to_string(),
-                DataType::Integer,
-                1,
-            ),
+            Column::new(Some("t1".to_string()), "b".to_string(), DataType::BigInt, 1),
         ]);
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),
@@ -221,7 +216,7 @@ mod tests {
         );
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 1),
-            Value::Integer(1)
+            Value::BigInt(1)
         );
         assert_eq!(
             select_result[1].get_value_by_col_id(&schema, 0),
@@ -229,7 +224,7 @@ mod tests {
         );
         assert_eq!(
             select_result[1].get_value_by_col_id(&schema, 1),
-            Value::Integer(3)
+            Value::BigInt(3)
         );
         assert_eq!(
             select_result[2].get_value_by_col_id(&schema, 0),
@@ -237,7 +232,7 @@ mod tests {
         );
         assert_eq!(
             select_result[2].get_value_by_col_id(&schema, 1),
-            Value::Integer(4)
+            Value::BigInt(4)
         );
 
         let _ = std::fs::remove_file(db_path);

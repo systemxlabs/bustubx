@@ -177,7 +177,7 @@ mod tests {
 
     use crate::{
         binder::{expression::BoundExpression, statement::insert},
-        catalog::column::{Column, DataType},
+        catalog::column::Column,
         database::Database,
         dbtype::value::Value,
         optimizer::heuristic::graph::{HepNode, HepNodeId},

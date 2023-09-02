@@ -37,8 +37,9 @@ mod tests {
 
     use crate::{
         binder::expression::{column_ref::BoundColumnRef, BoundExpression},
-        catalog::column::{Column, ColumnFullName, DataType},
+        catalog::column::{Column, ColumnFullName},
         database::Database,
+        dbtype::data_type::DataType,
         optimizer::heuristic::{batch::HepBatchStrategy, rule::Rule, HepOptimizer},
         planner::{
             logical_plan::{self, LogicalPlan},

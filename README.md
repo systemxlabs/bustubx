@@ -25,8 +25,8 @@
   - [x] Bool
   - [x] TinyInt
   - [x] SmallInt
-  - [x] Int
-  - [ ] BigInt
+  - [x] Integer
+  - [x] BigInt
   - [ ] Float
   - [ ] Varchar
   - [ ] Null
@@ -40,6 +40,7 @@
   - [ ] Collapse Project
 - Executors
   - [x] Create Table
+  - [x] Create Index
   - [x] Table Scan
   - [ ] Index Scan
   - [x] Filter
