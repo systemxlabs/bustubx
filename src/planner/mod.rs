@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use tracing::span;
+
 use crate::{
     binder::{statement::BoundStatement, table_ref::BoundTableRef},
     catalog::schema::{self, Schema},
@@ -18,6 +20,7 @@ pub struct Planner {}
 impl Planner {
     // 根据BoundStatement生成逻辑计划
     pub fn plan(&mut self, statement: BoundStatement) -> LogicalPlan {
+        let _plan_span = span!(tracing::Level::INFO, "planner.plan").entered();
         match statement {
             BoundStatement::CreateTable(stmt) => self.plan_create_table(stmt),
             BoundStatement::CreateIndex(stmt) => self.plan_create_index(stmt),

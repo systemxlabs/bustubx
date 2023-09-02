@@ -1,4 +1,6 @@
-use std::sync::Arc;
+use std::{sync::Arc, thread::sleep, time::Duration};
+
+use tracing::span;
 
 use crate::{
     binder::{Binder, BinderContext},
@@ -29,6 +31,7 @@ impl Database {
     }
 
     pub fn run(&mut self, sql: &str) -> Vec<Tuple> {
+        let _db_run_span = span!(tracing::Level::INFO, "database.run", sql).entered();
         // sql -> ast
         let stmts = crate::parser::parse_sql(sql);
         if stmts.is_err() {

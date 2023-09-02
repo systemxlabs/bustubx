@@ -3,8 +3,10 @@ use sqlparser::{
     dialect::PostgreSqlDialect,
     parser::{Parser, ParserError},
 };
+use tracing::span;
 
 pub fn parse_sql(sql: &str) -> Result<Vec<Statement>, ParserError> {
+    let _parse_sql_span = span!(tracing::Level::INFO, "parse_sql", sql).entered();
     Parser::parse_sql(&PostgreSqlDialect {}, sql)
 }
 

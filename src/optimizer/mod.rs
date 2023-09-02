@@ -1,3 +1,5 @@
+use tracing::span;
+
 use crate::planner::logical_plan::LogicalPlan;
 
 use self::{
@@ -22,6 +24,7 @@ impl Optimizer {
     }
 
     pub fn find_best(&mut self) -> PhysicalPlan {
+        let _find_best_span = span!(tracing::Level::INFO, "optimizer.find_best").entered();
         // optimize logical plan
         let optimized_logical_plan = self.hep_optimizer.find_best();
 
