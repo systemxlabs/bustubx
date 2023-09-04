@@ -13,13 +13,9 @@ pub trait VolcanoExecutor {
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple>;
 }
 
+#[derive(derive_new::new)]
 pub struct ExecutionContext<'a> {
     pub catalog: &'a mut Catalog,
-}
-impl ExecutionContext<'_> {
-    pub fn new(catalog: &mut Catalog) -> ExecutionContext {
-        ExecutionContext { catalog }
-    }
 }
 
 pub struct ExecutionEngine<'a> {

@@ -185,16 +185,13 @@ impl TableHeap {
     }
 }
 
-#[derive(Debug)]
+#[derive(derive_new::new, Debug)]
 pub struct TableIterator {
     pub rid: Option<Rid>,
     pub stop_at: Option<Rid>,
 }
 
 impl TableIterator {
-    pub fn new(rid: Option<Rid>, stop_at: Option<Rid>) -> Self {
-        Self { rid, stop_at }
-    }
     pub fn next(&mut self, table_heap: &mut TableHeap) -> Option<(TupleMeta, Tuple)> {
         if self.rid.is_none() {
             return None;

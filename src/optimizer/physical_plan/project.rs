@@ -9,15 +9,12 @@ use crate::{
 
 use super::PhysicalPlan;
 
-#[derive(Debug)]
+#[derive(derive_new::new, Debug)]
 pub struct PhysicalProject {
     pub expressions: Vec<BoundExpression>,
     pub input: Arc<PhysicalPlan>,
 }
 impl PhysicalProject {
-    pub fn new(expressions: Vec<BoundExpression>, input: Arc<PhysicalPlan>) -> Self {
-        PhysicalProject { expressions, input }
-    }
     pub fn output_schema(&self) -> Schema {
         // TODO consider aggr/alias
         self.input.output_schema()

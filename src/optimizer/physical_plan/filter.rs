@@ -10,15 +10,12 @@ use crate::{
 
 use super::PhysicalPlan;
 
-#[derive(Debug)]
+#[derive(derive_new::new, Debug)]
 pub struct PhysicalFilter {
     pub predicate: BoundExpression,
     pub input: Arc<PhysicalPlan>,
 }
 impl PhysicalFilter {
-    pub fn new(predicate: BoundExpression, input: Arc<PhysicalPlan>) -> Self {
-        PhysicalFilter { predicate, input }
-    }
     pub fn output_schema(&self) -> Schema {
         self.input.output_schema()
     }
