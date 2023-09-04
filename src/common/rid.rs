@@ -1,7 +1,7 @@
 use crate::storage::page::PageId;
 
 // Record Identifier
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(derive_new::new, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Rid {
     pub page_id: PageId,
     pub slot_num: u32,
@@ -12,10 +12,6 @@ impl Rid {
         page_id: std::u32::MAX,
         slot_num: std::u32::MAX,
     };
-
-    pub fn new(page_id: PageId, slot_num: u32) -> Self {
-        Self { page_id, slot_num }
-    }
 
     pub fn from_bytes(raw: &[u8]) -> Self {
         let page_id = u32::from_be_bytes([raw[0], raw[1], raw[2], raw[3]]);

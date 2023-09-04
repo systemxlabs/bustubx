@@ -2,17 +2,12 @@ use sqlparser::ast::ColumnDef;
 
 use crate::dbtype::data_type::DataType;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(derive_new::new, Debug, Clone, PartialEq, Eq)]
 pub struct ColumnFullName {
     // table name or table alias
     pub table: Option<String>,
     // column name or column alias
     pub column: String,
-}
-impl ColumnFullName {
-    pub fn new(table: Option<String>, column: String) -> Self {
-        Self { table, column }
-    }
 }
 
 // 列定义
