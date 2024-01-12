@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use crate::{
-    binder::expression::BoundExpression,
     catalog::schema::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
+    planner::expr::Expr,
     storage::tuple::Tuple,
 };
 
@@ -11,7 +11,7 @@ use super::PhysicalPlan;
 
 #[derive(derive_new::new, Debug)]
 pub struct PhysicalProject {
-    pub expressions: Vec<BoundExpression>,
+    pub expressions: Vec<Expr>,
     pub input: Arc<PhysicalPlan>,
 }
 impl PhysicalProject {

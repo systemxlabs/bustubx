@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::operator::LogicalOperator;
+use crate::planner::operator::LogicalOperator;
 
 #[derive(Debug)]
 pub struct LogicalPlan {

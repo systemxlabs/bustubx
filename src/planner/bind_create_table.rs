@@ -5,10 +5,10 @@ use crate::catalog::schema::Schema;
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 
-use super::Binder;
+use super::Planner;
 
-impl<'a> Binder<'a> {
-    pub fn bind_create_table(
+impl<'a> Planner<'a> {
+    pub fn plan_create_table(
         &self,
         name: &ObjectName,
         column_defs: &Vec<ColumnDef>,

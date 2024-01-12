@@ -4,10 +4,7 @@ use crate::{
     storage::tuple::Tuple,
 };
 
-use self::{
-    alias::BoundAlias, binary_op::BoundBinaryOp, column_ref::BoundColumnRef,
-    constant::BoundConstant,
-};
+use self::{alias::Alias, binary_op::BinaryOp, column_ref::ColumnRef, constant::BoundConstant};
 
 pub mod alias;
 pub mod binary_op;
@@ -15,19 +12,19 @@ pub mod column_ref;
 pub mod constant;
 
 #[derive(Debug, Clone)]
-pub enum BoundExpression {
+pub enum Expr {
+    Alias(Alias),
     Constant(BoundConstant),
-    ColumnRef(BoundColumnRef),
-    BinaryOp(BoundBinaryOp),
-    Alias(BoundAlias),
+    ColumnRef(ColumnRef),
+    BinaryOp(BinaryOp),
 }
-impl BoundExpression {
+impl Expr {
     pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> Value {
         match self {
-            BoundExpression::Constant(c) => c.evaluate(),
-            BoundExpression::ColumnRef(c) => c.evaluate(tuple, schema),
-            BoundExpression::BinaryOp(b) => b.evaluate(tuple, schema),
-            BoundExpression::Alias(a) => a.evaluate(tuple, schema),
+            Expr::Constant(c) => c.evaluate(),
+            Expr::ColumnRef(c) => c.evaluate(tuple, schema),
+            Expr::BinaryOp(b) => b.evaluate(tuple, schema),
+            Expr::Alias(a) => a.evaluate(tuple, schema),
             _ => unimplemented!(),
         }
     }

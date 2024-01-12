@@ -1,4 +1,4 @@
-use crate::{binder::expression::BoundExpression, catalog::column::ColumnFullName};
+use crate::{catalog::column::ColumnFullName, planner::expr::Expr};
 
 use super::BoundTableRef;
 
@@ -23,7 +23,7 @@ pub struct BoundJoinRef {
     pub join_type: JoinType,
     pub left: Box<BoundTableRef>,
     pub right: Box<BoundTableRef>,
-    pub condition: Option<BoundExpression>,
+    pub condition: Option<Expr>,
 }
 impl BoundJoinRef {
     pub fn column_names(&self) -> Vec<ColumnFullName> {

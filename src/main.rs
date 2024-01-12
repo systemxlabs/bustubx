@@ -8,7 +8,6 @@ use tracing_subscriber::{
 
 use crate::database::Database;
 
-mod binder;
 mod buffer;
 mod catalog;
 mod common;

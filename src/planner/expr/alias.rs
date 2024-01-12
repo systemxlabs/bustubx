@@ -1,15 +1,15 @@
 use crate::{catalog::schema::Schema, dbtype::value::Value, storage::tuple::Tuple};
 
-use super::BoundExpression;
+use super::Expr;
 
 /// The alias in SELECT list, e.g. `SELECT count(x) AS y`, the `y` is an alias.
 #[derive(Debug, Clone)]
-pub struct BoundAlias {
+pub struct Alias {
     pub alias: String,
-    pub child: Box<BoundExpression>,
+    pub expr: Box<Expr>,
 }
-impl BoundAlias {
+impl Alias {
     pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> Value {
-        self.child.evaluate(tuple, schema)
+        self.expr.evaluate(tuple, schema)
     }
 }

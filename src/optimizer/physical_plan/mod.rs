@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
+use crate::planner::logical_plan::LogicalPlan;
+use crate::planner::operator::LogicalOperator;
 use crate::{
     catalog::schema::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
-    planner::{logical_plan::LogicalPlan, operator::LogicalOperator},
     storage::tuple::Tuple,
 };
 

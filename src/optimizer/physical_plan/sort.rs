@@ -1,9 +1,9 @@
 use std::sync::{atomic::AtomicU32, Arc, Mutex};
 
 use crate::{
-    binder::{expression::BoundExpression, order_by::BoundOrderBy},
     catalog::schema::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
+    planner::{expr::Expr, order_by::BoundOrderBy},
     storage::tuple::Tuple,
 };
 

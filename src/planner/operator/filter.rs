@@ -1,6 +1,6 @@
-use crate::{binder::expression::BoundExpression, catalog::schema::Schema};
+use crate::{catalog::schema::Schema, planner::expr::Expr};
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct LogicalFilterOperator {
-    pub predicate: BoundExpression,
+    pub predicate: Expr,
 }

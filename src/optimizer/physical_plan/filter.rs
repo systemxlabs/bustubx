@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use crate::{
-    binder::expression::BoundExpression,
     catalog::schema::Schema,
     dbtype::value::Value,
     execution::{ExecutionContext, VolcanoExecutor},
+    planner::expr::Expr,
     storage::tuple::Tuple,
 };
 
@@ -12,7 +12,7 @@ use super::PhysicalPlan;
 
 #[derive(derive_new::new, Debug)]
 pub struct PhysicalFilter {
-    pub predicate: BoundExpression,
+    pub predicate: Expr,
     pub input: Arc<PhysicalPlan>,
 }
 impl PhysicalFilter {

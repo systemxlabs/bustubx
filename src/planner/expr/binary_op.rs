@@ -1,6 +1,6 @@
 use crate::{catalog::schema::Schema, dbtype::value::Value, storage::tuple::Tuple};
 
-use super::BoundExpression;
+use super::Expr;
 
 #[derive(Debug, Clone, Copy)]
 pub enum BinaryOperator {
@@ -39,12 +39,12 @@ impl BinaryOperator {
 
 /// A bound binary operator, e.g., `a+b`.
 #[derive(Debug, Clone)]
-pub struct BoundBinaryOp {
-    pub larg: Box<BoundExpression>,
+pub struct BinaryOp {
+    pub larg: Box<Expr>,
     pub op: BinaryOperator,
-    pub rarg: Box<BoundExpression>,
+    pub rarg: Box<Expr>,
 }
-impl BoundBinaryOp {
+impl BinaryOp {
     pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> Value {
         let l = self.larg.evaluate(tuple, schema);
         let r = self.rarg.evaluate(tuple, schema);

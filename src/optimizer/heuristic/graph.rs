@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
+use crate::planner::operator::LogicalOperator;
 use itertools::Itertools;
 use petgraph::{
     stable_graph::{NodeIndex, StableDiGraph},
     visit::{Bfs, EdgeRef},
 };
 
-use crate::planner::{logical_plan::LogicalPlan, operator::LogicalOperator};
+use crate::planner::logical_plan::LogicalPlan;
 
 use super::batch::HepMatchOrder;
 
@@ -173,10 +174,8 @@ impl HepGraph {
 mod tests {
     use std::sync::Arc;
 
-    use crate::{
-        database::Database, optimizer::heuristic::graph::HepNodeId,
-        planner::operator::LogicalOperator,
-    };
+    use crate::planner::operator::LogicalOperator;
+    use crate::{database::Database, optimizer::heuristic::graph::HepNodeId};
 
     #[test]
     pub fn test_hep_graph_new() {

@@ -1,11 +1,9 @@
-use crate::{
-    optimizer::heuristic::{
-        graph::{HepGraph, HepNodeId},
-        pattern::{Pattern, PatternChildrenPredicate},
-        rule::Rule,
-    },
-    planner::operator::LogicalOperator,
+use crate::optimizer::heuristic::{
+    graph::{HepGraph, HepNodeId},
+    pattern::{Pattern, PatternChildrenPredicate},
+    rule::Rule,
 };
+use crate::planner::operator::LogicalOperator;
 
 lazy_static::lazy_static! {
     static ref PUSH_LIMIT_INTO_SCAN_RULE_PATTERN: Pattern = {

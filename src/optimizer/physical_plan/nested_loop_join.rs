@@ -3,10 +3,10 @@ use std::sync::{Arc, Mutex};
 use sqlparser::keywords::NO;
 
 use crate::{
-    binder::{expression::BoundExpression, table_ref::join::JoinType},
     catalog::schema::Schema,
     dbtype::value::Value,
     execution::{ExecutionContext, VolcanoExecutor},
+    planner::{expr::Expr, table_ref::join::JoinType},
     storage::tuple::Tuple,
 };
 
@@ -15,7 +15,7 @@ use super::PhysicalPlan;
 #[derive(Debug)]
 pub struct PhysicalNestedLoopJoin {
     pub join_type: JoinType,
-    pub condition: Option<BoundExpression>,
+    pub condition: Option<Expr>,
     pub left_input: Arc<PhysicalPlan>,
     pub right_input: Arc<PhysicalPlan>,
 
@@ -24,7 +24,7 @@ pub struct PhysicalNestedLoopJoin {
 impl PhysicalNestedLoopJoin {
     pub fn new(
         join_type: JoinType,
-        condition: Option<BoundExpression>,
+        condition: Option<Expr>,
         left_input: Arc<PhysicalPlan>,
         right_input: Arc<PhysicalPlan>,
     ) -> Self {

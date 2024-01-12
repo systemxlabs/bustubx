@@ -1,11 +1,9 @@
-use crate::{
-    optimizer::heuristic::{
-        graph::{HepGraph, HepNodeId},
-        pattern::{Pattern, PatternChildrenPredicate},
-        rule::Rule,
-    },
-    planner::operator::LogicalOperator,
+use crate::optimizer::heuristic::{
+    graph::{HepGraph, HepNodeId},
+    pattern::{Pattern, PatternChildrenPredicate},
+    rule::Rule,
 };
+use crate::planner::operator::LogicalOperator;
 
 lazy_static::lazy_static! {
     static ref LIMIT_PROJECT_TRANSPOSE_RULE_PATTERN: Pattern = {
@@ -35,16 +33,13 @@ impl Rule for LimitProjectTranspose {
 mod tests {
     use std::sync::Arc;
 
+    use crate::planner::logical_plan::LogicalPlan;
+    use crate::planner::operator::LogicalOperator;
     use crate::{
-        binder::expression::{column_ref::BoundColumnRef, BoundExpression},
         catalog::column::{Column, ColumnFullName},
-        database::Database,
         dbtype::data_type::DataType,
-        optimizer::heuristic::{batch::HepBatchStrategy, rule::Rule, HepOptimizer},
-        planner::{
-            logical_plan::{self, LogicalPlan},
-            operator::LogicalOperator,
-        },
+        optimizer::heuristic::{batch::HepBatchStrategy, HepOptimizer},
+        planner::expr::{column_ref::ColumnRef, Expr},
     };
 
     #[test]
@@ -58,11 +53,9 @@ mod tests {
             children: vec![],
         };
         let logical_plan = LogicalPlan {
-            operator: LogicalOperator::new_project_operator(vec![BoundExpression::ColumnRef(
-                BoundColumnRef {
-                    col_name: ColumnFullName::new(None, "a".to_string()),
-                },
-            )]),
+            operator: LogicalOperator::new_project_operator(vec![Expr::ColumnRef(ColumnRef {
+                col_name: ColumnFullName::new(None, "a".to_string()),
+            })]),
             children: vec![Arc::new(logical_plan)],
         };
         let logical_plan = LogicalPlan {

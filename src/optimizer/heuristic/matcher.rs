@@ -56,13 +56,8 @@ impl<'a, 'b> HepMatcher<'a, 'b> {
 mod tests {
     use std::sync::Arc;
 
-    use crate::{
-        database::Database,
-        planner::{
-            logical_plan::{self, LogicalPlan},
-            operator::LogicalOperator,
-        },
-    };
+    use crate::planner::logical_plan::LogicalPlan;
+    use crate::planner::operator::LogicalOperator;
 
     #[test]
     pub fn test_hep_matcher_with_matched_recursive_pattern() {

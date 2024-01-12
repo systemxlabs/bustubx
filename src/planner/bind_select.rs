@@ -1,15 +1,15 @@
-use sqlparser::ast::{Expr, Offset, OrderByExpr, Query, SelectItem, SetExpr};
+use sqlparser::ast::{Offset, OrderByExpr, Query, SelectItem, SetExpr};
 use std::sync::Arc;
 
-use crate::binder::expression::constant::Constant;
-use crate::binder::expression::{alias::BoundAlias, BoundExpression};
+use crate::planner::expr::constant::Constant;
+use crate::planner::expr::{alias::Alias, Expr};
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 
-use super::{order_by::BoundOrderBy, Binder};
+use super::{order_by::BoundOrderBy, Planner};
 
-impl<'a> Binder<'a> {
-    pub fn bind_select(&mut self, query: &Query) -> LogicalPlan {
+impl<'a> Planner<'a> {
+    pub fn plan_select(&mut self, query: &Query) -> LogicalPlan {
         let select = match query.body.as_ref() {
             SetExpr::Select(select) => &**select,
             _ => unimplemented!(),
@@ -27,9 +27,9 @@ impl<'a> Binder<'a> {
                 }
                 SelectItem::ExprWithAlias { expr, alias } => {
                     let expr = self.bind_expression(expr);
-                    select_list.push(BoundExpression::Alias(BoundAlias {
+                    select_list.push(Expr::Alias(Alias {
                         alias: alias.value.clone(),
-                        child: Box::new(expr),
+                        expr: Box::new(expr),
                     }));
                 }
                 SelectItem::QualifiedWildcard(object_name, _) => {
@@ -97,20 +97,16 @@ impl<'a> Binder<'a> {
         plan
     }
 
-    pub fn plan_limit(
-        &self,
-        limit: &Option<BoundExpression>,
-        offset: &Option<BoundExpression>,
-    ) -> LogicalPlan {
+    pub fn plan_limit(&self, limit: &Option<Expr>, offset: &Option<Expr>) -> LogicalPlan {
         let limit = limit.as_ref().map(|limit| match limit {
-            BoundExpression::Constant(ref constant) => match constant.value {
+            Expr::Constant(ref constant) => match constant.value {
                 Constant::Number(ref v) => v.parse::<usize>().unwrap(),
                 _ => panic!("limit must be a number"),
             },
             _ => panic!("limit must be a number"),
         });
         let offset = offset.as_ref().map(|offset| match offset {
-            BoundExpression::Constant(ref constant) => match constant.value {
+            Expr::Constant(ref constant) => match constant.value {
                 Constant::Number(ref v) => v.parse::<usize>().unwrap(),
                 _ => panic!("offset must be a number"),
             },
@@ -124,9 +120,9 @@ impl<'a> Binder<'a> {
 
     pub fn bind_limit(
         &self,
-        limit: &Option<Expr>,
+        limit: &Option<sqlparser::ast::Expr>,
         offset: &Option<Offset>,
-    ) -> (Option<BoundExpression>, Option<BoundExpression>) {
+    ) -> (Option<Expr>, Option<Expr>) {
         let limit = limit.as_ref().map(|expr| self.bind_expression(&expr));
         let offset = offset
             .as_ref()

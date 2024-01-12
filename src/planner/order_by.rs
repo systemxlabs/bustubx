@@ -1,8 +1,8 @@
-use super::expression::BoundExpression;
+use super::expr::Expr;
 
 /// BoundOrderBy is an item in the ORDER BY clause.
 #[derive(Debug, Clone)]
 pub struct BoundOrderBy {
-    pub expression: BoundExpression,
+    pub expression: Expr,
     pub desc: bool,
 }

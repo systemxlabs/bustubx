@@ -2,7 +2,7 @@ use crate::catalog::column::ColumnFullName;
 
 use self::{base_table::BoundBaseTableRef, join::BoundJoinRef};
 
-use super::expression::{column_ref::BoundColumnRef, BoundExpression};
+use super::expr::{column_ref::ColumnRef, Expr};
 
 pub mod base_table;
 pub mod join;
@@ -19,14 +19,14 @@ impl BoundTableRef {
             BoundTableRef::Join(join_ref) => join_ref.column_names(),
         }
     }
-    pub fn gen_select_list(&self) -> Vec<BoundExpression> {
+    pub fn gen_select_list(&self) -> Vec<Expr> {
         self.column_names()
             .iter()
             .map(|c| {
-                BoundExpression::ColumnRef(BoundColumnRef {
+                Expr::ColumnRef(ColumnRef {
                     col_name: c.clone(),
                 })
             })
-            .collect::<Vec<BoundExpression>>()
+            .collect::<Vec<Expr>>()
     }
 }

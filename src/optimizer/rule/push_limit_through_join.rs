@@ -1,11 +1,11 @@
+use crate::planner::operator::LogicalOperator;
 use crate::{
-    binder::table_ref::join::JoinType,
     optimizer::heuristic::{
         graph::{HepGraph, HepNodeId},
         pattern::{Pattern, PatternChildrenPredicate},
         rule::Rule,
     },
-    planner::operator::LogicalOperator,
+    planner::table_ref::join::JoinType,
 };
 
 lazy_static::lazy_static! {

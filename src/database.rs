@@ -1,15 +1,15 @@
-use std::{sync::Arc, thread::sleep, time::Duration};
+use std::sync::Arc;
 
 use tracing::span;
 
+use crate::planner::logical_plan::LogicalPlan;
 use crate::{
-    binder::{Binder, BinderContext},
     buffer::buffer_pool::BufferPoolManager,
     catalog::catalog::Catalog,
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     execution::{ExecutionContext, ExecutionEngine},
     optimizer::Optimizer,
-    planner::logical_plan::LogicalPlan,
+    planner::{Planner, PlannerContext},
     storage::{disk_manager::DiskManager, tuple::Tuple},
 };
 
@@ -44,13 +44,13 @@ impl Database {
             return Vec::new();
         }
         let stmt = &stmts[0];
-        let mut binder = Binder {
-            context: BinderContext {
+        let mut binder = Planner {
+            context: PlannerContext {
                 catalog: &self.catalog,
             },
         };
         // ast -> logical plan
-        let logical_plan = binder.bind(&stmt);
+        let logical_plan = binder.plan(&stmt);
         println!("{:?}", logical_plan);
 
         // logical plan -> physical plan
@@ -79,13 +79,13 @@ impl Database {
             panic!("only support one sql statement")
         }
         let stmt = &stmts[0];
-        let mut binder = Binder {
-            context: BinderContext {
+        let mut binder = Planner {
+            context: PlannerContext {
                 catalog: &self.catalog,
             },
         };
         // ast -> statement
-        let logical_plan = binder.bind(&stmt);
+        let logical_plan = binder.plan(&stmt);
 
         logical_plan
     }

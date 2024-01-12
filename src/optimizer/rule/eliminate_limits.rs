@@ -1,11 +1,9 @@
-use crate::{
-    optimizer::heuristic::{
-        graph::{HepGraph, HepNodeId},
-        pattern::{Pattern, PatternChildrenPredicate},
-        rule::Rule,
-    },
-    planner::operator::{limit::LogicalLimitOperator, LogicalOperator},
+use crate::optimizer::heuristic::{
+    graph::{HepGraph, HepNodeId},
+    pattern::{Pattern, PatternChildrenPredicate},
+    rule::Rule,
 };
+use crate::planner::operator::{limit::LogicalLimitOperator, LogicalOperator};
 
 lazy_static::lazy_static! {
     static ref ELIMINATE_LIMITS_RULE_PATTERN: Pattern = {
@@ -19,7 +17,7 @@ lazy_static::lazy_static! {
     };
 }
 
-/// Combines two adjacent Limit operators into one, merging the expressions into one single expression.
+/// Combines two adjacent Limit operators into one, merging the expressions into one single expr.
 #[derive(Debug, Clone)]
 pub struct EliminateLimits;
 impl Rule for EliminateLimits {

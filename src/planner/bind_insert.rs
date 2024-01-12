@@ -5,10 +5,10 @@ use crate::catalog::column::ColumnFullName;
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 
-use super::{expression::BoundExpression, Binder};
+use super::{expr::Expr, Planner};
 
-impl<'a> Binder<'a> {
-    pub fn bind_insert(
+impl<'a> Planner<'a> {
+    pub fn plan_insert(
         &self,
         table_name: &ObjectName,
         columns_ident: &Vec<Ident>,
@@ -46,7 +46,7 @@ impl<'a> Binder<'a> {
                     let mut record = Vec::new();
                     for expr in row {
                         let data_type = columns[record.len()].column_type;
-                        if let BoundExpression::Constant(constant) = self.bind_expression(expr) {
+                        if let Expr::Constant(constant) = self.bind_expression(expr) {
                             record.push(constant.value.to_value(data_type));
                         }
                     }

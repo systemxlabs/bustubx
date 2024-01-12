@@ -1,3 +1,4 @@
+use crate::common::table_ref::TableReference;
 use crate::{
     catalog::{column::ColumnFullName, schema::Schema},
     dbtype::value::Value,
@@ -6,10 +7,11 @@ use crate::{
 
 /// A bound column reference, e.g., `y.x` in the SELECT list.
 #[derive(Debug, Clone)]
-pub struct BoundColumnRef {
+pub struct ColumnRef {
+    // pub relation: Option<TableReference>,
     pub col_name: ColumnFullName,
 }
-impl BoundColumnRef {
+impl ColumnRef {
     pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> Value {
         if tuple.is_none() || schema.is_none() {
             panic!("tuple or schema is none")

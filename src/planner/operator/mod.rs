@@ -1,15 +1,15 @@
 use crate::{
-    binder::{
-        expression::{column_ref::BoundColumnRef, BoundExpression},
-        order_by::BoundOrderBy,
-        table_ref::{base_table::BoundBaseTableRef, join::JoinType},
-    },
     catalog::{
         catalog::TableOid,
         column::Column,
         schema::{self, Schema},
     },
     dbtype::value::Value,
+    planner::{
+        expr::{column_ref::ColumnRef, Expr},
+        order_by::BoundOrderBy,
+        table_ref::{base_table::BoundBaseTableRef, join::JoinType},
+    },
 };
 
 use self::{
@@ -71,19 +71,16 @@ impl LogicalOperator {
     pub fn new_scan_operator(table_oid: TableOid, columns: Vec<Column>) -> LogicalOperator {
         LogicalOperator::Scan(LogicalScanOperator::new(table_oid, columns))
     }
-    pub fn new_project_operator(expressions: Vec<BoundExpression>) -> LogicalOperator {
+    pub fn new_project_operator(expressions: Vec<Expr>) -> LogicalOperator {
         LogicalOperator::Project(LogicalProjectOperator::new(expressions))
     }
-    pub fn new_filter_operator(predicate: BoundExpression) -> LogicalOperator {
+    pub fn new_filter_operator(predicate: Expr) -> LogicalOperator {
         LogicalOperator::Filter(LogicalFilterOperator::new(predicate))
     }
     pub fn new_limit_operator(limit: Option<usize>, offset: Option<usize>) -> LogicalOperator {
         LogicalOperator::Limit(limit::LogicalLimitOperator::new(limit, offset))
     }
-    pub fn new_join_operator(
-        join_type: JoinType,
-        condition: Option<BoundExpression>,
-    ) -> LogicalOperator {
+    pub fn new_join_operator(join_type: JoinType, condition: Option<Expr>) -> LogicalOperator {
         LogicalOperator::Join(LogicalJoinOperator::new(join_type, condition))
     }
     pub fn new_sort_operator(order_bys: Vec<BoundOrderBy>) -> LogicalOperator {

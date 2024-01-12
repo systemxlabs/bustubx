@@ -14,7 +14,7 @@ use super::schema::Schema;
 pub type TableOid = u32;
 pub type IndexOid = u32;
 
-pub static DEFAULT_DATABASE_NAME: &str = "bustubx";
+pub static DEFAULT_CATALOG_NAME: &str = "bustubx";
 pub static DEFAULT_SCHEMA_NAME: &str = "bustubx";
 
 // table元信息

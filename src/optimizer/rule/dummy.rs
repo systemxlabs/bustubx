@@ -1,11 +1,9 @@
-use crate::{
-    optimizer::heuristic::{
-        graph::{HepGraph, HepNodeId},
-        pattern::{Pattern, PatternChildrenPredicate},
-        rule::Rule,
-    },
-    planner::operator::LogicalOperator,
+use crate::optimizer::heuristic::{
+    graph::{HepGraph, HepNodeId},
+    pattern::{Pattern, PatternChildrenPredicate},
+    rule::Rule,
 };
+use crate::planner::operator::LogicalOperator;
 
 lazy_static::lazy_static! {
     pub static ref DUMMY_RULE_PATTERN: Pattern = Pattern {
@@ -27,10 +25,9 @@ impl Rule for DummyRule {
 }
 
 mod tests {
-    use crate::{
-        optimizer::heuristic::{batch::HepBatchStrategy, HepOptimizer},
-        planner::{logical_plan::LogicalPlan, operator::LogicalOperator},
-    };
+    use crate::optimizer::heuristic::{batch::HepBatchStrategy, HepOptimizer};
+    use crate::planner::logical_plan::LogicalPlan;
+    use crate::planner::operator::LogicalOperator;
 
     #[test]
     fn test_dummy_rule() {

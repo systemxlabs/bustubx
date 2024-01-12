@@ -1,4 +1,4 @@
-use crate::binder::order_by::BoundOrderBy;
+use crate::planner::order_by::BoundOrderBy;
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct LogicalSortOperator {

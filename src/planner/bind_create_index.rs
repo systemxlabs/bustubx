@@ -1,12 +1,12 @@
-use crate::binder::expression::column_ref::BoundColumnRef;
+use crate::planner::expr::column_ref::ColumnRef;
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 use sqlparser::ast::{ObjectName, OrderByExpr};
 
-use super::Binder;
+use super::Planner;
 
-impl<'a> Binder<'a> {
-    pub fn bind_create_index(
+impl<'a> Planner<'a> {
+    pub fn plan_create_index(
         &self,
         index_name: &ObjectName,
         table_name: &ObjectName,
@@ -16,7 +16,7 @@ impl<'a> Binder<'a> {
         let columns = columns
             .iter()
             .map(|column| self.bind_column_ref_expr(&column.expr))
-            .collect::<Vec<BoundColumnRef>>();
+            .collect::<Vec<ColumnRef>>();
         let table_schema = table.schema;
         let mut key_attrs = Vec::new();
         for col in columns {
