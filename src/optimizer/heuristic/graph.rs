@@ -173,20 +173,9 @@ impl HepGraph {
 mod tests {
     use std::sync::Arc;
 
-    use petgraph::adj::EdgeIndex;
-
     use crate::{
-        binder::{expression::BoundExpression, statement::insert},
-        catalog::column::Column,
-        database::Database,
-        dbtype::value::Value,
-        optimizer::heuristic::graph::{HepNode, HepNodeId},
-        planner::{
-            logical_plan::{self, LogicalPlan},
-            operator::{
-                filter::LogicalFilterOperator, values::LogicalValuesOperator, LogicalOperator,
-            },
-        },
+        database::Database, optimizer::heuristic::graph::HepNodeId,
+        planner::operator::LogicalOperator,
     };
 
     #[test]

@@ -6,10 +6,10 @@ use crate::{
     binder::{Binder, BinderContext},
     buffer::buffer_pool::BufferPoolManager,
     catalog::catalog::Catalog,
-    common::{config::TABLE_HEAP_BUFFER_POOL_SIZE, util::print_tuples},
+    common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     execution::{ExecutionContext, ExecutionEngine},
     optimizer::Optimizer,
-    planner::{logical_plan::LogicalPlan, Planner},
+    planner::logical_plan::LogicalPlan,
     storage::{disk_manager::DiskManager, tuple::Tuple},
 };
 
@@ -49,14 +49,9 @@ impl Database {
                 catalog: &self.catalog,
             },
         };
-        // ast -> statement
-        let statement = binder.bind(&stmt);
-        println!("{:?}", statement);
-
-        // statement -> logical plan
-        let mut planner = Planner {};
-        let logical_plan = planner.plan(statement);
-        // println!("{:#?}", logical_plan);
+        // ast -> logical plan
+        let logical_plan = binder.bind(&stmt);
+        println!("{:?}", logical_plan);
 
         // logical plan -> physical plan
         let mut optimizer = Optimizer::new(logical_plan);
@@ -90,11 +85,9 @@ impl Database {
             },
         };
         // ast -> statement
-        let statement = binder.bind(&stmt);
+        let logical_plan = binder.bind(&stmt);
 
-        // statement -> logical plan
-        let mut planner = Planner {};
-        planner.plan(statement)
+        logical_plan
     }
 }
 

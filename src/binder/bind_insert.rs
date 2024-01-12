@@ -1,11 +1,11 @@
 use sqlparser::ast::{Ident, ObjectName, Query, SetExpr};
+use std::sync::Arc;
 
 use crate::catalog::column::ColumnFullName;
+use crate::planner::logical_plan::LogicalPlan;
+use crate::planner::operator::LogicalOperator;
 
-use super::{
-    expression::BoundExpression, statement::insert::InsertStatement,
-    table_ref::base_table::BoundBaseTableRef, Binder,
-};
+use super::{expression::BoundExpression, table_ref::base_table::BoundBaseTableRef, Binder};
 
 impl<'a> Binder<'a> {
     pub fn bind_insert(
@@ -13,7 +13,7 @@ impl<'a> Binder<'a> {
         table_name: &ObjectName,
         columns_ident: &Vec<Ident>,
         source: &Query,
-    ) -> InsertStatement {
+    ) -> LogicalPlan {
         if let SetExpr::Values(values) = source.body.as_ref() {
             if let Some(table_info) = self
                 .context
@@ -58,11 +58,14 @@ impl<'a> Binder<'a> {
                     }
                     records.push(record);
                 }
-                return InsertStatement {
-                    table,
-                    columns,
-                    values: records,
+                let values_node = LogicalPlan {
+                    operator: LogicalOperator::new_values_operator(columns.clone(), records),
+                    children: Vec::new(),
                 };
+                LogicalPlan {
+                    operator: LogicalOperator::new_insert_operator(table.table, columns),
+                    children: vec![Arc::new(values_node)],
+                }
             } else {
                 panic!("Table {} not found", table_name);
             }

@@ -1,5 +1,8 @@
 use sqlparser::ast::{Expr, JoinConstraint, JoinOperator, Statement, TableFactor, TableWithJoins};
+use std::sync::Arc;
 
+use crate::planner::logical_plan::LogicalPlan;
+use crate::planner::operator::LogicalOperator;
 use crate::{
     binder::expression::{
         binary_op::{BinaryOperator, BoundBinaryOp},
@@ -16,7 +19,6 @@ use self::{
         constant::{BoundConstant, Constant},
         BoundExpression,
     },
-    statement::BoundStatement,
     table_ref::{
         base_table::BoundBaseTableRef,
         join::{BoundJoinRef, JoinType},
@@ -41,24 +43,22 @@ pub struct Binder<'a> {
     pub context: BinderContext<'a>,
 }
 impl<'a> Binder<'a> {
-    pub fn bind(&mut self, stmt: &Statement) -> BoundStatement {
+    pub fn bind(&mut self, stmt: &Statement) -> LogicalPlan {
         match stmt {
-            Statement::CreateTable { name, columns, .. } => {
-                BoundStatement::CreateTable(self.bind_create_table(name, columns))
-            }
+            Statement::CreateTable { name, columns, .. } => self.bind_create_table(name, columns),
             Statement::CreateIndex {
                 name,
                 table_name,
                 columns,
                 ..
-            } => BoundStatement::CreateIndex(self.bind_create_index(name, table_name, columns)),
-            Statement::Query(query) => BoundStatement::Select(self.bind_select(query)),
+            } => self.bind_create_index(name, table_name, columns),
+            Statement::Query(query) => self.bind_select(query),
             Statement::Insert {
                 table_name,
                 columns,
                 source,
                 ..
-            } => BoundStatement::Insert(self.bind_insert(table_name, columns, source)),
+            } => self.bind_insert(table_name, columns, source),
             _ => unimplemented!(),
         }
     }
@@ -236,6 +236,25 @@ impl<'a> Binder<'a> {
     pub fn bind_join_constraint(&self, constraint: &JoinConstraint) -> BoundExpression {
         match constraint {
             JoinConstraint::On(expr) => self.bind_expression(expr),
+            _ => unimplemented!(),
+        }
+    }
+
+    fn plan_table_ref(&mut self, table_ref: BoundTableRef) -> LogicalPlan {
+        match table_ref {
+            BoundTableRef::BaseTable(table) => LogicalPlan {
+                operator: LogicalOperator::new_scan_operator(table.oid, table.schema.columns),
+                children: Vec::new(),
+            },
+            BoundTableRef::Join(join) => {
+                let left_plan = self.plan_table_ref(*join.left);
+                let right_plan = self.plan_table_ref(*join.right);
+                let join_plan = LogicalPlan {
+                    operator: LogicalOperator::new_join_operator(join.join_type, join.condition),
+                    children: vec![Arc::new(left_plan), Arc::new(right_plan)],
+                };
+                join_plan
+            }
             _ => unimplemented!(),
         }
     }

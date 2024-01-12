@@ -1,11 +1,15 @@
 use sqlparser::ast::{Expr, Offset, OrderByExpr, Query, SelectItem, SetExpr};
+use std::sync::Arc;
 
+use crate::binder::expression::constant::Constant;
 use crate::binder::expression::{alias::BoundAlias, BoundExpression};
+use crate::planner::logical_plan::LogicalPlan;
+use crate::planner::operator::LogicalOperator;
 
-use super::{order_by::BoundOrderBy, statement::select::SelectStatement, Binder};
+use super::{order_by::BoundOrderBy, Binder};
 
 impl<'a> Binder<'a> {
-    pub fn bind_select(&self, query: &Query) -> SelectStatement {
+    pub fn bind_select(&mut self, query: &Query) -> LogicalPlan {
         let select = match query.body.as_ref() {
             SetExpr::Select(select) => &**select,
             _ => unimplemented!(),
@@ -53,13 +57,68 @@ impl<'a> Binder<'a> {
         // bind order by clause
         let sort = self.bind_order_by(&query.order_by);
 
-        SelectStatement {
-            select_list,
-            from_table,
-            where_clause,
-            limit,
-            offset,
-            sort,
+        // from table
+        let mut plan = self.plan_table_ref(from_table);
+
+        // filter
+        if where_clause.is_some() {
+            let mut filter_plan = LogicalPlan {
+                operator: LogicalOperator::new_filter_operator(where_clause.unwrap()),
+                children: Vec::new(),
+            };
+            filter_plan.children.push(Arc::new(plan));
+            plan = filter_plan;
+        }
+
+        // project
+        let mut plan = LogicalPlan {
+            operator: LogicalOperator::new_project_operator(select_list),
+            children: vec![Arc::new(plan)],
+        };
+
+        // order by clause may use computed column, so it should be after project
+        // for example, `select a+b from t order by a+b limit 10`
+        if !sort.is_empty() {
+            let mut sort_plan = LogicalPlan {
+                operator: LogicalOperator::new_sort_operator(sort),
+                children: Vec::new(),
+            };
+            sort_plan.children.push(Arc::new(plan));
+            plan = sort_plan;
+        }
+
+        // limit
+        if limit.is_some() || offset.is_some() {
+            let mut limit_plan = self.plan_limit(&limit, &offset);
+            limit_plan.children.push(Arc::new(plan));
+            plan = limit_plan;
+        }
+
+        plan
+    }
+
+    pub fn plan_limit(
+        &self,
+        limit: &Option<BoundExpression>,
+        offset: &Option<BoundExpression>,
+    ) -> LogicalPlan {
+        let limit = limit.as_ref().map(|limit| match limit {
+            BoundExpression::Constant(ref constant) => match constant.value {
+                Constant::Number(ref v) => v.parse::<usize>().unwrap(),
+                _ => panic!("limit must be a number"),
+            },
+            _ => panic!("limit must be a number"),
+        });
+        let offset = offset.as_ref().map(|offset| match offset {
+            BoundExpression::Constant(ref constant) => match constant.value {
+                Constant::Number(ref v) => v.parse::<usize>().unwrap(),
+                _ => panic!("offset must be a number"),
+            },
+            _ => panic!("offset must be a number"),
+        });
+        LogicalPlan {
+            operator: LogicalOperator::new_limit_operator(limit, offset),
+            children: Vec::new(),
         }
     }
 
