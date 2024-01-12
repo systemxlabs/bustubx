@@ -5,7 +5,7 @@ use crate::catalog::column::ColumnFullName;
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 
-use super::{expression::BoundExpression, table_ref::base_table::BoundBaseTableRef, Binder};
+use super::{expression::BoundExpression, Binder};
 
 impl<'a> Binder<'a> {
     pub fn bind_insert(
@@ -20,12 +20,6 @@ impl<'a> Binder<'a> {
                 .catalog
                 .get_table_by_name(&table_name.to_string())
             {
-                let table = BoundBaseTableRef {
-                    table: table_info.name.clone(),
-                    oid: table_info.oid,
-                    alias: None,
-                    schema: table_info.schema.clone(),
-                };
                 let mut columns = Vec::new();
                 if columns_ident.is_empty() {
                     columns = table_info.schema.columns.clone();
@@ -63,7 +57,10 @@ impl<'a> Binder<'a> {
                     children: Vec::new(),
                 };
                 LogicalPlan {
-                    operator: LogicalOperator::new_insert_operator(table.table, columns),
+                    operator: LogicalOperator::new_insert_operator(
+                        table_info.name.clone(),
+                        columns,
+                    ),
                     children: vec![Arc::new(values_node)],
                 }
             } else {

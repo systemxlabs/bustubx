@@ -32,7 +32,6 @@ pub mod bind_insert;
 pub mod bind_select;
 pub mod expression;
 pub mod order_by;
-pub mod statement;
 pub mod table_ref;
 
 pub struct BinderContext<'a> {
