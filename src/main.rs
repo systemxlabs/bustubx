@@ -1,4 +1,4 @@
-use std::io;
+use std::io::{self, Write};
 
 use tracing::{debug, info, Level};
 use tracing_chrome::ChromeLayerBuilder;
@@ -37,7 +37,8 @@ fn main() {
     let mut db = Database::new_on_disk("test.db");
     info!("database created");
     loop {
-        println!("> ");
+        print!(">");
+        io::stdout().flush().unwrap();
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {
             Ok(_) => {
