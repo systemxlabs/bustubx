@@ -95,9 +95,10 @@ mod tests {
     use crate::{
         catalog::{
             column::{Column, ColumnFullName},
+            data_type::DataType,
             schema::Schema,
         },
-        dbtype::{data_type::DataType, value::Value},
+        dbtype::value::Value,
     };
 
     #[test]
@@ -130,12 +131,12 @@ mod tests {
             table.schema.columns[0].full_name,
             ColumnFullName::new(Some("t1".to_string()), "a".to_string())
         );
-        assert_eq!(table.schema.columns[0].column_type, DataType::Integer);
+        assert_eq!(table.schema.columns[0].column_type, DataType::Int32);
         assert_eq!(
             table.schema.columns[1].full_name,
             ColumnFullName::new(Some("t1".to_string()), "b".to_string())
         );
-        assert_eq!(table.schema.columns[1].column_type, DataType::Integer);
+        assert_eq!(table.schema.columns[1].column_type, DataType::Int32);
 
         let _ = std::fs::remove_file(db_path);
     }
@@ -172,7 +173,7 @@ mod tests {
         let schema = Schema::new(vec![Column::new(
             None,
             "insert_rows".to_string(),
-            DataType::Integer,
+            DataType::Int32,
             0,
         )]);
         let insert_rows = insert_rows[0].get_value_by_col_id(&schema, 0);
@@ -198,13 +199,8 @@ mod tests {
         assert_eq!(select_result.len(), 3);
 
         let schema = Schema::new(vec![
-            Column::new(
-                Some("t1".to_string()),
-                "a".to_string(),
-                DataType::Integer,
-                0,
-            ),
-            Column::new(Some("t1".to_string()), "b".to_string(), DataType::BigInt, 1),
+            Column::new(Some("t1".to_string()), "a".to_string(), DataType::Int32, 0),
+            Column::new(Some("t1".to_string()), "b".to_string(), DataType::Int64, 1),
         ]);
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),
@@ -248,7 +244,7 @@ mod tests {
         let schema = Schema::new(vec![Column::new(
             Some("t1".to_string()),
             "a".to_string(),
-            DataType::Integer,
+            DataType::Int32,
             0,
         )]);
         assert_eq!(
@@ -275,18 +271,8 @@ mod tests {
         assert_eq!(select_result.len(), 1);
 
         let schema = Schema::new(vec![
-            Column::new(
-                Some("t1".to_string()),
-                "a".to_string(),
-                DataType::Integer,
-                0,
-            ),
-            Column::new(
-                Some("t1".to_string()),
-                "b".to_string(),
-                DataType::Integer,
-                1,
-            ),
+            Column::new(Some("t1".to_string()), "a".to_string(), DataType::Int32, 0),
+            Column::new(Some("t1".to_string()), "b".to_string(), DataType::Int32, 1),
         ]);
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),
@@ -314,30 +300,10 @@ mod tests {
         assert_eq!(select_result.len(), 4);
 
         let schema = Schema::new(vec![
-            Column::new(
-                Some("t1".to_string()),
-                "a".to_string(),
-                DataType::Integer,
-                0,
-            ),
-            Column::new(
-                Some("t1".to_string()),
-                "b".to_string(),
-                DataType::Integer,
-                1,
-            ),
-            Column::new(
-                Some("t2".to_string()),
-                "a".to_string(),
-                DataType::Integer,
-                0,
-            ),
-            Column::new(
-                Some("t2".to_string()),
-                "b".to_string(),
-                DataType::Integer,
-                1,
-            ),
+            Column::new(Some("t1".to_string()), "a".to_string(), DataType::Int32, 0),
+            Column::new(Some("t1".to_string()), "b".to_string(), DataType::Int32, 1),
+            Column::new(Some("t2".to_string()), "a".to_string(), DataType::Int32, 0),
+            Column::new(Some("t2".to_string()), "b".to_string(), DataType::Int32, 1),
         ]);
         // 1st row
         assert_eq!(
@@ -428,30 +394,10 @@ mod tests {
         assert_eq!(select_result.len(), 1);
 
         let schema = Schema::new(vec![
-            Column::new(
-                Some("t1".to_string()),
-                "a".to_string(),
-                DataType::Integer,
-                0,
-            ),
-            Column::new(
-                Some("t1".to_string()),
-                "b".to_string(),
-                DataType::Integer,
-                0,
-            ),
-            Column::new(
-                Some("t2".to_string()),
-                "a".to_string(),
-                DataType::Integer,
-                0,
-            ),
-            Column::new(
-                Some("t2".to_string()),
-                "b".to_string(),
-                DataType::Integer,
-                0,
-            ),
+            Column::new(Some("t1".to_string()), "a".to_string(), DataType::Int32, 0),
+            Column::new(Some("t1".to_string()), "b".to_string(), DataType::Int32, 0),
+            Column::new(Some("t2".to_string()), "a".to_string(), DataType::Int32, 0),
+            Column::new(Some("t2".to_string()), "b".to_string(), DataType::Int32, 0),
         ]);
         // 1st row
         assert_eq!(
@@ -486,18 +432,8 @@ mod tests {
         assert_eq!(select_result.len(), 3);
 
         let schema = Schema::new(vec![
-            Column::new(
-                Some("t1".to_string()),
-                "a".to_string(),
-                DataType::Integer,
-                0,
-            ),
-            Column::new(
-                Some("t1".to_string()),
-                "b".to_string(),
-                DataType::Integer,
-                0,
-            ),
+            Column::new(Some("t1".to_string()), "a".to_string(), DataType::Int32, 0),
+            Column::new(Some("t1".to_string()), "b".to_string(), DataType::Int32, 0),
         ]);
 
         // 1st row

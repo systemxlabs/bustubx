@@ -762,9 +762,8 @@ mod tests {
 
     use crate::{
         buffer::buffer_pool,
-        catalog::{column::Column, schema::Schema},
+        catalog::{column::Column, data_type::DataType, schema::Schema},
         common::{config::INVALID_PAGE_ID, rid::Rid},
-        dbtype::data_type::DataType,
         storage::{disk_manager, tuple::Tuple},
     };
 
@@ -776,10 +775,10 @@ mod tests {
             "test_index".to_string(),
             "test_table".to_string(),
             &Schema::new(vec![
-                Column::new(None, "a".to_string(), DataType::TinyInt, 0),
-                Column::new(None, "b".to_string(), DataType::SmallInt, 0),
-                Column::new(None, "c".to_string(), DataType::TinyInt, 0),
-                Column::new(None, "d".to_string(), DataType::SmallInt, 0),
+                Column::new(None, "a".to_string(), DataType::Int8, 0),
+                Column::new(None, "b".to_string(), DataType::Int16, 0),
+                Column::new(None, "c".to_string(), DataType::Int8, 0),
+                Column::new(None, "d".to_string(), DataType::Int16, 0),
             ]),
             vec![1, 3],
         );
@@ -813,8 +812,8 @@ mod tests {
             "test_index".to_string(),
             "test_table".to_string(),
             &Schema::new(vec![
-                Column::new(None, "a".to_string(), DataType::TinyInt, 0),
-                Column::new(None, "b".to_string(), DataType::SmallInt, 0),
+                Column::new(None, "a".to_string(), DataType::Int8, 0),
+                Column::new(None, "b".to_string(), DataType::Int16, 0),
             ]),
             vec![0, 1],
         );
@@ -874,8 +873,8 @@ mod tests {
             "test_index".to_string(),
             "test_table".to_string(),
             &Schema::new(vec![
-                Column::new(None, "a".to_string(), DataType::TinyInt, 0),
-                Column::new(None, "b".to_string(), DataType::SmallInt, 0),
+                Column::new(None, "a".to_string(), DataType::Int8, 0),
+                Column::new(None, "b".to_string(), DataType::Int16, 0),
             ]),
             vec![0, 1],
         );

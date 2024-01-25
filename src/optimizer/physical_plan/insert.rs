@@ -1,8 +1,8 @@
 use std::sync::{atomic::AtomicU32, Arc};
 
 use crate::{
-    catalog::{column::Column, schema::Schema},
-    dbtype::{data_type::DataType, value::Value},
+    catalog::{column::Column, data_type::DataType, schema::Schema},
+    dbtype::value::Value,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::{Tuple, TupleMeta},
 };
@@ -30,7 +30,7 @@ impl PhysicalInsert {
         Schema::new(vec![Column::new(
             None,
             "insert_rows".to_string(),
-            DataType::Integer,
+            DataType::Int32,
             0,
         )])
     }

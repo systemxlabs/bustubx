@@ -37,7 +37,7 @@ mod tests {
     use crate::planner::operator::LogicalOperator;
     use crate::{
         catalog::column::{Column, ColumnFullName},
-        dbtype::data_type::DataType,
+        catalog::data_type::DataType,
         optimizer::heuristic::{batch::HepBatchStrategy, HepOptimizer},
         planner::expr::{column_ref::ColumnRef, Expr},
     };
@@ -48,7 +48,7 @@ mod tests {
         let logical_plan = LogicalPlan {
             operator: LogicalOperator::new_scan_operator(
                 1,
-                vec![Column::new(None, "a".to_string(), DataType::Integer, 0)],
+                vec![Column::new(None, "a".to_string(), DataType::Int32, 0)],
             ),
             children: vec![],
         };

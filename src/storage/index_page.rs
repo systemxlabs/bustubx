@@ -583,9 +583,8 @@ mod tests {
     use std::mem::size_of;
 
     use crate::{
-        catalog::{column::Column, schema::Schema},
+        catalog::{column::Column, data_type::DataType, schema::Schema},
         common::rid::Rid,
-        dbtype::data_type::DataType,
         storage::{
             index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePageType, InternalKV},
             tuple::Tuple,
@@ -595,8 +594,8 @@ mod tests {
     #[test]
     pub fn test_internal_page_from_to_bytes() {
         let key_schema = Schema::new(vec![
-            Column::new(None, "a".to_string(), DataType::TinyInt, 0),
-            Column::new(None, "a".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "a".to_string(), DataType::Int8, 0),
+            Column::new(None, "a".to_string(), DataType::Int16, 0),
         ]);
         let mut ori_page = BPlusTreeInternalPage::new(5);
         ori_page.insert(Tuple::empty(3), 0, &key_schema);
@@ -629,8 +628,8 @@ mod tests {
     #[test]
     pub fn test_leaf_page_from_to_bytes() {
         let key_schema = Schema::new(vec![
-            Column::new(None, "a".to_string(), DataType::TinyInt, 0),
-            Column::new(None, "a".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "a".to_string(), DataType::Int8, 0),
+            Column::new(None, "a".to_string(), DataType::Int16, 0),
         ]);
         let mut ori_page = BPlusTreeLeafPage::new(5);
         ori_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
@@ -652,8 +651,8 @@ mod tests {
     #[test]
     pub fn test_internal_page_insert() {
         let key_schema = Schema::new(vec![
-            Column::new(None, "a".to_string(), DataType::TinyInt, 0),
-            Column::new(None, "b".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "a".to_string(), DataType::Int8, 0),
+            Column::new(None, "b".to_string(), DataType::Int16, 0),
         ]);
         let mut internal_page = BPlusTreeInternalPage::new(3);
         internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
@@ -671,8 +670,8 @@ mod tests {
     #[test]
     pub fn test_leaf_page_insert() {
         let key_schema = Schema::new(vec![
-            Column::new(None, "a".to_string(), DataType::TinyInt, 0),
-            Column::new(None, "b".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "a".to_string(), DataType::Int8, 0),
+            Column::new(None, "b".to_string(), DataType::Int16, 0),
         ]);
         let mut leaf_page = BPlusTreeLeafPage::new(3);
         leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
@@ -690,8 +689,8 @@ mod tests {
     #[test]
     pub fn test_internal_page_look_up() {
         let key_schema = Schema::new(vec![
-            Column::new(None, "a".to_string(), DataType::TinyInt, 0),
-            Column::new(None, "b".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "a".to_string(), DataType::Int8, 0),
+            Column::new(None, "b".to_string(), DataType::Int16, 0),
         ]);
         let mut internal_page = BPlusTreeInternalPage::new(5);
         internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
@@ -734,8 +733,8 @@ mod tests {
     #[test]
     pub fn test_leaf_page_look_up() {
         let key_schema = Schema::new(vec![
-            Column::new(None, "a".to_string(), DataType::TinyInt, 0),
-            Column::new(None, "b".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "a".to_string(), DataType::Int8, 0),
+            Column::new(None, "b".to_string(), DataType::Int16, 0),
         ]);
         let mut leaf_page = BPlusTreeLeafPage::new(5);
         leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
@@ -784,8 +783,8 @@ mod tests {
     #[test]
     pub fn test_internal_page_delete() {
         let key_schema = Schema::new(vec![
-            Column::new(None, "a".to_string(), DataType::TinyInt, 0),
-            Column::new(None, "b".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "a".to_string(), DataType::Int8, 0),
+            Column::new(None, "b".to_string(), DataType::Int16, 0),
         ]);
         let mut internal_page = BPlusTreeInternalPage::new(5);
         internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
@@ -817,8 +816,8 @@ mod tests {
     #[test]
     pub fn test_leaf_page_delete() {
         let key_schema = Schema::new(vec![
-            Column::new(None, "a".to_string(), DataType::TinyInt, 0),
-            Column::new(None, "b".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "a".to_string(), DataType::Int8, 0),
+            Column::new(None, "b".to_string(), DataType::Int16, 0),
         ]);
         let mut leaf_page = BPlusTreeLeafPage::new(5);
         leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
