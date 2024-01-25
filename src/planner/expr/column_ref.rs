@@ -1,15 +1,11 @@
 use crate::common::table_ref::TableReference;
-use crate::{
-    catalog::{column::ColumnFullName, schema::Schema},
-    dbtype::value::Value,
-    storage::tuple::Tuple,
-};
+use crate::{catalog::schema::Schema, dbtype::value::Value, storage::tuple::Tuple};
 
 /// A bound column reference, e.g., `y.x` in the SELECT list.
 #[derive(Debug, Clone)]
 pub struct ColumnRef {
-    // pub relation: Option<TableReference>,
-    pub col_name: ColumnFullName,
+    pub relation: Option<TableReference>,
+    pub col_name: String,
 }
 impl ColumnRef {
     pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> Value {

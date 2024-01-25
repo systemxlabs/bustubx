@@ -1,4 +1,4 @@
-use crate::catalog::{catalog::TableOid, column::ColumnFullName, schema::Schema};
+use crate::catalog::{catalog::TableOid, schema::Schema};
 
 #[derive(Debug, Clone)]
 pub struct BoundBaseTableRef {
@@ -8,11 +8,11 @@ pub struct BoundBaseTableRef {
     pub schema: Schema,
 }
 impl BoundBaseTableRef {
-    pub fn column_names(&self) -> Vec<ColumnFullName> {
+    pub fn column_names(&self) -> Vec<String> {
         self.schema
             .columns
             .iter()
-            .map(|column| column.full_name.clone())
+            .map(|column| column.name.clone())
             .collect()
     }
 }

@@ -1,11 +1,9 @@
 use sqlparser::ast::{JoinConstraint, JoinOperator, Statement, TableFactor, TableWithJoins};
 use std::sync::Arc;
 
+use crate::common::table_ref::TableReference;
 use crate::{
-    catalog::{
-        catalog::{Catalog, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME},
-        column::ColumnFullName,
-    },
+    catalog::catalog::{Catalog, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME},
     planner::expr::{
         binary_op::{BinaryOp, BinaryOperator},
         column_ref::ColumnRef,
@@ -86,7 +84,8 @@ impl<'a> Planner<'a> {
     pub fn bind_column_ref_expr(&self, expr: &sqlparser::ast::Expr) -> ColumnRef {
         match expr {
             sqlparser::ast::Expr::Identifier(ident) => ColumnRef {
-                col_name: ColumnFullName::new(None, ident.value.clone()),
+                relation: None,
+                col_name: ident.value.clone(),
             },
             sqlparser::ast::Expr::CompoundIdentifier(idents) => {
                 if idents.len() == 0 {
@@ -94,14 +93,15 @@ impl<'a> Planner<'a> {
                 }
                 if idents.len() == 1 {
                     ColumnRef {
-                        col_name: ColumnFullName::new(None, idents[0].value.clone()),
+                        relation: None,
+                        col_name: idents[0].value.clone(),
                     }
                 } else {
                     ColumnRef {
-                        col_name: ColumnFullName::new(
-                            Some(idents[0].value.clone()),
-                            idents[1].value.clone(),
-                        ),
+                        relation: Some(TableReference::Bare {
+                            table: idents[0].value.clone(),
+                        }),
+                        col_name: idents[1].value.clone(),
                     }
                 }
             }

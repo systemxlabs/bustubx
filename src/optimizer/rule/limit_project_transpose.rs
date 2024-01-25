@@ -36,7 +36,7 @@ mod tests {
     use crate::planner::logical_plan::LogicalPlan;
     use crate::planner::operator::LogicalOperator;
     use crate::{
-        catalog::column::{Column, ColumnFullName},
+        catalog::column::Column,
         catalog::data_type::DataType,
         optimizer::heuristic::{batch::HepBatchStrategy, HepOptimizer},
         planner::expr::{column_ref::ColumnRef, Expr},
@@ -48,13 +48,14 @@ mod tests {
         let logical_plan = LogicalPlan {
             operator: LogicalOperator::new_scan_operator(
                 1,
-                vec![Column::new(None, "a".to_string(), DataType::Int32, 0)],
+                vec![Column::new("a".to_string(), DataType::Int32, 0)],
             ),
             children: vec![],
         };
         let logical_plan = LogicalPlan {
             operator: LogicalOperator::new_project_operator(vec![Expr::ColumnRef(ColumnRef {
-                col_name: ColumnFullName::new(None, "a".to_string()),
+                relation: None,
+                col_name: "a".to_string(),
             })]),
             children: vec![Arc::new(logical_plan)],
         };

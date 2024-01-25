@@ -1,4 +1,4 @@
-use crate::{catalog::column::ColumnFullName, planner::expr::Expr};
+use crate::planner::expr::Expr;
 
 use super::BoundTableRef;
 
@@ -26,7 +26,7 @@ pub struct BoundJoinRef {
     pub condition: Option<Expr>,
 }
 impl BoundJoinRef {
-    pub fn column_names(&self) -> Vec<ColumnFullName> {
+    pub fn column_names(&self) -> Vec<String> {
         let mut columns = self.left.column_names();
         columns.extend(self.right.column_names());
         columns

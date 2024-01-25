@@ -1,7 +1,6 @@
 use sqlparser::ast::{Ident, ObjectName, Query, SetExpr};
 use std::sync::Arc;
 
-use crate::catalog::column::ColumnFullName;
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 
@@ -25,11 +24,7 @@ impl<'a> Planner<'a> {
                     columns = table_info.schema.columns.clone();
                 } else {
                     for column_ident in columns_ident {
-                        if let Some(column) =
-                            table_info.schema.get_col_by_name(&ColumnFullName::new(
-                                Some(table_info.name.clone()),
-                                column_ident.value.clone(),
-                            ))
+                        if let Some(column) = table_info.schema.get_col_by_name(&column_ident.value)
                         {
                             columns.push(column.clone());
                         } else {
@@ -45,7 +40,7 @@ impl<'a> Planner<'a> {
                 for row in values.rows.iter() {
                     let mut record = Vec::new();
                     for expr in row {
-                        let data_type = columns[record.len()].column_type;
+                        let data_type = columns[record.len()].data_type;
                         if let Expr::Constant(constant) = self.bind_expression(expr) {
                             record.push(constant.value.to_value(data_type));
                         }

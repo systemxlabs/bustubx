@@ -1,5 +1,3 @@
-use crate::catalog::column::ColumnFullName;
-
 use self::{base_table::BoundBaseTableRef, join::BoundJoinRef};
 
 use super::expr::{column_ref::ColumnRef, Expr};
@@ -13,7 +11,7 @@ pub enum BoundTableRef {
     Join(BoundJoinRef),
 }
 impl BoundTableRef {
-    pub fn column_names(&self) -> Vec<ColumnFullName> {
+    pub fn column_names(&self) -> Vec<String> {
         match self {
             BoundTableRef::BaseTable(table_ref) => table_ref.column_names(),
             BoundTableRef::Join(join_ref) => join_ref.column_names(),
@@ -24,6 +22,7 @@ impl BoundTableRef {
             .iter()
             .map(|c| {
                 Expr::ColumnRef(ColumnRef {
+                    relation: None,
                     col_name: c.clone(),
                 })
             })

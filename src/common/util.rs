@@ -8,7 +8,7 @@ pub fn print_tuples(tuples: &Vec<Tuple>, schema: &Schema) {
     }
     let mut headers = Vec::new();
     for column in &schema.columns {
-        headers.push(Cell::new(column.full_name.column.clone()));
+        headers.push(Cell::new(column.name.clone()));
     }
     let mut table = comfy_table::Table::new();
     table.set_header(headers);

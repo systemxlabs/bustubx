@@ -1,6 +1,6 @@
 use crate::catalog::column::Column;
 use crate::{
-    catalog::{column::ColumnFullName, schema::Schema},
+    catalog::schema::Schema,
     common::{config::TransactionId, rid::Rid},
     dbtype::value::Value,
 };
@@ -99,7 +99,7 @@ impl Tuple {
 
         self.get_value_by_col(column)
     }
-    pub fn get_value_by_col_name(&self, schema: &Schema, column_name: &ColumnFullName) -> Value {
+    pub fn get_value_by_col_name(&self, schema: &Schema, column_name: &String) -> Value {
         let column = schema
             .get_col_by_name(column_name)
             .expect("column not found");
@@ -114,7 +114,7 @@ impl Tuple {
         // and get length len from data as the current col row bytes.
         let raw = &self.data[offset..offset + len];
 
-        Value::from_bytes(raw, column.column_type)
+        Value::from_bytes(raw, column.data_type)
     }
 
     // TODO 比较索引key大小
@@ -144,8 +144,8 @@ mod tests {
     #[test]
     pub fn test_compare() {
         let schema = Schema::new(vec![
-            Column::new(None, "a".to_string(), DataType::Int8, 0),
-            Column::new(None, "b".to_string(), DataType::Int16, 0),
+            Column::new("a".to_string(), DataType::Int8, 0),
+            Column::new("b".to_string(), DataType::Int16, 0),
         ]);
         let tuple1 = super::Tuple::new(vec![1u8, 1, 1]);
         let tuple2 = super::Tuple::new(vec![1u8, 1, 1]);

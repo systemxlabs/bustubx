@@ -775,30 +775,20 @@ mod tests {
             "test_index".to_string(),
             "test_table".to_string(),
             &Schema::new(vec![
-                Column::new(None, "a".to_string(), DataType::Int8, 0),
-                Column::new(None, "b".to_string(), DataType::Int16, 0),
-                Column::new(None, "c".to_string(), DataType::Int8, 0),
-                Column::new(None, "d".to_string(), DataType::Int16, 0),
+                Column::new("a".to_string(), DataType::Int8, 0),
+                Column::new("b".to_string(), DataType::Int16, 0),
+                Column::new("c".to_string(), DataType::Int8, 0),
+                Column::new("d".to_string(), DataType::Int16, 0),
             ]),
             vec![1, 3],
         );
         assert_eq!(index_metadata.key_schema.column_count(), 2);
         assert_eq!(
-            index_metadata
-                .key_schema
-                .get_col_by_index(0)
-                .unwrap()
-                .full_name
-                .column,
+            index_metadata.key_schema.get_col_by_index(0).unwrap().name,
             "b"
         );
         assert_eq!(
-            index_metadata
-                .key_schema
-                .get_col_by_index(1)
-                .unwrap()
-                .full_name
-                .column,
+            index_metadata.key_schema.get_col_by_index(1).unwrap().name,
             "d"
         );
     }
@@ -812,8 +802,8 @@ mod tests {
             "test_index".to_string(),
             "test_table".to_string(),
             &Schema::new(vec![
-                Column::new(None, "a".to_string(), DataType::Int8, 0),
-                Column::new(None, "b".to_string(), DataType::Int16, 0),
+                Column::new("a".to_string(), DataType::Int8, 0),
+                Column::new("b".to_string(), DataType::Int16, 0),
             ]),
             vec![0, 1],
         );
@@ -873,8 +863,8 @@ mod tests {
             "test_index".to_string(),
             "test_table".to_string(),
             &Schema::new(vec![
-                Column::new(None, "a".to_string(), DataType::Int8, 0),
-                Column::new(None, "b".to_string(), DataType::Int16, 0),
+                Column::new("a".to_string(), DataType::Int8, 0),
+                Column::new("b".to_string(), DataType::Int16, 0),
             ]),
             vec![0, 1],
         );

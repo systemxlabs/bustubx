@@ -28,7 +28,6 @@ impl PhysicalInsert {
     }
     pub fn output_schema(&self) -> Schema {
         Schema::new(vec![Column::new(
-            None,
             "insert_rows".to_string(),
             DataType::Int32,
             0,

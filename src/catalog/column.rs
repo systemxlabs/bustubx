@@ -2,19 +2,11 @@ use sqlparser::ast::ColumnDef;
 
 use crate::catalog::data_type::DataType;
 
-#[derive(derive_new::new, Debug, Clone, PartialEq, Eq)]
-pub struct ColumnFullName {
-    // table name or table alias
-    pub table: Option<String>,
-    // column name or column alias
-    pub column: String,
-}
-
 // 列定义
 #[derive(Debug, Clone)]
 pub struct Column {
-    pub full_name: ColumnFullName,
-    pub column_type: DataType,
+    pub name: String,
+    pub data_type: DataType,
     // 内联列则为固定列的大小，否则为指针大小
     pub fixed_len: usize,
     // 内联列则为0，否则为变长列的大小
@@ -24,24 +16,19 @@ pub struct Column {
 }
 
 impl Column {
-    pub fn new(
-        table_name: Option<String>,
-        column_name: String,
-        column_type: DataType,
-        variable_len: usize,
-    ) -> Self {
+    pub fn new(name: String, data_type: DataType, variable_len: usize) -> Self {
         Self {
-            full_name: ColumnFullName::new(table_name, column_name),
-            column_type,
-            fixed_len: column_type.type_size(),
+            name,
+            data_type,
+            fixed_len: data_type.type_size(),
             variable_len,
             column_offset: 0,
         }
     }
 
-    pub fn from_sqlparser_column(table_name: Option<String>, column_def: &ColumnDef) -> Self {
+    pub fn from_sqlparser_column(column_def: &ColumnDef) -> Self {
         let column_name = column_def.name.to_string();
         let column_type: DataType = (&column_def.data_type).try_into().unwrap();
-        Self::new(table_name, column_name, column_type, 0)
+        Self::new(column_name, column_type, 0)
     }
 }

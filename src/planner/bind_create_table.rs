@@ -16,7 +16,7 @@ impl<'a> Planner<'a> {
         let table_name = name.to_string();
         let columns = column_defs
             .iter()
-            .map(|c| Column::from_sqlparser_column(Some(table_name.clone()), c))
+            .map(|c| Column::from_sqlparser_column(c))
             .collect();
         let schema = Schema::new(columns);
         LogicalPlan {
