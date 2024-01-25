@@ -1,6 +1,6 @@
 use sqlparser::ast::ColumnDef;
 
-use crate::dbtype::data_type::DataType;
+use crate::catalog::data_type::DataType;
 
 #[derive(derive_new::new, Debug, Clone, PartialEq, Eq)]
 pub struct ColumnFullName {
@@ -41,11 +41,7 @@ impl Column {
 
     pub fn from_sqlparser_column(table_name: Option<String>, column_def: &ColumnDef) -> Self {
         let column_name = column_def.name.to_string();
-        let column_type = DataType::from_sqlparser_data_type(&column_def.data_type);
+        let column_type: DataType = (&column_def.data_type).try_into().unwrap();
         Self::new(table_name, column_name, column_type, 0)
-    }
-
-    pub fn is_inlined(&self) -> bool {
-        self.column_type != DataType::Varchar
     }
 }

@@ -13,6 +13,7 @@ mod catalog;
 mod common;
 mod database;
 mod dbtype;
+mod error;
 mod execution;
 mod optimizer;
 mod parser;

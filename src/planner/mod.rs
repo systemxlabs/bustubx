@@ -26,14 +26,15 @@ use self::{
     },
 };
 
-pub mod bind_create_index;
 pub mod bind_create_table;
 pub mod bind_insert;
 pub mod bind_select;
 pub mod expr;
 pub mod logical_plan;
+pub mod logical_plan_v2;
 pub mod operator;
 pub mod order_by;
+pub mod plan_create_index;
 pub mod table_ref;
 
 pub struct PlannerContext<'a> {

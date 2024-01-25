@@ -1,6 +1,6 @@
 use std::fmt::Formatter;
 
-use crate::dbtype::data_type::DataType;
+use crate::catalog::data_type::DataType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
@@ -16,12 +16,12 @@ impl Value {
     pub fn from_bytes(bytes: &[u8], data_type: DataType) -> Self {
         match data_type {
             DataType::Boolean => Self::Boolean(Self::boolean_from_bytes(bytes)),
-            DataType::TinyInt => Self::TinyInt(i8::from_be_bytes([bytes[0]])),
-            DataType::SmallInt => Self::SmallInt(i16::from_be_bytes([bytes[0], bytes[1]])),
-            DataType::Integer => {
+            DataType::Int8 => Self::TinyInt(i8::from_be_bytes([bytes[0]])),
+            DataType::Int16 => Self::SmallInt(i16::from_be_bytes([bytes[0], bytes[1]])),
+            DataType::Int32 => {
                 Self::Integer(i32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]))
             }
-            DataType::BigInt => Self::BigInt(i64::from_be_bytes([
+            DataType::Int64 => Self::BigInt(i64::from_be_bytes([
                 bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
             ])),
             _ => panic!("Not implemented"),
@@ -41,10 +41,10 @@ impl Value {
     pub fn from_sqlparser_value(value: &sqlparser::ast::Value, data_type: DataType) -> Self {
         match value {
             sqlparser::ast::Value::Number(v, _) => match data_type {
-                DataType::TinyInt => Self::TinyInt(v.parse::<i8>().unwrap()),
-                DataType::SmallInt => Self::SmallInt(v.parse::<i16>().unwrap()),
-                DataType::Integer => Self::Integer(v.parse::<i32>().unwrap()),
-                DataType::BigInt => Self::BigInt(v.parse::<i64>().unwrap()),
+                DataType::Int8 => Self::TinyInt(v.parse::<i8>().unwrap()),
+                DataType::Int16 => Self::SmallInt(v.parse::<i16>().unwrap()),
+                DataType::Int32 => Self::Integer(v.parse::<i32>().unwrap()),
+                DataType::Int64 => Self::BigInt(v.parse::<i64>().unwrap()),
                 _ => panic!("Not implemented"),
             },
             // sqlparser::ast::Value::SingleQuotedString(_) => {}

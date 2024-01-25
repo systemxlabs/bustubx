@@ -58,10 +58,6 @@ impl Schema {
         })
     }
 
-    pub fn is_inlined(&self) -> bool {
-        self.columns.iter().all(|c| c.is_inlined())
-    }
-
     pub fn fixed_len(&self) -> usize {
         self.columns.iter().map(|c| c.fixed_len).sum()
     }

@@ -139,18 +139,13 @@ impl Tuple {
 }
 
 mod tests {
-    use crate::storage::tuple::TupleMeta;
-    use crate::{
-        catalog::{column::Column, schema::Schema},
-        dbtype::data_type::DataType,
-    };
-    use std::mem;
+    use crate::catalog::{column::Column, data_type::DataType, schema::Schema};
 
     #[test]
     pub fn test_compare() {
         let schema = Schema::new(vec![
-            Column::new(None, "a".to_string(), DataType::TinyInt, 0),
-            Column::new(None, "b".to_string(), DataType::SmallInt, 0),
+            Column::new(None, "a".to_string(), DataType::Int8, 0),
+            Column::new(None, "b".to_string(), DataType::Int16, 0),
         ]);
         let tuple1 = super::Tuple::new(vec![1u8, 1, 1]);
         let tuple2 = super::Tuple::new(vec![1u8, 1, 1]);

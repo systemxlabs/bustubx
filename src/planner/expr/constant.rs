@@ -1,4 +1,5 @@
-use crate::{dbtype::data_type::DataType, dbtype::value::Value};
+use crate::catalog::data_type::DataType;
+use crate::dbtype::value::Value;
 
 #[derive(Debug, Clone)]
 pub enum Constant {
@@ -22,10 +23,10 @@ impl Constant {
     pub fn to_value(&self, data_type: DataType) -> Value {
         match self {
             Constant::Number(n) => match data_type {
-                DataType::TinyInt => Value::TinyInt(n.parse::<i8>().unwrap()),
-                DataType::SmallInt => Value::SmallInt(n.parse::<i16>().unwrap()),
-                DataType::Integer => Value::Integer(n.parse::<i32>().unwrap()),
-                DataType::BigInt => Value::BigInt(n.parse::<i64>().unwrap()),
+                DataType::Int8 => Value::TinyInt(n.parse::<i8>().unwrap()),
+                DataType::Int16 => Value::SmallInt(n.parse::<i16>().unwrap()),
+                DataType::Int32 => Value::Integer(n.parse::<i32>().unwrap()),
+                DataType::Int64 => Value::BigInt(n.parse::<i64>().unwrap()),
                 _ => unimplemented!(),
             },
             Constant::Boolean(b) => Value::Boolean(*b),
