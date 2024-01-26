@@ -4,7 +4,7 @@ use sqlparser::keywords::NO;
 
 use crate::{
     catalog::schema::Schema,
-    dbtype::value::Value,
+    common::scalar::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     planner::{expr::Expr, table_ref::join::JoinType},
     storage::tuple::Tuple,
@@ -85,7 +85,7 @@ impl VolcanoExecutor for PhysicalNestedLoopJoin {
                         &self.right_input.output_schema(),
                     );
                     // TODO support left/right join after null support added
-                    if let Value::Boolean(v) = evaluate_res {
+                    if let ScalarValue::Boolean(v) = evaluate_res {
                         if v {
                             // save latest left_next_result before return
                             *self.left_tuple.lock().unwrap() = Some(left_tuple.clone());

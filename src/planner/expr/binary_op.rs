@@ -1,4 +1,4 @@
-use crate::{catalog::schema::Schema, dbtype::value::Value, storage::tuple::Tuple};
+use crate::{catalog::schema::Schema, common::scalar::ScalarValue, storage::tuple::Tuple};
 
 use super::Expr;
 
@@ -45,7 +45,7 @@ pub struct BinaryOp {
     pub rarg: Box<Expr>,
 }
 impl BinaryOp {
-    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> Value {
+    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> ScalarValue {
         let l = self.larg.evaluate(tuple, schema);
         let r = self.rarg.evaluate(tuple, schema);
         match self.op {
@@ -55,31 +55,31 @@ impl BinaryOp {
             // BinaryOperator::Divide => l / r,
             BinaryOperator::Gt => {
                 let order = l.compare(&r);
-                Value::Boolean(order == std::cmp::Ordering::Greater)
+                ScalarValue::Boolean(order == std::cmp::Ordering::Greater)
             }
             BinaryOperator::Lt => {
                 let order = l.compare(&r);
-                Value::Boolean(order == std::cmp::Ordering::Less)
+                ScalarValue::Boolean(order == std::cmp::Ordering::Less)
             }
             BinaryOperator::GtEq => {
                 let order = l.compare(&r);
-                Value::Boolean(
+                ScalarValue::Boolean(
                     order == std::cmp::Ordering::Greater || order == std::cmp::Ordering::Equal,
                 )
             }
             BinaryOperator::LtEq => {
                 let order = l.compare(&r);
-                Value::Boolean(
+                ScalarValue::Boolean(
                     order == std::cmp::Ordering::Less || order == std::cmp::Ordering::Equal,
                 )
             }
             BinaryOperator::Eq => {
                 let order = l.compare(&r);
-                Value::Boolean(order == std::cmp::Ordering::Equal)
+                ScalarValue::Boolean(order == std::cmp::Ordering::Equal)
             }
             BinaryOperator::NotEq => {
                 let order = l.compare(&r);
-                Value::Boolean(order != std::cmp::Ordering::Equal)
+                ScalarValue::Boolean(order != std::cmp::Ordering::Equal)
             }
             // BinaryOperator::And => l && r,
             // BinaryOperator::Or => l || r,

@@ -4,7 +4,7 @@ use crate::{
         column::Column,
         schema::{self, Schema},
     },
-    dbtype::value::Value,
+    common::scalar::ScalarValue,
     planner::{
         expr::{column_ref::ColumnRef, Expr},
         order_by::BoundOrderBy,
@@ -65,7 +65,10 @@ impl LogicalOperator {
     pub fn new_insert_operator(table_name: String, columns: Vec<Column>) -> LogicalOperator {
         LogicalOperator::Insert(LogicalInsertOperator::new(table_name, columns))
     }
-    pub fn new_values_operator(columns: Vec<Column>, tuples: Vec<Vec<Value>>) -> LogicalOperator {
+    pub fn new_values_operator(
+        columns: Vec<Column>,
+        tuples: Vec<Vec<ScalarValue>>,
+    ) -> LogicalOperator {
         LogicalOperator::Values(LogicalValuesOperator::new(columns, tuples))
     }
     pub fn new_scan_operator(table_oid: TableOid, columns: Vec<Column>) -> LogicalOperator {

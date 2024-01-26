@@ -1,4 +1,4 @@
-use crate::{catalog::schema::Schema, dbtype::value::Value, storage::tuple::Tuple};
+use crate::{catalog::schema::Schema, common::scalar::ScalarValue, storage::tuple::Tuple};
 
 use super::Expr;
 
@@ -9,7 +9,7 @@ pub struct Alias {
     pub expr: Box<Expr>,
 }
 impl Alias {
-    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> Value {
+    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> ScalarValue {
         self.expr.evaluate(tuple, schema)
     }
 }

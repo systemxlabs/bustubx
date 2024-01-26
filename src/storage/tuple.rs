@@ -1,8 +1,8 @@
 use crate::catalog::column::Column;
 use crate::{
     catalog::schema::Schema,
+    common::scalar::ScalarValue,
     common::{config::TransactionId, rid::Rid},
-    dbtype::value::Value,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,7 +42,7 @@ impl Tuple {
         }
     }
 
-    pub fn from_values(values: Vec<Value>) -> Self {
+    pub fn from_values(values: Vec<ScalarValue>) -> Self {
         let mut data = vec![];
         for value in values {
             data.extend(value.to_bytes());
@@ -84,7 +84,7 @@ impl Tuple {
         self.data.clone()
     }
 
-    pub fn all_values(&self, schema: &Schema) -> Vec<Value> {
+    pub fn all_values(&self, schema: &Schema) -> Vec<ScalarValue> {
         let mut values = vec![];
         for column in &schema.columns {
             values.push(self.get_value_by_col(column));
@@ -92,14 +92,14 @@ impl Tuple {
         values
     }
 
-    pub fn get_value_by_col_id(&self, schema: &Schema, column_index: usize) -> Value {
+    pub fn get_value_by_col_id(&self, schema: &Schema, column_index: usize) -> ScalarValue {
         let column = schema
             .get_col_by_index(column_index)
             .expect("column not found");
 
         self.get_value_by_col(column)
     }
-    pub fn get_value_by_col_name(&self, schema: &Schema, column_name: &String) -> Value {
+    pub fn get_value_by_col_name(&self, schema: &Schema, column_name: &String) -> ScalarValue {
         let column = schema
             .get_col_by_name(column_name)
             .expect("column not found");
@@ -107,14 +107,14 @@ impl Tuple {
         self.get_value_by_col(column)
     }
 
-    pub fn get_value_by_col(&self, column: &Column) -> Value {
+    pub fn get_value_by_col(&self, column: &Column) -> ScalarValue {
         let offset = column.column_offset;
         let len = column.fixed_len;
         // Intercept the byte sequence starting from offset,
         // and get length len from data as the current col row bytes.
         let raw = &self.data[offset..offset + len];
 
-        Value::from_bytes(raw, column.data_type)
+        ScalarValue::from_bytes(raw, column.data_type)
     }
 
     // TODO 比较索引key大小

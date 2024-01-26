@@ -1,6 +1,6 @@
 use crate::{
     catalog::schema::{self, Schema},
-    dbtype::value::Value,
+    common::scalar::ScalarValue,
     storage::tuple::Tuple,
 };
 
@@ -19,7 +19,7 @@ pub enum Expr {
     BinaryOp(BinaryOp),
 }
 impl Expr {
-    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> Value {
+    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> ScalarValue {
         match self {
             Expr::Constant(c) => c.evaluate(),
             Expr::ColumnRef(c) => c.evaluate(tuple, schema),
@@ -35,7 +35,7 @@ impl Expr {
         left_schema: &Schema,
         right_tuple: &Tuple,
         right_schema: &Schema,
-    ) -> Value {
+    ) -> ScalarValue {
         // combine left and right tuple, left and right schema
         let tuple = Tuple::from_tuples(vec![
             (left_tuple.clone(), left_schema.clone()),

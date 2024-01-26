@@ -2,7 +2,7 @@ use std::sync::atomic::AtomicU32;
 
 use crate::{
     catalog::{column::Column, schema::Schema},
-    dbtype::value::Value,
+    common::scalar::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::Tuple,
 };
@@ -10,12 +10,12 @@ use crate::{
 #[derive(Debug)]
 pub struct PhysicalValues {
     pub columns: Vec<Column>,
-    pub tuples: Vec<Vec<Value>>,
+    pub tuples: Vec<Vec<ScalarValue>>,
 
     cursor: AtomicU32,
 }
 impl PhysicalValues {
-    pub fn new(columns: Vec<Column>, tuples: Vec<Vec<Value>>) -> Self {
+    pub fn new(columns: Vec<Column>, tuples: Vec<Vec<ScalarValue>>) -> Self {
         PhysicalValues {
             columns,
             tuples,

@@ -1,5 +1,5 @@
 use crate::common::table_ref::TableReference;
-use crate::{catalog::schema::Schema, dbtype::value::Value, storage::tuple::Tuple};
+use crate::{catalog::schema::Schema, common::scalar::ScalarValue, storage::tuple::Tuple};
 
 /// A bound column reference, e.g., `y.x` in the SELECT list.
 #[derive(Debug, Clone)]
@@ -8,7 +8,7 @@ pub struct ColumnRef {
     pub col_name: String,
 }
 impl ColumnRef {
-    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> Value {
+    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> ScalarValue {
         if tuple.is_none() || schema.is_none() {
             panic!("tuple or schema is none")
         }

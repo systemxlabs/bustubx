@@ -2,7 +2,7 @@ use std::sync::{atomic::AtomicU32, Arc};
 
 use crate::{
     catalog::{column::Column, data_type::DataType, schema::Schema},
-    dbtype::value::Value,
+    common::scalar::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::{Tuple, TupleMeta},
 };
@@ -52,7 +52,9 @@ impl VolcanoExecutor for PhysicalInsert {
                     let insert_rows = self.insert_rows.load(std::sync::atomic::Ordering::SeqCst);
                     self.insert_rows
                         .store(0, std::sync::atomic::Ordering::SeqCst);
-                    return Some(Tuple::from_values(vec![Value::Integer(insert_rows as i32)]));
+                    return Some(Tuple::from_values(vec![ScalarValue::Int32(
+                        insert_rows as i32,
+                    )]));
                 }
             }
 

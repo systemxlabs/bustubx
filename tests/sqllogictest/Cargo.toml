@@ -1,0 +1,12 @@
+[package]
+name = "sqllogictest"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sqllogictest = "0.13.0"
+tempfile = "3"
+bustubx = { path = "../.."}
+async-trait = "0.1.77"

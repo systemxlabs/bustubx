@@ -1,10 +1,10 @@
 use crate::{
     catalog::{column::Column, schema::Schema},
-    dbtype::value::Value,
+    common::scalar::ScalarValue,
 };
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct LogicalValuesOperator {
     pub columns: Vec<Column>,
-    pub tuples: Vec<Vec<Value>>,
+    pub tuples: Vec<Vec<ScalarValue>>,
 }

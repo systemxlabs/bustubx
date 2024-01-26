@@ -1,5 +1,5 @@
 use crate::catalog::data_type::DataType;
-use crate::dbtype::value::Value;
+use crate::common::scalar::ScalarValue;
 
 #[derive(Debug, Clone)]
 pub enum Constant {
@@ -20,16 +20,16 @@ impl Constant {
             _ => unimplemented!(),
         }
     }
-    pub fn to_value(&self, data_type: DataType) -> Value {
+    pub fn to_value(&self, data_type: DataType) -> ScalarValue {
         match self {
             Constant::Number(n) => match data_type {
-                DataType::Int8 => Value::TinyInt(n.parse::<i8>().unwrap()),
-                DataType::Int16 => Value::SmallInt(n.parse::<i16>().unwrap()),
-                DataType::Int32 => Value::Integer(n.parse::<i32>().unwrap()),
-                DataType::Int64 => Value::BigInt(n.parse::<i64>().unwrap()),
+                DataType::Int8 => ScalarValue::Int8(n.parse::<i8>().unwrap()),
+                DataType::Int16 => ScalarValue::Int16(n.parse::<i16>().unwrap()),
+                DataType::Int32 => ScalarValue::Int32(n.parse::<i32>().unwrap()),
+                DataType::Int64 => ScalarValue::Int64(n.parse::<i64>().unwrap()),
                 _ => unimplemented!(),
             },
-            Constant::Boolean(b) => Value::Boolean(*b),
+            Constant::Boolean(b) => ScalarValue::Boolean(*b),
             _ => unimplemented!(),
         }
     }
@@ -41,10 +41,10 @@ pub struct BoundConstant {
     pub value: Constant,
 }
 impl BoundConstant {
-    pub fn evaluate(&self) -> Value {
+    pub fn evaluate(&self) -> ScalarValue {
         match &self.value {
-            Constant::Number(n) => Value::Integer(n.parse::<i32>().unwrap()),
-            Constant::Boolean(b) => Value::Boolean(*b),
+            Constant::Number(n) => ScalarValue::Int32(n.parse::<i32>().unwrap()),
+            Constant::Boolean(b) => ScalarValue::Boolean(*b),
             _ => unimplemented!(),
         }
     }
