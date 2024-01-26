@@ -16,7 +16,7 @@ pub fn print_tuples(tuples: &Vec<Tuple>, schema: &Schema) {
     for tuple in tuples {
         let mut row = Vec::new();
         tuple.all_values(schema).iter().for_each(|v| {
-            row.push(Cell::new(format!("{v}")));
+            row.push(Cell::new(format!("{v:?}")));
         });
         table.add_row(row);
     }

@@ -55,31 +55,31 @@ impl BinaryOp {
             // BinaryOperator::Divide => l / r,
             BinaryOperator::Gt => {
                 let order = l.compare(&r);
-                ScalarValue::Boolean(order == std::cmp::Ordering::Greater)
+                ScalarValue::Boolean(Some(order == std::cmp::Ordering::Greater))
             }
             BinaryOperator::Lt => {
                 let order = l.compare(&r);
-                ScalarValue::Boolean(order == std::cmp::Ordering::Less)
+                ScalarValue::Boolean(Some(order == std::cmp::Ordering::Less))
             }
             BinaryOperator::GtEq => {
                 let order = l.compare(&r);
-                ScalarValue::Boolean(
+                ScalarValue::Boolean(Some(
                     order == std::cmp::Ordering::Greater || order == std::cmp::Ordering::Equal,
-                )
+                ))
             }
             BinaryOperator::LtEq => {
                 let order = l.compare(&r);
-                ScalarValue::Boolean(
+                ScalarValue::Boolean(Some(
                     order == std::cmp::Ordering::Less || order == std::cmp::Ordering::Equal,
-                )
+                ))
             }
             BinaryOperator::Eq => {
                 let order = l.compare(&r);
-                ScalarValue::Boolean(order == std::cmp::Ordering::Equal)
+                ScalarValue::Boolean(Some(order == std::cmp::Ordering::Equal))
             }
             BinaryOperator::NotEq => {
                 let order = l.compare(&r);
-                ScalarValue::Boolean(order != std::cmp::Ordering::Equal)
+                ScalarValue::Boolean(Some(order != std::cmp::Ordering::Equal))
             }
             // BinaryOperator::And => l && r,
             // BinaryOperator::Or => l || r,

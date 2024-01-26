@@ -23,13 +23,13 @@ impl Constant {
     pub fn to_value(&self, data_type: DataType) -> ScalarValue {
         match self {
             Constant::Number(n) => match data_type {
-                DataType::Int8 => ScalarValue::Int8(n.parse::<i8>().unwrap()),
-                DataType::Int16 => ScalarValue::Int16(n.parse::<i16>().unwrap()),
-                DataType::Int32 => ScalarValue::Int32(n.parse::<i32>().unwrap()),
-                DataType::Int64 => ScalarValue::Int64(n.parse::<i64>().unwrap()),
+                DataType::Int8 => ScalarValue::Int8(Some(n.parse::<i8>().unwrap())),
+                DataType::Int16 => ScalarValue::Int16(Some(n.parse::<i16>().unwrap())),
+                DataType::Int32 => ScalarValue::Int32(Some(n.parse::<i32>().unwrap())),
+                DataType::Int64 => ScalarValue::Int64(Some(n.parse::<i64>().unwrap())),
                 _ => unimplemented!(),
             },
-            Constant::Boolean(b) => ScalarValue::Boolean(*b),
+            Constant::Boolean(b) => ScalarValue::Boolean(Some(*b)),
             _ => unimplemented!(),
         }
     }
@@ -43,8 +43,8 @@ pub struct BoundConstant {
 impl BoundConstant {
     pub fn evaluate(&self) -> ScalarValue {
         match &self.value {
-            Constant::Number(n) => ScalarValue::Int32(n.parse::<i32>().unwrap()),
-            Constant::Boolean(b) => ScalarValue::Boolean(*b),
+            Constant::Number(n) => ScalarValue::Int32(Some(n.parse::<i32>().unwrap())),
+            Constant::Boolean(b) => ScalarValue::Boolean(Some(*b)),
             _ => unimplemented!(),
         }
     }

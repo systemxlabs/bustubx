@@ -166,7 +166,7 @@ mod tests {
             0,
         )]);
         let insert_rows = insert_rows[0].get_value_by_col_id(&schema, 0);
-        assert_eq!(insert_rows, ScalarValue::Int32(3));
+        assert_eq!(insert_rows, ScalarValue::Int32(Some(3)));
 
         let _ = std::fs::remove_file(db_path);
     }
@@ -193,27 +193,27 @@ mod tests {
         ]);
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),
-            ScalarValue::Int32(1)
+            ScalarValue::Int32(Some(1))
         );
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 1),
-            ScalarValue::Int64(1)
+            ScalarValue::Int64(Some(1))
         );
         assert_eq!(
             select_result[1].get_value_by_col_id(&schema, 0),
-            ScalarValue::Int32(2)
+            ScalarValue::Int32(Some(2))
         );
         assert_eq!(
             select_result[1].get_value_by_col_id(&schema, 1),
-            ScalarValue::Int64(3)
+            ScalarValue::Int64(Some(3))
         );
         assert_eq!(
             select_result[2].get_value_by_col_id(&schema, 0),
-            ScalarValue::Int32(5)
+            ScalarValue::Int32(Some(5))
         );
         assert_eq!(
             select_result[2].get_value_by_col_id(&schema, 1),
-            ScalarValue::Int64(4)
+            ScalarValue::Int64(Some(4))
         );
 
         let _ = std::fs::remove_file(db_path);
@@ -233,11 +233,11 @@ mod tests {
         let schema = Schema::new(vec![Column::new("a".to_string(), DataType::Int32, 0)]);
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),
-            ScalarValue::Int32(1)
+            ScalarValue::Int32(Some(1))
         );
         assert_eq!(
             select_result[1].get_value_by_col_id(&schema, 0),
-            ScalarValue::Int32(2)
+            ScalarValue::Int32(Some(2))
         );
 
         let _ = std::fs::remove_file(db_path);
@@ -260,11 +260,11 @@ mod tests {
         ]);
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),
-            ScalarValue::Int32(2)
+            ScalarValue::Int32(Some(2))
         );
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 1),
-            ScalarValue::Int32(3)
+            ScalarValue::Int32(Some(3))
         );
 
         let _ = std::fs::remove_file(db_path);
@@ -424,31 +424,31 @@ mod tests {
         // 1st row
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),
-            ScalarValue::Int32(1)
+            ScalarValue::Int32(Some(1))
         );
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 1),
-            ScalarValue::Int32(4)
+            ScalarValue::Int32(Some(4))
         );
 
         // 2nd row
         assert_eq!(
             select_result[1].get_value_by_col_id(&schema, 0),
-            ScalarValue::Int32(1)
+            ScalarValue::Int32(Some(1))
         );
         assert_eq!(
             select_result[1].get_value_by_col_id(&schema, 1),
-            ScalarValue::Int32(2)
+            ScalarValue::Int32(Some(2))
         );
 
         // 3th row
         assert_eq!(
             select_result[2].get_value_by_col_id(&schema, 0),
-            ScalarValue::Int32(5)
+            ScalarValue::Int32(Some(5))
         );
         assert_eq!(
             select_result[2].get_value_by_col_id(&schema, 1),
-            ScalarValue::Int32(6)
+            ScalarValue::Int32(Some(6))
         );
 
         let _ = std::fs::remove_file(db_path);

@@ -52,9 +52,9 @@ impl VolcanoExecutor for PhysicalInsert {
                     let insert_rows = self.insert_rows.load(std::sync::atomic::Ordering::SeqCst);
                     self.insert_rows
                         .store(0, std::sync::atomic::Ordering::SeqCst);
-                    return Some(Tuple::from_values(vec![ScalarValue::Int32(
+                    return Some(Tuple::from_values(vec![ScalarValue::Int32(Some(
                         insert_rows as i32,
-                    )]));
+                    ))]));
                 }
             }
 
