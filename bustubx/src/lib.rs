@@ -2,7 +2,7 @@ mod buffer;
 mod catalog;
 mod common;
 pub mod database;
-mod error;
+pub mod error;
 mod execution;
 mod expression;
 mod optimizer;

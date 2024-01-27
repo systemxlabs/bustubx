@@ -1,5 +1,6 @@
 use bustubx::database::Database;
-use sqllogictest::DBOutput;
+use bustubx::error::BustubxError;
+use sqllogictest::{DBOutput, DefaultColumnType};
 use tempfile::TempDir;
 
 pub struct Bustubx {
@@ -17,8 +18,8 @@ impl Bustubx {
 
 #[async_trait::async_trait]
 impl sqllogictest::AsyncDB for &Bustubx {
-    type Error = ();
-    type ColumnType = ();
+    type Error = BustubxError;
+    type ColumnType = DefaultColumnType;
 
     async fn run(&mut self, sql: &str) -> Result<DBOutput<Self::ColumnType>, Self::Error> {
         todo!()
