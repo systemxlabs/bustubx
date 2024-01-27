@@ -122,6 +122,7 @@ impl DiskManager {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use std::io::{Read, Seek, Write};
 

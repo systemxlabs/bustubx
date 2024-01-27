@@ -48,7 +48,7 @@ mod tests {
         let logical_plan = LogicalPlan {
             operator: LogicalOperator::new_scan_operator(
                 1,
-                vec![Column::new("a".to_string(), DataType::Int32, 0)],
+                vec![Column::new("a".to_string(), DataType::Int32)],
             ),
             children: vec![],
         };

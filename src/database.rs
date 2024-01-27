@@ -163,7 +163,6 @@ mod tests {
         let schema = Schema::new(vec![Column::new(
             "insert_rows".to_string(),
             DataType::Int32,
-            0,
         )]);
         let insert_rows = insert_rows[0].get_value_by_col_id(&schema, 0);
         assert_eq!(insert_rows, ScalarValue::Int32(Some(3)));
@@ -188,8 +187,8 @@ mod tests {
         assert_eq!(select_result.len(), 3);
 
         let schema = Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int32, 0),
-            Column::new("b".to_string(), DataType::Int64, 1),
+            Column::new("a".to_string(), DataType::Int32),
+            Column::new("b".to_string(), DataType::Int64),
         ]);
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),
@@ -230,7 +229,7 @@ mod tests {
         let select_result = db.run(&"select a from t1 where a <= b".to_string());
         assert_eq!(select_result.len(), 2);
 
-        let schema = Schema::new(vec![Column::new("a".to_string(), DataType::Int32, 0)]);
+        let schema = Schema::new(vec![Column::new("a".to_string(), DataType::Int32)]);
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),
             ScalarValue::Int32(Some(1))
@@ -255,8 +254,8 @@ mod tests {
         assert_eq!(select_result.len(), 1);
 
         let schema = Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int32, 0),
-            Column::new("b".to_string(), DataType::Int32, 1),
+            Column::new("a".to_string(), DataType::Int32),
+            Column::new("b".to_string(), DataType::Int32),
         ]);
         assert_eq!(
             select_result[0].get_value_by_col_id(&schema, 0),
@@ -417,8 +416,8 @@ mod tests {
         assert_eq!(select_result.len(), 3);
 
         let schema = Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int32, 0),
-            Column::new("b".to_string(), DataType::Int32, 0),
+            Column::new("a".to_string(), DataType::Int32),
+            Column::new("b".to_string(), DataType::Int32),
         ]);
 
         // 1st row

@@ -757,6 +757,7 @@ impl BPlusTreeIndex {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use std::{fs::remove_file, sync::Arc};
 
@@ -775,10 +776,10 @@ mod tests {
             "test_index".to_string(),
             "test_table".to_string(),
             &Schema::new(vec![
-                Column::new("a".to_string(), DataType::Int8, 0),
-                Column::new("b".to_string(), DataType::Int16, 0),
-                Column::new("c".to_string(), DataType::Int8, 0),
-                Column::new("d".to_string(), DataType::Int16, 0),
+                Column::new("a".to_string(), DataType::Int8),
+                Column::new("b".to_string(), DataType::Int16),
+                Column::new("c".to_string(), DataType::Int8),
+                Column::new("d".to_string(), DataType::Int16),
             ]),
             vec![1, 3],
         );
@@ -802,8 +803,8 @@ mod tests {
             "test_index".to_string(),
             "test_table".to_string(),
             &Schema::new(vec![
-                Column::new("a".to_string(), DataType::Int8, 0),
-                Column::new("b".to_string(), DataType::Int16, 0),
+                Column::new("a".to_string(), DataType::Int8),
+                Column::new("b".to_string(), DataType::Int16),
             ]),
             vec![0, 1],
         );
@@ -863,8 +864,8 @@ mod tests {
             "test_index".to_string(),
             "test_table".to_string(),
             &Schema::new(vec![
-                Column::new("a".to_string(), DataType::Int8, 0),
-                Column::new("b".to_string(), DataType::Int16, 0),
+                Column::new("a".to_string(), DataType::Int8),
+                Column::new("b".to_string(), DataType::Int16),
             ]),
             vec![0, 1],
         );

@@ -178,6 +178,7 @@ impl Catalog {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use std::{fs::remove_file, sync::Arc};
 
@@ -198,9 +199,9 @@ mod tests {
 
         let table_name = "test_table1".to_string();
         let schema = Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, 0),
-            Column::new("b".to_string(), DataType::Int16, 0),
-            Column::new("c".to_string(), DataType::Int32, 0),
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+            Column::new("c".to_string(), DataType::Int32),
         ]);
         let table_info = catalog.create_table(table_name.clone(), schema);
         assert!(table_info.is_some());
@@ -235,9 +236,9 @@ mod tests {
 
         let table_name = "test_table2".to_string();
         let schema = Schema::new(vec![
-            Column::new("d".to_string(), DataType::Int32, 0),
-            Column::new("e".to_string(), DataType::Int16, 0),
-            Column::new("f".to_string(), DataType::Int8, 0),
+            Column::new("d".to_string(), DataType::Int32),
+            Column::new("e".to_string(), DataType::Int16),
+            Column::new("f".to_string(), DataType::Int8),
         ]);
         let table_info = catalog.create_table(table_name.clone(), schema);
         assert!(table_info.is_some());
@@ -284,17 +285,17 @@ mod tests {
 
         let table_name1 = "test_table1".to_string();
         let schema = Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, 0),
-            Column::new("b".to_string(), DataType::Int16, 0),
-            Column::new("c".to_string(), DataType::Int32, 0),
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+            Column::new("c".to_string(), DataType::Int32),
         ]);
         let _ = catalog.create_table(table_name1.clone(), schema);
 
         let table_name2 = "test_table2".to_string();
         let schema = Schema::new(vec![
-            Column::new("d".to_string(), DataType::Int32, 0),
-            Column::new("e".to_string(), DataType::Int16, 0),
-            Column::new("f".to_string(), DataType::Int8, 0),
+            Column::new("d".to_string(), DataType::Int32),
+            Column::new("e".to_string(), DataType::Int16),
+            Column::new("f".to_string(), DataType::Int8),
         ]);
         let _ = catalog.create_table(table_name2.clone(), schema);
 
@@ -342,9 +343,9 @@ mod tests {
 
         let table_name = "test_table1".to_string();
         let schema = Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, 0),
-            Column::new("b".to_string(), DataType::Int16, 0),
-            Column::new("c".to_string(), DataType::Int32, 0),
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+            Column::new("c".to_string(), DataType::Int32),
         ]);
         let _ = catalog.create_table(table_name.clone(), schema);
 

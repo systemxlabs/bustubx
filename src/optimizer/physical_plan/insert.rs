@@ -30,7 +30,6 @@ impl PhysicalInsert {
         Schema::new(vec![Column::new(
             "insert_rows".to_string(),
             DataType::Int32,
-            0,
         )])
     }
 }

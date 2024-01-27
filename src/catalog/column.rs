@@ -9,19 +9,16 @@ pub struct Column {
     pub data_type: DataType,
     // 内联列则为固定列的大小，否则为指针大小
     pub fixed_len: usize,
-    // 内联列则为0，否则为变长列的大小
-    pub variable_len: usize,
     // 列在元组中的偏移量
     pub column_offset: usize,
 }
 
 impl Column {
-    pub fn new(name: String, data_type: DataType, variable_len: usize) -> Self {
+    pub fn new(name: String, data_type: DataType) -> Self {
         Self {
             name,
             data_type,
             fixed_len: data_type.type_size(),
-            variable_len,
             column_offset: 0,
         }
     }
@@ -29,6 +26,6 @@ impl Column {
     pub fn from_sqlparser_column(column_def: &ColumnDef) -> Self {
         let column_name = column_def.name.to_string();
         let column_type: DataType = (&column_def.data_type).try_into().unwrap();
-        Self::new(column_name, column_type, 0)
+        Self::new(column_name, column_type)
     }
 }

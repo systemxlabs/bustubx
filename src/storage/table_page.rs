@@ -213,6 +213,7 @@ impl TablePage {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use crate::{
         common::{config::BUSTUBX_PAGE_SIZE, rid::Rid},

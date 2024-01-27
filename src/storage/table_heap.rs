@@ -206,6 +206,7 @@ impl TableIterator {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use std::{fs::remove_file, sync::Arc};
 
