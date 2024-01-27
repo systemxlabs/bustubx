@@ -599,16 +599,8 @@ mod tests {
         ]);
         let mut ori_page = BPlusTreeInternalPage::new(5);
         ori_page.insert(Tuple::empty(3), 0, &key_schema);
-        ori_page.insert(
-            Tuple::new_with_rid(Rid::new(1, 1), vec![1, 1, 1]),
-            1,
-            &key_schema,
-        );
-        ori_page.insert(
-            Tuple::new_with_rid(Rid::new(2, 2), vec![2, 2, 2]),
-            2,
-            &key_schema,
-        );
+        ori_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
+        ori_page.insert(Tuple::new(vec![2, 2, 2]), 2, &key_schema);
         assert_eq!(ori_page.current_size, 3);
 
         let bytes = ori_page.to_bytes();

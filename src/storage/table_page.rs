@@ -120,10 +120,7 @@ impl TablePage {
         }
 
         let (offset, size, meta) = self.tuple_info[tuple_id as usize];
-        let tuple = Tuple::new_with_rid(
-            *rid,
-            self.data[offset as usize..(offset + size) as usize].to_vec(),
-        );
+        let tuple = Tuple::new(self.data[offset as usize..(offset + size) as usize].to_vec());
 
         return (meta, tuple);
     }

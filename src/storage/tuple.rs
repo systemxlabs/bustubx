@@ -14,30 +14,18 @@ pub struct TupleMeta {
 
 #[derive(Debug, Clone)]
 pub struct Tuple {
-    pub rid: Rid,
     pub data: Vec<u8>,
 }
 
 impl Tuple {
-    pub const INVALID_TUPLE: Self = Self {
-        rid: Rid::INVALID_RID,
-        data: vec![],
-    };
+    pub const INVALID_TUPLE: Self = Self { data: vec![] };
 
     pub fn new(data: Vec<u8>) -> Self {
-        Self {
-            rid: Rid::INVALID_RID,
-            data,
-        }
-    }
-
-    pub fn new_with_rid(rid: Rid, data: Vec<u8>) -> Self {
-        Self { rid, data }
+        Self { data }
     }
 
     pub fn empty(size: usize) -> Self {
         Self {
-            rid: Rid::INVALID_RID,
             data: vec![0; size],
         }
     }
@@ -47,18 +35,12 @@ impl Tuple {
         for value in values {
             data.extend(value.to_bytes());
         }
-        Self {
-            rid: Rid::INVALID_RID,
-            data,
-        }
+        Self { data }
     }
 
     pub fn from_bytes(raw: &[u8]) -> Self {
         let data = raw.to_vec();
-        Self {
-            rid: Rid::INVALID_RID,
-            data,
-        }
+        Self { data }
     }
 
     // TODO add unit test to make sure this still works if tuple format changes
@@ -67,10 +49,7 @@ impl Tuple {
         for (tuple, schema) in tuples {
             data.extend(tuple.data);
         }
-        Self {
-            rid: Rid::INVALID_RID,
-            data,
-        }
+        Self { data }
     }
 
     pub fn is_zero(&self) -> bool {
