@@ -14,6 +14,7 @@ mod common;
 mod database;
 mod error;
 mod execution;
+mod expression;
 mod optimizer;
 mod parser;
 mod planner;

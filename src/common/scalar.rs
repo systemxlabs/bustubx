@@ -88,6 +88,16 @@ impl ScalarValue {
             vec![0]
         }
     }
+
+    pub fn data_type(&self) -> DataType {
+        match self {
+            ScalarValue::Boolean(_) => DataType::Boolean,
+            ScalarValue::Int8(_) => DataType::Int8,
+            ScalarValue::Int16(_) => DataType::Int16,
+            ScalarValue::Int32(_) => DataType::Int32,
+            ScalarValue::Int64(_) => DataType::Int64,
+        }
+    }
 }
 
 // TODO delete
