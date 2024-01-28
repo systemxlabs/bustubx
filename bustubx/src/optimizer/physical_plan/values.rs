@@ -1,9 +1,9 @@
 use std::sync::atomic::AtomicU32;
 
-use crate::catalog::column::ColumnRef;
+use crate::catalog::ColumnRef;
 use crate::{
-    catalog::{column::Column, schema::Schema},
-    common::scalar::ScalarValue,
+    catalog::Schema,
+    common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::Tuple,
 };

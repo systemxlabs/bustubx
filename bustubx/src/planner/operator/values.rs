@@ -1,5 +1,5 @@
-use crate::catalog::column::ColumnRef;
-use crate::common::scalar::ScalarValue;
+use crate::catalog::ColumnRef;
+use crate::common::ScalarValue;
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct LogicalValuesOperator {

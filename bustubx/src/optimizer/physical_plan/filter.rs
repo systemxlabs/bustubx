@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
-    catalog::schema::Schema,
-    common::scalar::ScalarValue,
+    catalog::Schema,
+    common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     planner::expr::Expr,
     storage::tuple::Tuple,

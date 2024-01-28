@@ -1,7 +1,7 @@
 use std::sync::{atomic::AtomicU32, Arc};
 
 use crate::{
-    catalog::schema::Schema,
+    catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::Tuple,
 };

@@ -1,4 +1,8 @@
 pub mod catalog;
-pub mod column;
-pub mod data_type;
-pub mod schema;
+mod column;
+mod data_type;
+mod schema;
+
+pub use column::{Column, ColumnRef};
+pub use data_type::DataType;
+pub use schema::{Schema, SchemaRef};

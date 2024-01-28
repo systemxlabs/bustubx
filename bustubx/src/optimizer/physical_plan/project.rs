@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    catalog::schema::Schema,
+    catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
     planner::expr::Expr,
     storage::tuple::Tuple,

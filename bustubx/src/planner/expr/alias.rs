@@ -1,4 +1,4 @@
-use crate::{catalog::schema::Schema, common::scalar::ScalarValue, storage::tuple::Tuple};
+use crate::{catalog::Schema, common::ScalarValue, storage::tuple::Tuple};
 
 use super::Expr;
 

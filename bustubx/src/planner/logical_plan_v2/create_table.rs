@@ -1,4 +1,4 @@
-use crate::catalog::schema::Schema;
+use crate::catalog::Schema;
 use crate::common::table_ref::TableReference;
 
 #[derive(Debug, Clone)]

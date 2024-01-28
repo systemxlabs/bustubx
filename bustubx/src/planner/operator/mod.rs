@@ -1,11 +1,7 @@
-use crate::catalog::column::ColumnRef;
+use crate::catalog::ColumnRef;
 use crate::{
-    catalog::{
-        catalog::TableOid,
-        column::Column,
-        schema::{self, Schema},
-    },
-    common::scalar::ScalarValue,
+    catalog::{catalog::TableOid, Schema},
+    common::ScalarValue,
     planner::{expr::Expr, order_by::BoundOrderBy, table_ref::join::JoinType},
 };
 

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 use crate::{
-    catalog::schema::Schema,
+    catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::Tuple,
 };

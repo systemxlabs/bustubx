@@ -1,8 +1,8 @@
 use std::sync::Mutex;
 
-use crate::catalog::column::ColumnRef;
+use crate::catalog::ColumnRef;
 use crate::{
-    catalog::{catalog::TableOid, column::Column, schema::Schema},
+    catalog::{catalog::TableOid, Schema},
     execution::{ExecutionContext, VolcanoExecutor},
     storage::{table_heap::TableIterator, tuple::Tuple},
 };

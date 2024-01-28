@@ -1,9 +1,5 @@
-use crate::catalog::column::{Column, ColumnRef};
-use crate::{
-    catalog::schema::Schema,
-    common::scalar::ScalarValue,
-    common::{config::TransactionId, rid::Rid},
-};
+use crate::catalog::ColumnRef;
+use crate::{catalog::Schema, common::config::TransactionId, common::ScalarValue};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TupleMeta {
@@ -18,8 +14,6 @@ pub struct Tuple {
 }
 
 impl Tuple {
-    pub const INVALID_TUPLE: Self = Self { data: vec![] };
-
     pub fn new(data: Vec<u8>) -> Self {
         Self { data }
     }
@@ -119,7 +113,7 @@ impl Tuple {
 
 #[cfg(test)]
 mod tests {
-    use crate::catalog::{column::Column, data_type::DataType, schema::Schema};
+    use crate::catalog::{Column, DataType, Schema};
 
     #[test]
     pub fn test_compare() {

@@ -1,6 +1,6 @@
-use crate::catalog::data_type::DataType;
-use crate::catalog::schema::Schema;
-use crate::common::scalar::ScalarValue;
+use crate::catalog::DataType;
+use crate::catalog::Schema;
+use crate::common::ScalarValue;
 use crate::error::BustubxResult;
 use crate::expression::ExprTrait;
 use crate::storage::tuple::Tuple;

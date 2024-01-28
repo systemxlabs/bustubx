@@ -36,8 +36,8 @@ mod tests {
     use crate::planner::logical_plan::LogicalPlan;
     use crate::planner::operator::LogicalOperator;
     use crate::{
-        catalog::column::Column,
-        catalog::data_type::DataType,
+        catalog::Column,
+        catalog::DataType,
         optimizer::heuristic::{batch::HepBatchStrategy, HepOptimizer},
         planner::expr::{column_ref::ColumnRef, Expr},
     };

@@ -1,5 +1,5 @@
 use crate::{
-    catalog::schema::Schema,
+    catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::Tuple,
 };

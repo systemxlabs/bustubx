@@ -1,7 +1,7 @@
 use sqlparser::ast::{ColumnDef, ObjectName};
 
-use crate::catalog::column::Column;
-use crate::catalog::schema::Schema;
+use crate::catalog::Column;
+use crate::catalog::Schema;
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 

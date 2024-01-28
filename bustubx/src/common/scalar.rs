@@ -1,6 +1,6 @@
 use std::fmt::Formatter;
 
-use crate::catalog::data_type::DataType;
+use crate::catalog::DataType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ScalarValue {
@@ -11,6 +11,15 @@ pub enum ScalarValue {
     Int64(Option<i64>),
 }
 impl ScalarValue {
+    pub fn new_empty(data_type: DataType) -> Self {
+        match data_type {
+            DataType::Boolean => Self::Boolean(None),
+            DataType::Int8 => Self::Int8(None),
+            DataType::Int16 => Self::Int16(None),
+            DataType::Int32 => Self::Int32(None),
+            DataType::Int64 => Self::Int64(None),
+        }
+    }
     pub fn from_bytes(bytes: &[u8], data_type: DataType) -> Self {
         match data_type {
             DataType::Boolean => Self::Boolean(Some(Self::boolean_from_bytes(bytes))),

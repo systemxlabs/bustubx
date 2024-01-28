@@ -6,8 +6,8 @@ use std::{
 use crate::{
     common::config::BUSTUBX_PAGE_SIZE,
     storage::{
-        disk_manager::DiskManager,
         page::{Page, PageId},
+        DiskManager,
     },
 };
 
@@ -235,7 +235,7 @@ impl BufferPoolManager {
 }
 
 mod tests {
-    use crate::{buffer::buffer_pool::BufferPoolManager, storage::disk_manager::DiskManager};
+    use crate::{buffer::buffer_pool::BufferPoolManager, storage::DiskManager};
     use std::{fs::remove_file, sync::Arc};
 
     #[test]

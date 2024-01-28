@@ -1,4 +1,4 @@
-use crate::catalog::column::ColumnRef;
+use crate::catalog::ColumnRef;
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct LogicalInsertOperator {

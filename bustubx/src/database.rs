@@ -11,7 +11,7 @@ use crate::{
     execution::{ExecutionContext, ExecutionEngine},
     optimizer::Optimizer,
     planner::{Planner, PlannerContext},
-    storage::{disk_manager::DiskManager, tuple::Tuple},
+    storage::{tuple::Tuple, DiskManager},
 };
 
 pub struct Database {
@@ -110,8 +110,8 @@ impl Database {
 
 mod tests {
     use crate::{
-        catalog::{column::Column, data_type::DataType, schema::Schema},
-        common::scalar::ScalarValue,
+        catalog::{Column, DataType, Schema},
+        common::ScalarValue,
     };
 
     #[test]

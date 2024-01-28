@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tracing::span;
 
 use crate::{
-    catalog::{catalog::Catalog, schema::Schema},
+    catalog::{catalog::Catalog, Schema},
     optimizer::physical_plan::PhysicalPlan,
     storage::tuple::Tuple,
 };

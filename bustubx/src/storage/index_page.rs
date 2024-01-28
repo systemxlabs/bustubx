@@ -2,7 +2,7 @@ use std::mem::size_of;
 
 use super::{page::PageId, tuple::Tuple};
 use crate::{
-    catalog::schema::Schema,
+    catalog::Schema,
     common::{
         config::{BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID},
         rid::Rid,
@@ -581,10 +581,8 @@ impl BPlusTreeLeafPage {
 
 #[cfg(test)]
 mod tests {
-    use std::mem::size_of;
-
     use crate::{
-        catalog::{column::Column, data_type::DataType, schema::Schema},
+        catalog::{Column, DataType, Schema},
         common::rid::Rid,
         storage::{
             index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePageType, InternalKV},

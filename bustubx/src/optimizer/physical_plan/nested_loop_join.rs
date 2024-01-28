@@ -1,10 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use sqlparser::keywords::NO;
-
 use crate::{
-    catalog::schema::Schema,
-    common::scalar::ScalarValue,
+    catalog::Schema,
+    common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     planner::{expr::Expr, table_ref::join::JoinType},
     storage::tuple::Tuple,

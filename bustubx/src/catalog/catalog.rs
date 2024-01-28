@@ -184,8 +184,8 @@ mod tests {
 
     use crate::{
         buffer::buffer_pool::BufferPoolManager,
-        catalog::{column::Column, data_type::DataType, schema::Schema},
-        storage::disk_manager,
+        catalog::{Column, DataType, Schema},
+        storage::DiskManager,
     };
 
     #[test]
@@ -193,7 +193,7 @@ mod tests {
         let db_path = "./test_catalog_create_table.db";
         let _ = remove_file(db_path);
 
-        let disk_manager = disk_manager::DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&db_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut catalog = super::Catalog::new(buffer_pool_manager);
 
@@ -279,7 +279,7 @@ mod tests {
         let db_path = "./test_catalog_get_table.db";
         let _ = remove_file(db_path);
 
-        let disk_manager = disk_manager::DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&db_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut catalog = super::Catalog::new(buffer_pool_manager);
 
@@ -337,7 +337,7 @@ mod tests {
         let db_path = "./test_catalog_create_index.db";
         let _ = remove_file(db_path);
 
-        let disk_manager = disk_manager::DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&db_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut catalog = super::Catalog::new(buffer_pool_manager);
 

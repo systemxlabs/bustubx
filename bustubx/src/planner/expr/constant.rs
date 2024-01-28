@@ -1,5 +1,5 @@
-use crate::catalog::data_type::DataType;
-use crate::common::scalar::ScalarValue;
+use crate::catalog::DataType;
+use crate::common::ScalarValue;
 
 #[derive(Debug, Clone)]
 pub enum Constant {

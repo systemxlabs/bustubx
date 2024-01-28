@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::{
     buffer::buffer_pool::BufferPoolManager,
-    catalog::schema::Schema,
+    catalog::Schema,
     common::{config::INVALID_PAGE_ID, rid::Rid},
     storage::index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePage},
 };
@@ -763,9 +763,9 @@ mod tests {
 
     use crate::{
         buffer::buffer_pool,
-        catalog::{column::Column, data_type::DataType, schema::Schema},
-        common::{config::INVALID_PAGE_ID, rid::Rid},
-        storage::{disk_manager, tuple::Tuple},
+        catalog::{Column, DataType, Schema},
+        common::rid::Rid,
+        storage::{tuple::Tuple, DiskManager},
     };
 
     use super::{BPlusTreeIndex, IndexMetadata};
@@ -808,7 +808,7 @@ mod tests {
             ]),
             vec![0, 1],
         );
-        let disk_manager = disk_manager::DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&db_path).unwrap();
         let buffer_pool_manager = buffer_pool::BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 2, 3);
 
@@ -869,7 +869,7 @@ mod tests {
             ]),
             vec![0, 1],
         );
-        let disk_manager = disk_manager::DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&db_path).unwrap();
         let buffer_pool_manager = buffer_pool::BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 4, 5);
 

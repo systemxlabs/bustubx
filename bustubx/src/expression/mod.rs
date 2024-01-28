@@ -1,17 +1,18 @@
-use crate::catalog::data_type::DataType;
-use crate::catalog::schema::Schema;
-use crate::common::scalar::ScalarValue;
+use crate::catalog::DataType;
+use crate::catalog::Schema;
+use crate::common::ScalarValue;
 use crate::error::BustubxResult;
-use crate::expression::alias::Alias;
-use crate::expression::binary::BinaryExpr;
-use crate::expression::column::ColumnExpr;
-use crate::expression::literal::Literal;
 use crate::storage::tuple::Tuple;
 
 mod alias;
 mod binary;
 mod column;
 mod literal;
+
+pub use alias::Alias;
+pub use binary::{BinaryExpr, BinaryOp};
+pub use column::ColumnExpr;
+pub use literal::Literal;
 
 pub trait ExprTrait {
     /// Get the data type of this expression, given the schema of the input
