@@ -1,4 +1,4 @@
-use crate::catalog::column::Column;
+use crate::catalog::column::{Column, ColumnRef};
 use crate::{
     catalog::schema::Schema,
     common::scalar::ScalarValue,
@@ -66,7 +66,7 @@ impl Tuple {
     pub fn all_values(&self, schema: &Schema) -> Vec<ScalarValue> {
         let mut values = vec![];
         for column in &schema.columns {
-            values.push(self.get_value_by_col(column));
+            values.push(self.get_value_by_col(column.clone()));
         }
         values
     }
@@ -86,7 +86,7 @@ impl Tuple {
         self.get_value_by_col(column)
     }
 
-    pub fn get_value_by_col(&self, column: &Column) -> ScalarValue {
+    pub fn get_value_by_col(&self, column: ColumnRef) -> ScalarValue {
         let offset = column.column_offset;
         let len = column.data_type.type_size();
         // Intercept the byte sequence starting from offset,

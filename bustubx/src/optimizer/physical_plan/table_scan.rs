@@ -1,5 +1,6 @@
 use std::sync::Mutex;
 
+use crate::catalog::column::ColumnRef;
 use crate::{
     catalog::{catalog::TableOid, column::Column, schema::Schema},
     execution::{ExecutionContext, VolcanoExecutor},
@@ -9,12 +10,12 @@ use crate::{
 #[derive(Debug)]
 pub struct PhysicalTableScan {
     pub table_oid: TableOid,
-    pub columns: Vec<Column>,
+    pub columns: Vec<ColumnRef>,
 
     iterator: Mutex<TableIterator>,
 }
 impl PhysicalTableScan {
-    pub fn new(table_oid: TableOid, columns: Vec<Column>) -> Self {
+    pub fn new(table_oid: TableOid, columns: Vec<ColumnRef>) -> Self {
         PhysicalTableScan {
             table_oid,
             columns,
@@ -22,7 +23,9 @@ impl PhysicalTableScan {
         }
     }
     pub fn output_schema(&self) -> Schema {
-        Schema::new(self.columns.clone())
+        Schema {
+            columns: self.columns.clone(),
+        }
     }
 }
 impl VolcanoExecutor for PhysicalTableScan {

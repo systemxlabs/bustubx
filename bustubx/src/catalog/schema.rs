@@ -1,19 +1,26 @@
-use super::column::Column;
+use super::column::{Column, ColumnRef};
+use std::sync::Arc;
+
+pub type SchemaRef = Arc<Schema>;
 
 #[derive(Debug, Clone)]
 pub struct Schema {
-    pub columns: Vec<Column>,
+    pub columns: Vec<ColumnRef>,
 }
 
 impl Schema {
     pub fn new(mut columns: Vec<Column>) -> Self {
         let mut curr_offset = 0;
-        for column in columns.iter_mut() {
+        let mut column_refs = Vec::new();
+        for mut column in columns.into_iter() {
             // 计算每个column的offset
             column.column_offset = curr_offset;
             curr_offset += column.data_type.type_size();
+            column_refs.push(Arc::new(column));
         }
-        Self { columns }
+        Self {
+            columns: column_refs,
+        }
     }
 
     pub fn from_schemas(schemas: Vec<Schema>) -> Self {
@@ -21,7 +28,7 @@ impl Schema {
         for schema in schemas {
             columns.extend(schema.columns);
         }
-        Self::new(columns)
+        Self { columns }
     }
 
     pub fn copy_schema(from: &Schema, key_attrs: &[u32]) -> Self {
@@ -29,15 +36,15 @@ impl Schema {
             .iter()
             .map(|i| from.columns[*i as usize].clone())
             .collect();
-        Self::new(columns)
+        Schema { columns }
     }
 
-    pub fn get_col_by_name(&self, col_name: &String) -> Option<&Column> {
-        self.columns.iter().find(|c| &c.name == col_name)
+    pub fn get_col_by_name(&self, col_name: &String) -> Option<ColumnRef> {
+        self.columns.iter().find(|c| &c.name == col_name).cloned()
     }
 
-    pub fn get_col_by_index(&self, index: usize) -> Option<&Column> {
-        self.columns.get(index)
+    pub fn get_col_by_index(&self, index: usize) -> Option<ColumnRef> {
+        self.columns.get(index).cloned()
     }
 
     pub fn get_index_by_name(&self, col_name: &String) -> Option<usize> {

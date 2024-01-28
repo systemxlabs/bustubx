@@ -1,5 +1,6 @@
 use std::sync::atomic::AtomicU32;
 
+use crate::catalog::column::ColumnRef;
 use crate::{
     catalog::{column::Column, schema::Schema},
     common::scalar::ScalarValue,
@@ -9,13 +10,13 @@ use crate::{
 
 #[derive(Debug)]
 pub struct PhysicalValues {
-    pub columns: Vec<Column>,
+    pub columns: Vec<ColumnRef>,
     pub tuples: Vec<Vec<ScalarValue>>,
 
     cursor: AtomicU32,
 }
 impl PhysicalValues {
-    pub fn new(columns: Vec<Column>, tuples: Vec<Vec<ScalarValue>>) -> Self {
+    pub fn new(columns: Vec<ColumnRef>, tuples: Vec<Vec<ScalarValue>>) -> Self {
         PhysicalValues {
             columns,
             tuples,
@@ -23,7 +24,9 @@ impl PhysicalValues {
         }
     }
     pub fn output_schema(&self) -> Schema {
-        return Schema::new(self.columns.clone());
+        Schema {
+            columns: self.columns.clone(),
+        }
     }
 }
 impl VolcanoExecutor for PhysicalValues {

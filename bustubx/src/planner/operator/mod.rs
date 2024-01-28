@@ -1,3 +1,4 @@
+use crate::catalog::column::ColumnRef;
 use crate::{
     catalog::{
         catalog::TableOid,
@@ -5,11 +6,7 @@ use crate::{
         schema::{self, Schema},
     },
     common::scalar::ScalarValue,
-    planner::{
-        expr::{column_ref::ColumnRef, Expr},
-        order_by::BoundOrderBy,
-        table_ref::{base_table::BoundBaseTableRef, join::JoinType},
-    },
+    planner::{expr::Expr, order_by::BoundOrderBy, table_ref::join::JoinType},
 };
 
 use self::{
@@ -62,16 +59,16 @@ impl LogicalOperator {
             key_attrs,
         ))
     }
-    pub fn new_insert_operator(table_name: String, columns: Vec<Column>) -> LogicalOperator {
+    pub fn new_insert_operator(table_name: String, columns: Vec<ColumnRef>) -> LogicalOperator {
         LogicalOperator::Insert(LogicalInsertOperator::new(table_name, columns))
     }
     pub fn new_values_operator(
-        columns: Vec<Column>,
+        columns: Vec<ColumnRef>,
         tuples: Vec<Vec<ScalarValue>>,
     ) -> LogicalOperator {
         LogicalOperator::Values(LogicalValuesOperator::new(columns, tuples))
     }
-    pub fn new_scan_operator(table_oid: TableOid, columns: Vec<Column>) -> LogicalOperator {
+    pub fn new_scan_operator(table_oid: TableOid, columns: Vec<ColumnRef>) -> LogicalOperator {
         LogicalOperator::Scan(LogicalScanOperator::new(table_oid, columns))
     }
     pub fn new_project_operator(expressions: Vec<Expr>) -> LogicalOperator {

@@ -208,7 +208,8 @@ impl TableIterator {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::remove_file, sync::Arc};
+    use std::sync::Arc;
+    use tempfile::TempDir;
 
     use crate::{
         buffer::buffer_pool::BufferPoolManager,
@@ -217,25 +218,23 @@ mod tests {
 
     #[test]
     pub fn test_table_heap_new() {
-        let db_path = "./test_table_heap_new.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = disk_manager::DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = disk_manager::DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(10, Arc::new(disk_manager));
         let table_heap = TableHeap::new(buffer_pool_manager);
         assert_eq!(table_heap.first_page_id, 0);
         assert_eq!(table_heap.last_page_id, 0);
         assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 1);
-
-        let _ = remove_file(db_path);
     }
 
     #[test]
     pub fn test_table_heap_insert_tuple() {
-        let db_path = "./test_table_heap_insert_tuple.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = disk_manager::DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = disk_manager::DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::new(buffer_pool_manager);
         let meta = super::TupleMeta {
@@ -258,16 +257,14 @@ mod tests {
         assert_eq!(table_heap.first_page_id, 0);
         assert_eq!(table_heap.last_page_id, 1);
         assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 2);
-
-        let _ = remove_file(db_path);
     }
 
     #[test]
     pub fn test_table_heap_update_tuple_meta() {
-        let db_path = "./test_table_heap_update_tuple_meta.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = disk_manager::DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = disk_manager::DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::new(buffer_pool_manager);
         let meta = super::TupleMeta {
@@ -297,16 +294,14 @@ mod tests {
         assert_eq!(meta.delete_txn_id, 2);
         assert_eq!(meta.is_deleted, true);
         assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 2);
-
-        let _ = remove_file(db_path);
     }
 
     #[test]
     pub fn test_table_heap_get_tuple() {
-        let db_path = "./test_table_heap_get_tuple.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = disk_manager::DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = disk_manager::DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::new(buffer_pool_manager);
 
@@ -348,16 +343,14 @@ mod tests {
         assert_eq!(tuple.data, vec![3; 2000]);
 
         assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 2);
-
-        let _ = remove_file(db_path);
     }
 
     #[test]
     pub fn test_table_heap_iterator() {
-        let db_path = "./test_table_heap_iterator.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = disk_manager::DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = disk_manager::DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::new(buffer_pool_manager);
 
@@ -403,7 +396,5 @@ mod tests {
         assert!(iterator.next(&mut table_heap).is_none());
 
         assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 2);
-
-        let _ = remove_file(db_path);
     }
 }

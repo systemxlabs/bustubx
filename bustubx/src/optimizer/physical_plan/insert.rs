@@ -1,5 +1,6 @@
 use std::sync::{atomic::AtomicU32, Arc};
 
+use crate::catalog::column::ColumnRef;
 use crate::{
     catalog::{column::Column, data_type::DataType, schema::Schema},
     common::scalar::ScalarValue,
@@ -12,13 +13,13 @@ use super::PhysicalPlan;
 #[derive(Debug)]
 pub struct PhysicalInsert {
     pub table_name: String,
-    pub columns: Vec<Column>,
+    pub columns: Vec<ColumnRef>,
     pub input: Arc<PhysicalPlan>,
 
     insert_rows: AtomicU32,
 }
 impl PhysicalInsert {
-    pub fn new(table_name: String, columns: Vec<Column>, input: Arc<PhysicalPlan>) -> Self {
+    pub fn new(table_name: String, columns: Vec<ColumnRef>, input: Arc<PhysicalPlan>) -> Self {
         Self {
             table_name,
             columns,

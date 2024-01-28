@@ -1,6 +1,9 @@
 use sqlparser::ast::ColumnDef;
+use std::sync::Arc;
 
 use crate::catalog::data_type::DataType;
+
+pub type ColumnRef = Arc<Column>;
 
 // 列定义
 #[derive(Debug, Clone)]
