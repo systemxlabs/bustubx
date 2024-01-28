@@ -7,8 +7,6 @@ use crate::catalog::data_type::DataType;
 pub struct Column {
     pub name: String,
     pub data_type: DataType,
-    // 内联列则为固定列的大小，否则为指针大小
-    pub fixed_len: usize,
     // 列在元组中的偏移量
     pub column_offset: usize,
 }
@@ -18,7 +16,6 @@ impl Column {
         Self {
             name,
             data_type,
-            fixed_len: data_type.type_size(),
             column_offset: 0,
         }
     }

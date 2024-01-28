@@ -11,7 +11,7 @@ impl Schema {
         for column in columns.iter_mut() {
             // 计算每个column的offset
             column.column_offset = curr_offset;
-            curr_offset += column.fixed_len;
+            curr_offset += column.data_type.type_size();
         }
         Self { columns }
     }
@@ -45,7 +45,7 @@ impl Schema {
     }
 
     pub fn fixed_len(&self) -> usize {
-        self.columns.iter().map(|c| c.fixed_len).sum()
+        self.columns.iter().map(|c| c.data_type.type_size()).sum()
     }
 
     pub fn column_count(&self) -> usize {

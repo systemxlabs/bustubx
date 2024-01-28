@@ -88,7 +88,7 @@ impl Tuple {
 
     pub fn get_value_by_col(&self, column: &Column) -> ScalarValue {
         let offset = column.column_offset;
-        let len = column.fixed_len;
+        let len = column.data_type.type_size();
         // Intercept the byte sequence starting from offset,
         // and get length len from data as the current col row bytes.
         let raw = &self.data[offset..offset + len];
