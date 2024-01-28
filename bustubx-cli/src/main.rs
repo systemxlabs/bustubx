@@ -21,7 +21,7 @@ fn main() {
         .with(chrome_layer)
         .init();
 
-    let mut db = Database::new_on_disk("test.db");
+    let mut db = Database::new_temp();
     info!("database created");
     loop {
         print!(">");
@@ -32,7 +32,7 @@ fn main() {
                 if input.trim() == "exit" {
                     break;
                 }
-                db.run(&input);
+                println!("output: {:?}", db.run(&input));
             }
             Err(_) => {
                 println!("Error reading from stdin");

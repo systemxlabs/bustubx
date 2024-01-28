@@ -179,10 +179,7 @@ mod tests {
 
     #[test]
     pub fn test_hep_graph_new() {
-        let db_path = "test_hep_graph_new.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = Database::new_on_disk(db_path);
+        let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
@@ -227,16 +224,11 @@ mod tests {
         let parent = graph.parent_node(HepNodeId::new(3)).unwrap();
         assert_eq!(parent.id, HepNodeId::new(1));
         assert!(matches!(&parent.operator, LogicalOperator::Join(_)));
-
-        let _ = std::fs::remove_file(db_path);
     }
 
     #[test]
     pub fn test_hep_graph_bfs() {
-        let db_path = "test_hep_graph_bfs.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = Database::new_on_disk(db_path);
+        let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
@@ -248,16 +240,11 @@ mod tests {
         assert_eq!(ids[1], HepNodeId::new(1));
         assert!(ids[2] == HepNodeId::new(2) || ids[2] == HepNodeId::new(3));
         assert!(ids[3] == HepNodeId::new(2) || ids[3] == HepNodeId::new(3));
-
-        let _ = std::fs::remove_file(db_path);
     }
 
     #[test]
     pub fn test_hep_graph_swap_node() {
-        let db_path = "test_hep_graph_swap_node.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = Database::new_on_disk(db_path);
+        let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
@@ -289,16 +276,11 @@ mod tests {
             graph.operator(ids[1]).unwrap(),
             LogicalOperator::Project(_)
         ));
-
-        let _ = std::fs::remove_file(db_path);
     }
 
     #[test]
     pub fn test_hep_graph_replace_node() {
-        let db_path = "test_hep_graph_replace_node.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = Database::new_on_disk(db_path);
+        let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
@@ -343,16 +325,11 @@ mod tests {
             graph.operator(ids[3]).unwrap(),
             LogicalOperator::Scan(_)
         ));
-
-        let _ = std::fs::remove_file(db_path);
     }
 
     #[test]
     pub fn test_hep_graph_insert_node() {
-        let db_path = "test_hep_graph_insert_node.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = Database::new_on_disk(db_path);
+        let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
@@ -400,16 +377,11 @@ mod tests {
             graph.operator(ids[4]).unwrap(),
             LogicalOperator::Scan(_)
         ));
-
-        let _ = std::fs::remove_file(db_path);
     }
 
     #[test]
     pub fn test_hep_graph_remove_node() {
-        let db_path = "test_hep_graph_remove_node.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = Database::new_on_disk(db_path);
+        let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
@@ -460,16 +432,11 @@ mod tests {
             graph.operator(ids[2]).unwrap(),
             LogicalOperator::Scan(_)
         ));
-
-        let _ = std::fs::remove_file(db_path);
     }
 
     #[test]
     pub fn test_hep_graph_to_plan() {
-        let db_path = "test_hep_graph_to_plan.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = Database::new_on_disk(db_path);
+        let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
         let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
@@ -491,7 +458,5 @@ mod tests {
             output_plan.children[0].children[1].operator,
             LogicalOperator::Scan(_)
         ));
-
-        let _ = std::fs::remove_file(db_path);
     }
 }

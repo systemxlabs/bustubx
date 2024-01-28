@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tempfile::TempDir;
 
 use tracing::span;
 
@@ -16,6 +17,7 @@ use crate::{
 pub struct Database {
     disk_manager: Arc<DiskManager>,
     catalog: Catalog,
+    temp_dir: Option<TempDir>,
 }
 impl Database {
     pub fn new_on_disk(db_path: &str) -> Self {
@@ -27,6 +29,22 @@ impl Database {
         Self {
             disk_manager,
             catalog,
+            temp_dir: None,
+        }
+    }
+
+    pub fn new_temp() -> Self {
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
+        let _ = std::fs::File::create(temp_path.clone()).unwrap();
+        let disk_manager = Arc::new(DiskManager::new(temp_path.to_str().unwrap().to_string()));
+        let buffer_pool_manager =
+            BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
+        let catalog = Catalog::new(buffer_pool_manager);
+        Self {
+            disk_manager,
+            catalog,
+            temp_dir: Some(temp_dir),
         }
     }
 
@@ -99,7 +117,7 @@ mod tests {
 
     #[test]
     pub fn test_crud_sql() {
-        let mut db = super::Database::new_on_disk("test.db");
+        let mut db = super::Database::new_temp();
         // db.run("create table t1 (a int, b int)");
         // db.run("create table t2 (a int, b int)");
         // db.run("create table t3 (a int, b int)");
@@ -112,10 +130,7 @@ mod tests {
 
     #[test]
     pub fn test_create_table_sql() {
-        let db_path = "test_create_table_sql.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = super::Database::new_on_disk(db_path);
+        let mut db = super::Database::new_temp();
         db.run("create table t1 (a int, b int)");
 
         let table = db.catalog.get_table_by_name("t1");
@@ -127,16 +142,11 @@ mod tests {
         assert_eq!(table.schema.columns[0].data_type, DataType::Int32);
         assert_eq!(table.schema.columns[1].name, "b".to_string());
         assert_eq!(table.schema.columns[1].data_type, DataType::Int32);
-
-        let _ = std::fs::remove_file(db_path);
     }
 
     #[test]
     pub fn test_create_index_sql() {
-        let db_path = "test_create_index_sql.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = super::Database::new_on_disk(db_path);
+        let mut db = super::Database::new_temp();
         db.run("create table t1 (a int, b int)");
         db.run("create index idx1 on t1 (a)");
 
@@ -146,16 +156,11 @@ mod tests {
         assert_eq!(index.name, "idx1");
         assert_eq!(index.table_name, "t1");
         assert_eq!(index.key_schema.column_count(), 1);
-
-        let _ = std::fs::remove_file(db_path);
     }
 
     #[test]
     pub fn test_insert_sql() {
-        let db_path = "test_insert_sql.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = super::Database::new_on_disk(db_path);
+        let mut db = super::Database::new_temp();
         db.run(&"create table t1 (a int, b int)".to_string());
         let insert_rows = db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
         assert_eq!(insert_rows.len(), 1);
@@ -166,16 +171,11 @@ mod tests {
         )]);
         let insert_rows = insert_rows[0].get_value_by_col_id(&schema, 0);
         assert_eq!(insert_rows, ScalarValue::Int32(Some(3)));
-
-        let _ = std::fs::remove_file(db_path);
     }
 
     #[test]
     pub fn test_select_wildcard_sql() {
-        let db_path = "test_select_wildcard_sql.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = super::Database::new_on_disk(db_path);
+        let mut db = super::Database::new_temp();
         db.run(&"create table t1 (a int, b bigint)".to_string());
 
         let select_result = db.run(&"select * from t1".to_string());
@@ -214,16 +214,11 @@ mod tests {
             select_result[2].get_value_by_col_id(&schema, 1),
             ScalarValue::Int64(Some(4))
         );
-
-        let _ = std::fs::remove_file(db_path);
     }
 
     #[test]
     pub fn test_select_where_sql() {
-        let db_path = "test_select_where_sql.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = super::Database::new_on_disk(db_path);
+        let mut db = super::Database::new_temp();
         db.run(&"create table t1 (a int, b int)".to_string());
         db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
         let select_result = db.run(&"select a from t1 where a <= b".to_string());
@@ -238,16 +233,11 @@ mod tests {
             select_result[1].get_value_by_col_id(&schema, 0),
             ScalarValue::Int32(Some(2))
         );
-
-        let _ = std::fs::remove_file(db_path);
     }
 
     #[test]
     pub fn test_select_limit_sql() {
-        let db_path = "test_select_limit_sql.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = super::Database::new_on_disk(db_path);
+        let mut db = super::Database::new_temp();
         db.run(&"create table t1 (a int, b int)".to_string());
         db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
         let select_result = db.run(&"select * from t1 limit 1 offset 1".to_string());
@@ -265,8 +255,6 @@ mod tests {
             select_result[0].get_value_by_col_id(&schema, 1),
             ScalarValue::Int32(Some(3))
         );
-
-        let _ = std::fs::remove_file(db_path);
     }
 
     // TODO fix tests
@@ -406,10 +394,7 @@ mod tests {
 
     #[test]
     pub fn test_select_order_by_sql() {
-        let db_path = "test_select_order_by_sql.db";
-        let _ = std::fs::remove_file(db_path);
-
-        let mut db = super::Database::new_on_disk(db_path);
+        let mut db = super::Database::new_temp();
         db.run(&"create table t1 (a int, b int)".to_string());
         db.run(&"insert into t1 values (5, 6), (1, 2), (1, 4)".to_string());
         let select_result = db.run(&"select * from t1 order by a, b desc".to_string());
@@ -449,7 +434,5 @@ mod tests {
             select_result[2].get_value_by_col_id(&schema, 1),
             ScalarValue::Int32(Some(6))
         );
-
-        let _ = std::fs::remove_file(db_path);
     }
 }
