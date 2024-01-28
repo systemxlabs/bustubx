@@ -4,8 +4,11 @@ use crate::planner::logical_plan::LogicalPlan;
 
 use self::{physical_optimizer::PhysicalOptimizer, physical_plan::PhysicalPlan};
 
+mod logical_optimizer;
 pub mod physical_optimizer;
 pub mod physical_plan;
+
+pub use logical_optimizer::{LogicalOptimizer, LogicalOptimizerRule};
 
 pub struct Optimizer {
     physical_optimizer: PhysicalOptimizer,
