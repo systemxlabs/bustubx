@@ -21,7 +21,7 @@ pub struct Database {
 }
 impl Database {
     pub fn new_on_disk(db_path: &str) -> Self {
-        let disk_manager = Arc::new(DiskManager::new(db_path.to_string()));
+        let disk_manager = Arc::new(DiskManager::try_new(&db_path).unwrap());
         let buffer_pool_manager =
             BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
         // TODO load catalog from disk
@@ -37,7 +37,7 @@ impl Database {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
         let _ = std::fs::File::create(temp_path.clone()).unwrap();
-        let disk_manager = Arc::new(DiskManager::new(temp_path.to_str().unwrap().to_string()));
+        let disk_manager = Arc::new(DiskManager::try_new(temp_path.to_str().unwrap()).unwrap());
         let buffer_pool_manager =
             BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
         let catalog = Catalog::new(buffer_pool_manager);

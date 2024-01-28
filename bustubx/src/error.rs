@@ -8,4 +8,6 @@ pub enum BustubxError {
     NotImplement(String),
     #[error("Internal error: {0}")]
     Internal(String),
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
 }
