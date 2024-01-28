@@ -6,15 +6,11 @@ pub enum Constant {
     Number(String),
     Null,
     Boolean(bool),
-    SingleQuotedString(String),
 }
 impl Constant {
     pub fn from_sqlparser_value(value: &sqlparser::ast::Value) -> Self {
         match value {
             sqlparser::ast::Value::Number(n, ..) => Constant::Number(n.to_string()),
-            sqlparser::ast::Value::SingleQuotedString(s) => {
-                Constant::SingleQuotedString(s.to_string())
-            }
             sqlparser::ast::Value::Boolean(b) => Constant::Boolean(*b),
             sqlparser::ast::Value::Null => Constant::Null,
             _ => unimplemented!(),
