@@ -182,7 +182,9 @@ mod tests {
         let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
-        let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
+        let logical_plan = db
+            .build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a")
+            .unwrap();
 
         // 0: project
         //   1: join
@@ -231,7 +233,9 @@ mod tests {
         let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
-        let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
+        let logical_plan = db
+            .build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a")
+            .unwrap();
 
         let graph = super::HepGraph::new(Arc::new(logical_plan));
         let ids = graph.bfs(graph.root);
@@ -247,7 +251,9 @@ mod tests {
         let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
-        let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
+        let logical_plan = db
+            .build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a")
+            .unwrap();
 
         let mut graph = super::HepGraph::new(Arc::new(logical_plan));
         let ids = graph.bfs(graph.root);
@@ -283,7 +289,9 @@ mod tests {
         let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
-        let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
+        let logical_plan = db
+            .build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a")
+            .unwrap();
 
         let mut graph = super::HepGraph::new(Arc::new(logical_plan));
         let ids = graph.bfs(graph.root);
@@ -332,7 +340,9 @@ mod tests {
         let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
-        let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
+        let logical_plan = db
+            .build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a")
+            .unwrap();
 
         let mut graph = super::HepGraph::new(Arc::new(logical_plan));
         let ids = graph.bfs(graph.root);
@@ -384,7 +394,9 @@ mod tests {
         let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
-        let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
+        let logical_plan = db
+            .build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a")
+            .unwrap();
 
         let mut graph = super::HepGraph::new(Arc::new(logical_plan));
         let ids = graph.bfs(graph.root);
@@ -414,7 +426,9 @@ mod tests {
             LogicalOperator::Project(_)
         ));
 
-        let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
+        let logical_plan = db
+            .build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a")
+            .unwrap();
         let mut graph = super::HepGraph::new(Arc::new(logical_plan));
 
         graph.remove_node(HepNodeId::new(1), false);
@@ -439,7 +453,9 @@ mod tests {
         let mut db = Database::new_temp();
         db.run("create table t1(a int, b int)");
         db.run("create table t2(a int, b int)");
-        let logical_plan = db.build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a");
+        let logical_plan = db
+            .build_logical_plan("select * from t1 inner join t2 on t1.a = t2.a")
+            .unwrap();
 
         let graph = super::HepGraph::new(Arc::new(logical_plan));
         let output_plan = graph.to_plan();

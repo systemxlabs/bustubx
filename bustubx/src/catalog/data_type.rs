@@ -31,7 +31,7 @@ impl TryFrom<&sqlparser::ast::DataType> for DataType {
             sqlparser::ast::DataType::SmallInt(_) => Ok(DataType::Int16),
             sqlparser::ast::DataType::Int(_) => Ok(DataType::Int32),
             sqlparser::ast::DataType::BigInt(_) => Ok(DataType::Int64),
-            _ => Err(BustubxError::NotImplement(format!(
+            _ => Err(BustubxError::NotSupport(format!(
                 "Not support datatype {}",
                 value
             ))),

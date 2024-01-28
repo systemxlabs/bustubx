@@ -3,6 +3,7 @@ use tempfile::TempDir;
 
 use tracing::span;
 
+use crate::error::{BustubxError, BustubxResult};
 use crate::planner::logical_plan::LogicalPlan;
 use crate::{
     buffer::buffer_pool::BufferPoolManager,
@@ -47,27 +48,10 @@ impl Database {
         }
     }
 
-    pub fn run(&mut self, sql: &str) -> Vec<Tuple> {
+    pub fn run(&mut self, sql: &str) -> BustubxResult<Vec<Tuple>> {
         let _db_run_span = span!(tracing::Level::INFO, "database.run", sql).entered();
-        // sql -> ast
-        let stmts = crate::parser::parse_sql(sql);
-        if stmts.is_err() {
-            println!("parse sql error");
-            return Vec::new();
-        }
-        let stmts = stmts.unwrap();
-        if stmts.len() != 1 {
-            println!("only support one sql statement");
-            return Vec::new();
-        }
-        let stmt = &stmts[0];
-        let mut binder = Planner {
-            context: PlannerContext {
-                catalog: &self.catalog,
-            },
-        };
-        // ast -> logical plan
-        let logical_plan = binder.plan(&stmt);
+
+        let logical_plan = self.build_logical_plan(sql)?;
         println!("{:?}", logical_plan);
 
         // logical plan -> physical plan
@@ -82,29 +66,27 @@ impl Database {
         let (tuples, schema) = execution_engine.execute(Arc::new(physical_plan));
         // println!("execution result: {:?}", tuples);
         // print_tuples(&tuples, &schema);
-        tuples
+        Ok(tuples)
     }
 
-    pub fn build_logical_plan(&mut self, sql: &str) -> LogicalPlan {
+    pub fn build_logical_plan(&mut self, sql: &str) -> BustubxResult<LogicalPlan> {
         // sql -> ast
-        let stmts = crate::parser::parse_sql(sql);
-        if stmts.is_err() {
-            panic!("parse sql error")
-        }
-        let stmts = stmts.unwrap();
+        let stmts = crate::parser::parse_sql(sql)?;
         if stmts.len() != 1 {
-            panic!("only support one sql statement")
+            return Err(BustubxError::NotSupport(
+                "only support one sql statement".to_string(),
+            ));
         }
         let stmt = &stmts[0];
-        let mut binder = Planner {
+        let mut planner = Planner {
             context: PlannerContext {
                 catalog: &self.catalog,
             },
         };
-        // ast -> statement
-        let logical_plan = binder.plan(&stmt);
+        // ast -> logical plan
+        let logical_plan = planner.plan(&stmt);
 
-        logical_plan
+        Ok(logical_plan)
     }
 }
 
@@ -161,7 +143,9 @@ mod tests {
     pub fn test_insert_sql() {
         let mut db = super::Database::new_temp();
         db.run(&"create table t1 (a int, b int)".to_string());
-        let insert_rows = db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
+        let insert_rows = db
+            .run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string())
+            .unwrap();
         assert_eq!(insert_rows.len(), 1);
 
         let schema = Schema::new(vec![Column::new(
@@ -177,12 +161,12 @@ mod tests {
         let mut db = super::Database::new_temp();
         db.run(&"create table t1 (a int, b bigint)".to_string());
 
-        let select_result = db.run(&"select * from t1".to_string());
+        let select_result = db.run(&"select * from t1".to_string()).unwrap();
         assert_eq!(select_result.len(), 0);
 
         db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
 
-        let select_result = db.run(&"select * from t1".to_string());
+        let select_result = db.run(&"select * from t1".to_string()).unwrap();
         assert_eq!(select_result.len(), 3);
 
         let schema = Schema::new(vec![
@@ -220,7 +204,9 @@ mod tests {
         let mut db = super::Database::new_temp();
         db.run(&"create table t1 (a int, b int)".to_string());
         db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
-        let select_result = db.run(&"select a from t1 where a <= b".to_string());
+        let select_result = db
+            .run(&"select a from t1 where a <= b".to_string())
+            .unwrap();
         assert_eq!(select_result.len(), 2);
 
         let schema = Schema::new(vec![Column::new("a".to_string(), DataType::Int32)]);
@@ -239,7 +225,9 @@ mod tests {
         let mut db = super::Database::new_temp();
         db.run(&"create table t1 (a int, b int)".to_string());
         db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
-        let select_result = db.run(&"select * from t1 limit 1 offset 1".to_string());
+        let select_result = db
+            .run(&"select * from t1 limit 1 offset 1".to_string())
+            .unwrap();
         assert_eq!(select_result.len(), 1);
 
         let schema = Schema::new(vec![
@@ -396,7 +384,9 @@ mod tests {
         let mut db = super::Database::new_temp();
         db.run(&"create table t1 (a int, b int)".to_string());
         db.run(&"insert into t1 values (5, 6), (1, 2), (1, 4)".to_string());
-        let select_result = db.run(&"select * from t1 order by a, b desc".to_string());
+        let select_result = db
+            .run(&"select * from t1 order by a, b desc".to_string())
+            .unwrap();
         assert_eq!(select_result.len(), 3);
 
         let schema = Schema::new(vec![
