@@ -1,24 +1,10 @@
-use std::io::{self, Write};
-
-use tracing::{debug, info, Level};
+use bustubx::database::Database;
+use std::io::Write;
+use tracing::info;
 use tracing_chrome::ChromeLayerBuilder;
-use tracing_subscriber::{
-    fmt, prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt,
-};
-
-use crate::database::Database;
-
-mod buffer;
-mod catalog;
-mod common;
-mod database;
-mod error;
-mod execution;
-mod expression;
-mod optimizer;
-mod parser;
-mod planner;
-mod storage;
+use tracing_subscriber::fmt;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 fn main() {
     println!(":) Welcome to the bustubx, please input sql.");
@@ -39,9 +25,9 @@ fn main() {
     info!("database created");
     loop {
         print!(">");
-        io::stdout().flush().unwrap();
+        std::io::stdout().flush().unwrap();
         let mut input = String::new();
-        match io::stdin().read_line(&mut input) {
+        match std::io::stdin().read_line(&mut input) {
             Ok(_) => {
                 if input.trim() == "exit" {
                     break;

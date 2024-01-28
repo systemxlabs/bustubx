@@ -107,10 +107,31 @@ dependencies = [
  "lazy_static",
  "petgraph",
  "sqlparser",
+ "tempfile",
  "thiserror",
  "tracing",
  "tracing-chrome",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "bustubx-cli"
+version = "0.1.0"
+dependencies = [
+ "bustubx",
+ "tracing",
+ "tracing-chrome",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "bustubx-sqllogictest"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bustubx",
+ "sqllogictest",
+ "tempfile",
 ]
 
 [[package]]
@@ -830,16 +851,6 @@ name = "smallvec"
 version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62bb4feee49fdd9f707ef802e22365a35de4b7b299de4763d44bfea899442ff9"
-
-[[package]]
-name = "sqllogictest"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bustubx",
- "sqllogictest 0.13.2",
- "tempfile",
-]
 
 [[package]]
 name = "sqllogictest"

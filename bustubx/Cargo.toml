@@ -1,0 +1,20 @@
+[package]
+name = "bustubx"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+doctest = false
+
+[dependencies]
+sqlparser = "0.34.0"
+petgraph = "0.6.3"
+lazy_static = "1.4.0"
+itertools = "0.11.0"
+comfy-table = "7.0.1"
+derive-new = "0.5.9"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+tracing-chrome = "0.7.1"
+thiserror = "1.0.56"
+tempfile = "3"
