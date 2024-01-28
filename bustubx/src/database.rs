@@ -55,8 +55,8 @@ impl Database {
         println!("{:?}", logical_plan);
 
         // logical plan -> physical plan
-        let mut optimizer = Optimizer::new(logical_plan);
-        let physical_plan = optimizer.find_best();
+        let mut optimizer = Optimizer::new();
+        let physical_plan = optimizer.find_best(logical_plan);
         // println!("{:?}", physical_plan);
 
         let execution_ctx = ExecutionContext::new(&mut self.catalog);
