@@ -1,4 +1,5 @@
 use crate::error::BustubxResult;
+use crate::optimizer::rule::PushDownLimit;
 use crate::planner::logical_plan::LogicalPlan;
 use std::sync::Arc;
 
@@ -35,7 +36,8 @@ pub struct LogicalOptimizer {
 
 impl LogicalOptimizer {
     pub fn new() -> Self {
-        let rules: Vec<Arc<dyn LogicalOptimizerRule + Sync + Send>> = vec![];
+        let rules: Vec<Arc<dyn LogicalOptimizerRule + Sync + Send>> =
+            vec![Arc::new(PushDownLimit {})];
 
         Self { rules }
     }

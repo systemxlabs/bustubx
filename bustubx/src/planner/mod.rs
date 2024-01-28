@@ -32,6 +32,8 @@ pub mod logical_plan;
 pub mod logical_plan_v2;
 pub mod operator;
 pub mod order_by;
+pub mod physical_plan;
+pub mod physical_planner;
 pub mod plan_create_index;
 pub mod table_ref;
 

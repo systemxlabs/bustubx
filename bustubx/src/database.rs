@@ -5,12 +5,12 @@ use tracing::span;
 
 use crate::error::{BustubxError, BustubxResult};
 use crate::planner::logical_plan::LogicalPlan;
+use crate::planner::physical_planner::PhysicalPlanner;
 use crate::{
     buffer::buffer_pool::BufferPoolManager,
     catalog::catalog::Catalog,
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     execution::{ExecutionContext, ExecutionEngine},
-    optimizer::Optimizer,
     planner::{Planner, PlannerContext},
     storage::{tuple::Tuple, DiskManager},
 };
@@ -55,8 +55,7 @@ impl Database {
         println!("{:?}", logical_plan);
 
         // logical plan -> physical plan
-        let mut optimizer = Optimizer::new();
-        let physical_plan = optimizer.find_best(logical_plan);
+        let physical_plan = PhysicalPlanner::new().create_physical_plan(logical_plan);
         // println!("{:?}", physical_plan);
 
         let execution_ctx = ExecutionContext::new(&mut self.catalog);

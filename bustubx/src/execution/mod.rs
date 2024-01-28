@@ -4,7 +4,7 @@ use tracing::span;
 
 use crate::{
     catalog::{catalog::Catalog, Schema},
-    optimizer::physical_plan::PhysicalPlan,
+    planner::physical_plan::PhysicalPlan,
     storage::tuple::Tuple,
 };
 
