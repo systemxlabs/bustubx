@@ -1,6 +1,7 @@
-use bustubx::database::Database;
+use bustubx::Database;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
+use std::io::Write;
 use tracing::info;
 use tracing_chrome::ChromeLayerBuilder;
 use tracing_subscriber::fmt;

@@ -1,27 +1,45 @@
-use bustubx::database::Database;
-use bustubx::error::BustubxError;
+use bustubx::Database;
+use bustubx::{BustubxError, Tuple};
 use sqllogictest::{DBOutput, DefaultColumnType};
-use tempfile::TempDir;
 
-pub struct Bustubx {
+pub struct BustubxDB {
     db: Database,
-    tmp_dir: TempDir,
 }
 
-impl Bustubx {
+impl BustubxDB {
     pub fn new() -> Self {
-        let tmp_dir = TempDir::new().unwrap();
-        let db = Database::new_on_disk(tmp_dir.path().to_str().unwrap());
-        Self { db, tmp_dir }
+        let db = Database::new_temp();
+        Self { db }
     }
 }
 
-#[async_trait::async_trait]
-impl sqllogictest::AsyncDB for &Bustubx {
+fn tuples_to_sqllogictest_string(tuples: Vec<Tuple>) -> Vec<Vec<String>> {
+    todo!()
+}
+
+impl sqllogictest::DB for BustubxDB {
     type Error = BustubxError;
     type ColumnType = DefaultColumnType;
 
-    async fn run(&mut self, sql: &str) -> Result<DBOutput<Self::ColumnType>, Self::Error> {
-        todo!()
+    fn run(&mut self, sql: &str) -> Result<DBOutput<Self::ColumnType>, Self::Error> {
+        let is_query_sql = {
+            let lower_sql = sql.trim_start().to_ascii_lowercase();
+            lower_sql.starts_with("select")
+        };
+        let tuples = self.db.run(sql)?;
+        if tuples.is_empty() {
+            if is_query_sql {
+                return Ok(DBOutput::Rows {
+                    types: vec![],
+                    rows: vec![],
+                });
+            } else {
+                return Ok(DBOutput::StatementComplete(0));
+            }
+        }
+        // TODO fix type count
+        let types = vec![DefaultColumnType::Any; 3];
+        let rows = tuples_to_sqllogictest_string(tuples);
+        Ok(DBOutput::Rows { types, rows })
     }
 }

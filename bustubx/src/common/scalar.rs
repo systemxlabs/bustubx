@@ -1,5 +1,3 @@
-use std::fmt::Formatter;
-
 use crate::catalog::DataType;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -10,6 +8,7 @@ pub enum ScalarValue {
     Int32(Option<i32>),
     Int64(Option<i64>),
 }
+
 impl ScalarValue {
     pub fn new_empty(data_type: DataType) -> Self {
         match data_type {
@@ -55,7 +54,6 @@ impl ScalarValue {
                 DataType::Int64 => Self::Int64(Some(v.parse::<i64>().unwrap())),
                 _ => panic!("Not implemented"),
             },
-            // sqlparser::ast::Value::SingleQuotedString(_) => {}
             sqlparser::ast::Value::Boolean(b) => ScalarValue::Boolean(Some(*b)),
             _ => unreachable!(),
         }
@@ -109,16 +107,19 @@ impl ScalarValue {
     }
 }
 
-// TODO delete
-// impl std::fmt::Display for ScalarValue {
-//     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-//         match self {
-//             ScalarValue::Boolean(e) => write!(f, "{}", e)?,
-//             ScalarValue::Int8(e) => write!(f, "{}", e)?,
-//             ScalarValue::Int16(e) => write!(f, "{}", e)?,
-//             ScalarValue::Int32(e) => write!(f, "{}", e)?,
-//             ScalarValue::Int64(e) => write!(f, "{}", e)?,
-//         };
-//         Ok(())
-//     }
-// }
+impl std::fmt::Display for ScalarValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ScalarValue::Boolean(None) => write!(f, "NULL"),
+            ScalarValue::Boolean(Some(v)) => write!(f, "{v}"),
+            ScalarValue::Int8(None) => write!(f, "NULL"),
+            ScalarValue::Int8(Some(v)) => write!(f, "{v}"),
+            ScalarValue::Int16(None) => write!(f, "NULL"),
+            ScalarValue::Int16(Some(v)) => write!(f, "{v}"),
+            ScalarValue::Int32(None) => write!(f, "NULL"),
+            ScalarValue::Int32(Some(v)) => write!(f, "{v}"),
+            ScalarValue::Int64(None) => write!(f, "NULL"),
+            ScalarValue::Int64(Some(v)) => write!(f, "{v}"),
+        }
+    }
+}
