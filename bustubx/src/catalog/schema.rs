@@ -23,6 +23,10 @@ impl Schema {
         }
     }
 
+    pub fn empty() -> Self {
+        Self { columns: vec![] }
+    }
+
     pub fn from_schemas(schemas: Vec<Schema>) -> Self {
         let mut columns = Vec::new();
         for schema in schemas {

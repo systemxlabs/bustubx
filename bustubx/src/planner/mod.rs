@@ -247,7 +247,10 @@ impl<'a> Planner<'a> {
     fn plan_table_ref(&mut self, table_ref: BoundTableRef) -> LogicalPlan {
         match table_ref {
             BoundTableRef::BaseTable(table) => LogicalPlan {
-                operator: LogicalOperator::new_scan_operator(table.oid, table.schema.columns),
+                operator: LogicalOperator::new_scan_operator(
+                    table.oid,
+                    table.schema.columns.clone(),
+                ),
                 children: Vec::new(),
             },
             BoundTableRef::Join(join) => {

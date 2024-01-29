@@ -1,3 +1,4 @@
+use crate::catalog::SchemaRef;
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
@@ -8,14 +9,14 @@ use crate::{
 pub struct PhysicalCreateIndex {
     pub index_name: String,
     pub table_name: String,
-    pub table_schema: Schema,
+    pub table_schema: SchemaRef,
     pub key_attrs: Vec<u32>,
 }
 impl PhysicalCreateIndex {
     pub fn new(
         index_name: String,
         table_name: String,
-        table_schema: Schema,
+        table_schema: SchemaRef,
         key_attrs: Vec<u32>,
     ) -> Self {
         Self {

@@ -3,6 +3,7 @@ use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
     storage::tuple::Tuple,
 };
+use std::sync::Arc;
 
 #[derive(derive_new::new, Debug)]
 pub struct PhysicalCreateTable {
@@ -21,7 +22,7 @@ impl VolcanoExecutor for PhysicalCreateTable {
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
         context
             .catalog
-            .create_table(self.table_name.clone(), self.schema.clone());
+            .create_table(self.table_name.clone(), Arc::new(self.schema.clone()));
         None
     }
 }

@@ -1,11 +1,11 @@
-use crate::catalog::{catalog::TableOid, Schema};
+use crate::catalog::{catalog::TableOid, Schema, SchemaRef};
 
 #[derive(Debug, Clone)]
 pub struct BoundBaseTableRef {
     pub table: String,
     pub oid: TableOid,
     pub alias: Option<String>,
-    pub schema: Schema,
+    pub schema: SchemaRef,
 }
 impl BoundBaseTableRef {
     pub fn column_names(&self) -> Vec<String> {

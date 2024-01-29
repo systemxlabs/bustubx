@@ -1,4 +1,4 @@
-use crate::catalog::ColumnRef;
+use crate::catalog::{ColumnRef, SchemaRef};
 use crate::{
     catalog::{catalog::TableOid, Schema},
     common::ScalarValue,
@@ -45,7 +45,7 @@ impl LogicalOperator {
     pub fn new_create_index_operator(
         index_name: String,
         table_name: String,
-        table_schema: Schema,
+        table_schema: SchemaRef,
         key_attrs: Vec<u32>,
     ) -> LogicalOperator {
         LogicalOperator::CreateIndex(LogicalCreateIndexOperator::new(

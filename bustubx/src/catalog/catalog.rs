@@ -1,5 +1,7 @@
+use std::sync::Arc;
 use std::{collections::HashMap, sync::atomic::AtomicU32};
 
+use crate::catalog::SchemaRef;
 use crate::{
     buffer::buffer_pool::BufferPoolManager,
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
@@ -20,7 +22,7 @@ pub static DEFAULT_SCHEMA_NAME: &str = "bustubx";
 // table元信息
 #[derive(Debug)]
 pub struct TableInfo {
-    pub schema: Schema,
+    pub schema: SchemaRef,
     pub name: String,
     pub table: TableHeap,
     pub oid: TableOid,
@@ -28,7 +30,7 @@ pub struct TableInfo {
 
 // index元信息
 pub struct IndexInfo {
-    pub key_schema: Schema,
+    pub key_schema: SchemaRef,
     pub name: String,
     pub index: BPlusTreeIndex,
     pub table_name: String,
@@ -54,11 +56,11 @@ impl Catalog {
             indexes: HashMap::new(),
             index_names: HashMap::new(),
             next_index_oid: AtomicU32::new(0),
-            buffer_pool_manager: buffer_pool_manager,
+            buffer_pool_manager,
         }
     }
 
-    pub fn create_table(&mut self, table_name: String, schema: Schema) -> Option<&TableInfo> {
+    pub fn create_table(&mut self, table_name: String, schema: SchemaRef) -> Option<&TableInfo> {
         if self.table_names.contains_key(&table_name) {
             return None;
         }
@@ -68,7 +70,7 @@ impl Catalog {
             TABLE_HEAP_BUFFER_POOL_SIZE,
             self.buffer_pool_manager.disk_manager.clone(),
         );
-        let table_heap = TableHeap::new(buffer_pool_manager);
+        let table_heap = TableHeap::new(schema.clone(), buffer_pool_manager);
         let table_oid = self
             .next_table_oid
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -114,7 +116,7 @@ impl Catalog {
             .get_table_by_name(&table_name)
             .expect("table not found");
         let tuple_schema = table_info.schema.clone();
-        let key_schema = Schema::copy_schema(&tuple_schema, &key_attrs);
+        let key_schema = Arc::new(Schema::copy_schema(&tuple_schema, &key_attrs));
 
         let index_metadata = IndexMetadata::new(
             index_name.clone(),
@@ -198,11 +200,11 @@ mod tests {
         let mut catalog = super::Catalog::new(buffer_pool_manager);
 
         let table_name = "test_table1".to_string();
-        let schema = Schema::new(vec![
+        let schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8),
             Column::new("b".to_string(), DataType::Int16),
             Column::new("c".to_string(), DataType::Int32),
-        ]);
+        ]));
         let table_info = catalog.create_table(table_name.clone(), schema);
         assert!(table_info.is_some());
         let table_info = table_info.unwrap();
@@ -235,11 +237,11 @@ mod tests {
         assert_eq!(table_info.oid, 0);
 
         let table_name = "test_table2".to_string();
-        let schema = Schema::new(vec![
+        let schema = Arc::new(Schema::new(vec![
             Column::new("d".to_string(), DataType::Int32),
             Column::new("e".to_string(), DataType::Int16),
             Column::new("f".to_string(), DataType::Int8),
-        ]);
+        ]));
         let table_info = catalog.create_table(table_name.clone(), schema);
         assert!(table_info.is_some());
         let table_info = table_info.unwrap();
@@ -284,19 +286,19 @@ mod tests {
         let mut catalog = super::Catalog::new(buffer_pool_manager);
 
         let table_name1 = "test_table1".to_string();
-        let schema = Schema::new(vec![
+        let schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8),
             Column::new("b".to_string(), DataType::Int16),
             Column::new("c".to_string(), DataType::Int32),
-        ]);
+        ]));
         let _ = catalog.create_table(table_name1.clone(), schema);
 
         let table_name2 = "test_table2".to_string();
-        let schema = Schema::new(vec![
+        let schema = Arc::new(Schema::new(vec![
             Column::new("d".to_string(), DataType::Int32),
             Column::new("e".to_string(), DataType::Int16),
             Column::new("f".to_string(), DataType::Int8),
-        ]);
+        ]));
         let _ = catalog.create_table(table_name2.clone(), schema);
 
         let table_info = catalog.get_table_by_name(&table_name1);
@@ -342,11 +344,11 @@ mod tests {
         let mut catalog = super::Catalog::new(buffer_pool_manager);
 
         let table_name = "test_table1".to_string();
-        let schema = Schema::new(vec![
+        let schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8),
             Column::new("b".to_string(), DataType::Int16),
             Column::new("c".to_string(), DataType::Int32),
-        ]);
+        ]));
         let _ = catalog.create_table(table_name.clone(), schema);
 
         let index_name1 = "test_index1".to_string();

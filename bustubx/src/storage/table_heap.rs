@@ -1,3 +1,4 @@
+use crate::catalog::SchemaRef;
 use crate::{
     buffer::buffer_pool::BufferPoolManager,
     common::{config::INVALID_PAGE_ID, rid::Rid},
@@ -11,13 +12,14 @@ use super::{
 
 #[derive(Debug)]
 pub struct TableHeap {
+    pub schema: SchemaRef,
     pub buffer_pool_manager: BufferPoolManager,
     pub first_page_id: PageId,
     pub last_page_id: PageId,
 }
 
 impl TableHeap {
-    pub fn new(mut buffer_pool_manager: BufferPoolManager) -> Self {
+    pub fn new(schema: SchemaRef, mut buffer_pool_manager: BufferPoolManager) -> Self {
         // new a page and initialize
         let first_page = buffer_pool_manager
             .new_page()
@@ -28,8 +30,9 @@ impl TableHeap {
         buffer_pool_manager.unpin_page(first_page_id, true);
 
         Self {
+            schema,
             buffer_pool_manager,
-            first_page_id: first_page_id,
+            first_page_id,
             last_page_id: first_page_id,
         }
     }
@@ -211,6 +214,7 @@ mod tests {
     use std::sync::Arc;
     use tempfile::TempDir;
 
+    use crate::catalog::Schema;
     use crate::{
         buffer::buffer_pool::BufferPoolManager,
         storage::{table_heap::TableHeap, tuple::Tuple, DiskManager},
@@ -223,7 +227,7 @@ mod tests {
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(10, Arc::new(disk_manager));
-        let table_heap = TableHeap::new(buffer_pool_manager);
+        let table_heap = TableHeap::new(Arc::new(Schema::empty()), buffer_pool_manager);
         assert_eq!(table_heap.first_page_id, 0);
         assert_eq!(table_heap.last_page_id, 0);
         assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 1);
@@ -236,7 +240,7 @@ mod tests {
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
-        let mut table_heap = TableHeap::new(buffer_pool_manager);
+        let mut table_heap = TableHeap::new(Arc::new(Schema::empty()), buffer_pool_manager);
         let meta = super::TupleMeta {
             insert_txn_id: 0,
             delete_txn_id: 0,
@@ -266,7 +270,7 @@ mod tests {
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
-        let mut table_heap = TableHeap::new(buffer_pool_manager);
+        let mut table_heap = TableHeap::new(Arc::new(Schema::empty()), buffer_pool_manager);
         let meta = super::TupleMeta {
             insert_txn_id: 0,
             delete_txn_id: 0,
@@ -303,7 +307,7 @@ mod tests {
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
-        let mut table_heap = TableHeap::new(buffer_pool_manager);
+        let mut table_heap = TableHeap::new(Arc::new(Schema::empty()), buffer_pool_manager);
 
         let meta1 = super::TupleMeta {
             insert_txn_id: 1,
@@ -352,7 +356,7 @@ mod tests {
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
-        let mut table_heap = TableHeap::new(buffer_pool_manager);
+        let mut table_heap = TableHeap::new(Arc::new(Schema::empty()), buffer_pool_manager);
 
         let meta1 = super::TupleMeta {
             insert_txn_id: 1,
