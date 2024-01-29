@@ -116,12 +116,12 @@ impl Catalog {
             .get_table_by_name(&table_name)
             .expect("table not found");
         let tuple_schema = table_info.schema.clone();
-        let key_schema = Arc::new(Schema::copy_schema(&tuple_schema, &key_attrs));
+        let key_schema = Arc::new(Schema::copy_schema(tuple_schema.clone(), &key_attrs));
 
         let index_metadata = IndexMetadata::new(
             index_name.clone(),
             table_name.clone(),
-            &tuple_schema,
+            tuple_schema.clone(),
             key_attrs,
         );
         // one buffer pool manager for one index

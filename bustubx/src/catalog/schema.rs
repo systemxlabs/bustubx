@@ -35,7 +35,7 @@ impl Schema {
         Self { columns }
     }
 
-    pub fn copy_schema(from: &Schema, key_attrs: &[u32]) -> Self {
+    pub fn copy_schema(from: SchemaRef, key_attrs: &[u32]) -> Self {
         let columns = key_attrs
             .iter()
             .map(|i| from.columns[*i as usize].clone())

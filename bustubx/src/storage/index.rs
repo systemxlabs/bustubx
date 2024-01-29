@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
+use std::sync::Arc;
 
+use crate::catalog::SchemaRef;
 use crate::{
     buffer::buffer_pool::BufferPoolManager,
     catalog::Schema,
@@ -20,13 +22,13 @@ pub struct IndexMetadata {
     pub table_name: String,
     // key schema与tuple schema的映射关系
     pub key_attrs: Vec<u32>,
-    pub key_schema: Schema,
+    pub key_schema: SchemaRef,
 }
 impl IndexMetadata {
     pub fn new(
         index_name: String,
         table_name: String,
-        tuple_schema: &Schema,
+        tuple_schema: SchemaRef,
         key_attrs: Vec<u32>,
     ) -> Self {
         let key_schema = Schema::copy_schema(tuple_schema, &key_attrs);
@@ -34,7 +36,7 @@ impl IndexMetadata {
             index_name,
             table_name,
             key_attrs,
-            key_schema,
+            key_schema: Arc::new(key_schema),
         }
     }
 }
@@ -776,12 +778,12 @@ mod tests {
         let index_metadata = IndexMetadata::new(
             "test_index".to_string(),
             "test_table".to_string(),
-            &Schema::new(vec![
+            Arc::new(Schema::new(vec![
                 Column::new("a".to_string(), DataType::Int8),
                 Column::new("b".to_string(), DataType::Int16),
                 Column::new("c".to_string(), DataType::Int8),
                 Column::new("d".to_string(), DataType::Int16),
-            ]),
+            ])),
             vec![1, 3],
         );
         assert_eq!(index_metadata.key_schema.column_count(), 2);
@@ -803,10 +805,10 @@ mod tests {
         let index_metadata = IndexMetadata::new(
             "test_index".to_string(),
             "test_table".to_string(),
-            &Schema::new(vec![
+            Arc::new(Schema::new(vec![
                 Column::new("a".to_string(), DataType::Int8),
                 Column::new("b".to_string(), DataType::Int16),
-            ]),
+            ])),
             vec![0, 1],
         );
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
@@ -862,10 +864,10 @@ mod tests {
         let index_metadata = IndexMetadata::new(
             "test_index".to_string(),
             "test_table".to_string(),
-            &Schema::new(vec![
+            Arc::new(Schema::new(vec![
                 Column::new("a".to_string(), DataType::Int8),
                 Column::new("b".to_string(), DataType::Int16),
-            ]),
+            ])),
             vec![0, 1],
         );
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();

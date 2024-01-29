@@ -27,7 +27,7 @@ impl PhysicalCreateIndex {
         }
     }
     pub fn output_schema(&self) -> Schema {
-        Schema::copy_schema(&self.table_schema, &self.key_attrs)
+        Schema::copy_schema(self.table_schema.clone(), &self.key_attrs)
     }
 }
 impl VolcanoExecutor for PhysicalCreateIndex {
