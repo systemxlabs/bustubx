@@ -1,3 +1,4 @@
+use crate::catalog::SchemaRef;
 use crate::common::{config::BUSTUBX_PAGE_SIZE, rid::Rid};
 
 use super::{
@@ -26,6 +27,7 @@ pub const TABLE_PAGE_TUPLE_INFO_SIZE: usize = 2 + 2 + (4 + 4 + 4);
  *
  */
 pub struct TablePage {
+    pub schema: SchemaRef,
     pub next_page_id: PageId,
     pub num_tuples: u16,
     pub num_deleted_tuples: u16,
@@ -37,8 +39,9 @@ pub struct TablePage {
 }
 
 impl TablePage {
-    pub fn new(next_page_id: PageId) -> Self {
+    pub fn new(schema: SchemaRef, next_page_id: PageId) -> Self {
         Self {
+            schema,
             next_page_id,
             num_tuples: 0,
             num_deleted_tuples: 0,
@@ -145,9 +148,9 @@ impl TablePage {
     }
 
     // Parse real data from disk pages into memory pages.
-    pub fn from_bytes(data: &[u8]) -> Self {
+    pub fn from_bytes(schema: SchemaRef, data: &[u8]) -> Self {
         let next_page_id = u32::from_be_bytes([data[0], data[1], data[2], data[3]]);
-        let mut table_page = Self::new(next_page_id);
+        let mut table_page = Self::new(schema, next_page_id);
         table_page.num_tuples = u16::from_be_bytes([data[4], data[5]]);
         table_page.num_deleted_tuples = u16::from_be_bytes([data[6], data[7]]);
 
@@ -215,14 +218,16 @@ impl TablePage {
 
 #[cfg(test)]
 mod tests {
+    use crate::catalog::Schema;
     use crate::{
         common::{config::BUSTUBX_PAGE_SIZE, rid::Rid},
         storage::tuple::Tuple,
     };
+    use std::sync::Arc;
 
     #[test]
     pub fn test_table_page_insert() {
-        let mut table_page = super::TablePage::new(0);
+        let mut table_page = super::TablePage::new(Arc::new(Schema::empty()), 0);
         let meta = super::TupleMeta {
             insert_txn_id: 0,
             delete_txn_id: 0,
@@ -255,7 +260,7 @@ mod tests {
 
     #[test]
     pub fn test_table_page_get_tuple() {
-        let mut table_page = super::TablePage::new(0);
+        let mut table_page = super::TablePage::new(Arc::new(Schema::empty()), 0);
         let meta = super::TupleMeta {
             insert_txn_id: 0,
             delete_txn_id: 0,
@@ -279,7 +284,7 @@ mod tests {
 
     #[test]
     pub fn test_table_page_update_tuple_meta() {
-        let mut table_page = super::TablePage::new(0);
+        let mut table_page = super::TablePage::new(Arc::new(Schema::empty()), 0);
         let meta = super::TupleMeta {
             insert_txn_id: 0,
             delete_txn_id: 0,
@@ -303,7 +308,7 @@ mod tests {
 
     #[test]
     pub fn test_table_page_from_to_bytes() {
-        let mut table_page = super::TablePage::new(1);
+        let mut table_page = super::TablePage::new(Arc::new(Schema::empty()), 1);
         let meta = super::TupleMeta {
             insert_txn_id: 0,
             delete_txn_id: 0,
@@ -314,7 +319,7 @@ mod tests {
         let tuple_id3 = table_page.insert_tuple(&meta, &Tuple::new(vec![3, 3, 3]));
 
         let bytes = table_page.to_bytes();
-        let table_page2 = super::TablePage::from_bytes(&bytes);
+        let table_page2 = super::TablePage::from_bytes(Arc::new(Schema::empty()), &bytes);
         assert_eq!(table_page2.next_page_id, 1);
         assert_eq!(table_page2.num_tuples, 3);
         assert_eq!(table_page2.num_deleted_tuples, 0);
