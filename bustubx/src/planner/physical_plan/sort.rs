@@ -3,8 +3,8 @@ use std::sync::{atomic::AtomicU32, Arc, Mutex};
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
-    planner::{expr::Expr, order_by::BoundOrderBy},
-    storage::tuple::Tuple,
+    planner::order_by::BoundOrderBy,
+    storage::Tuple,
 };
 
 use super::PhysicalPlan;

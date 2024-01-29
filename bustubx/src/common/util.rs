@@ -1,6 +1,6 @@
 use comfy_table::Cell;
 
-use crate::{catalog::Schema, storage::tuple::Tuple};
+use crate::{catalog::Schema, storage::Tuple};
 
 pub fn print_tuples(tuples: &Vec<Tuple>, schema: &Schema) {
     if tuples.is_empty() {

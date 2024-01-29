@@ -3,7 +3,7 @@ use std::sync::{atomic::AtomicU32, Arc};
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
-    storage::tuple::Tuple,
+    storage::Tuple,
 };
 
 use super::PhysicalPlan;

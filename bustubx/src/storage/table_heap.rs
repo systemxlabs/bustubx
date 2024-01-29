@@ -217,7 +217,7 @@ mod tests {
     use crate::catalog::Schema;
     use crate::{
         buffer::buffer_pool::BufferPoolManager,
-        storage::{table_heap::TableHeap, tuple::Tuple, DiskManager},
+        storage::{table_heap::TableHeap, DiskManager, Tuple},
     };
 
     #[test]

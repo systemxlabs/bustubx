@@ -2,7 +2,7 @@ use crate::catalog::SchemaRef;
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
-    storage::tuple::Tuple,
+    storage::Tuple,
 };
 
 #[derive(Debug)]

@@ -4,7 +4,7 @@ use crate::common::table_ref::TableReference;
 use crate::common::ScalarValue;
 use crate::error::{BustubxError, BustubxResult};
 use crate::expression::ExprTrait;
-use crate::storage::tuple::Tuple;
+use crate::storage::Tuple;
 
 /// A named reference to a qualified field in a schema.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]

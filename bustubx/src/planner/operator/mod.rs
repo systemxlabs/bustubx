@@ -1,6 +1,6 @@
 use crate::catalog::{ColumnRef, SchemaRef};
 use crate::{
-    catalog::{catalog::TableOid, Schema},
+    catalog::{Schema, TableOid},
     common::ScalarValue,
     planner::{expr::Expr, order_by::BoundOrderBy, table_ref::join::JoinType},
 };

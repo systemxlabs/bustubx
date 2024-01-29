@@ -5,7 +5,7 @@ use crate::{
     common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     planner::{expr::Expr, table_ref::join::JoinType},
-    storage::tuple::Tuple,
+    storage::Tuple,
 };
 
 use super::PhysicalPlan;

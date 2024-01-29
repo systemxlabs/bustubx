@@ -221,7 +221,7 @@ mod tests {
     use crate::catalog::Schema;
     use crate::{
         common::{config::BUSTUBX_PAGE_SIZE, rid::Rid},
-        storage::tuple::Tuple,
+        storage::Tuple,
     };
     use std::sync::Arc;
 

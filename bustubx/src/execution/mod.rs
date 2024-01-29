@@ -3,9 +3,9 @@ use std::sync::Arc;
 use tracing::span;
 
 use crate::{
-    catalog::{catalog::Catalog, Schema},
+    catalog::{Catalog, Schema},
     planner::physical_plan::PhysicalPlan,
-    storage::tuple::Tuple,
+    storage::Tuple,
 };
 
 pub trait VolcanoExecutor {

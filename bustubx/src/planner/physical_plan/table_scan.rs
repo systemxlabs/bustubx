@@ -2,9 +2,9 @@ use std::sync::Mutex;
 
 use crate::catalog::ColumnRef;
 use crate::{
-    catalog::{catalog::TableOid, Schema},
+    catalog::{Schema, TableOid},
     execution::{ExecutionContext, VolcanoExecutor},
-    storage::{table_heap::TableIterator, tuple::Tuple},
+    storage::{table_heap::TableIterator, Tuple},
 };
 
 #[derive(Debug)]

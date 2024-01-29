@@ -4,6 +4,7 @@ pub mod index_page;
 pub mod page;
 pub mod table_heap;
 pub mod table_page;
-pub mod tuple;
+mod tuple;
 
 pub use disk_manager::DiskManager;
+pub use tuple::{Tuple, TupleMeta};

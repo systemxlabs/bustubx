@@ -1,6 +1,6 @@
 use std::mem::size_of;
 
-use super::{page::PageId, tuple::Tuple};
+use super::{page::PageId, Tuple};
 use crate::{
     catalog::Schema,
     common::{
@@ -586,7 +586,7 @@ mod tests {
         common::rid::Rid,
         storage::{
             index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePageType, InternalKV},
-            tuple::Tuple,
+            Tuple,
         },
     };
 

@@ -5,7 +5,7 @@ use crate::{
     catalog::Schema,
     common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
-    storage::tuple::Tuple,
+    storage::Tuple,
 };
 
 #[derive(Debug)]

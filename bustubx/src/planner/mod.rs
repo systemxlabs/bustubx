@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::common::table_ref::TableReference;
 use crate::{
-    catalog::catalog::{Catalog, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME},
+    catalog::{Catalog, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME},
     planner::expr::{
         binary_op::{BinaryOp, BinaryOperator},
         column_ref::ColumnRef,

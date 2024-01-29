@@ -1,4 +1,4 @@
-use crate::catalog::{catalog::TableOid, Schema, SchemaRef};
+use crate::catalog::{SchemaRef, TableOid};
 
 #[derive(Debug, Clone)]
 pub struct BoundBaseTableRef {

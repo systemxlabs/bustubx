@@ -5,7 +5,7 @@ use crate::planner::operator::LogicalOperator;
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
-    storage::tuple::Tuple,
+    storage::Tuple,
 };
 
 use self::{

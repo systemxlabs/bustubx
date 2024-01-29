@@ -1,5 +1,5 @@
 use crate::common::table_ref::TableReference;
-use crate::{catalog::Schema, common::ScalarValue, storage::tuple::Tuple};
+use crate::{catalog::Schema, common::ScalarValue, storage::Tuple};
 
 /// A bound column reference, e.g., `y.x` in the SELECT list.
 #[derive(Debug, Clone)]

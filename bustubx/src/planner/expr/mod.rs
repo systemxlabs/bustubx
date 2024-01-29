@@ -1,4 +1,4 @@
-use crate::{catalog::Schema, common::ScalarValue, storage::tuple::Tuple};
+use crate::{catalog::Schema, common::ScalarValue, storage::Tuple};
 
 use self::{alias::Alias, binary_op::BinaryOp, column_ref::ColumnRef, constant::BoundConstant};
 

@@ -17,7 +17,7 @@ pub type TableOid = u32;
 pub type IndexOid = u32;
 
 pub static DEFAULT_CATALOG_NAME: &str = "bustubx";
-pub static DEFAULT_SCHEMA_NAME: &str = "bustubx";
+pub static DEFAULT_SCHEMA_NAME: &str = "public";
 
 // table元信息
 #[derive(Debug)]

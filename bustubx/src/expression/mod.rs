@@ -2,7 +2,7 @@ use crate::catalog::DataType;
 use crate::catalog::Schema;
 use crate::common::ScalarValue;
 use crate::error::BustubxResult;
-use crate::storage::tuple::Tuple;
+use crate::storage::Tuple;
 
 mod alias;
 mod binary;

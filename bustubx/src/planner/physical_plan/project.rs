@@ -4,7 +4,7 @@ use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
     planner::expr::Expr,
-    storage::tuple::Tuple,
+    storage::Tuple,
 };
 
 use super::PhysicalPlan;

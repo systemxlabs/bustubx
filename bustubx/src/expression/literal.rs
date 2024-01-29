@@ -3,7 +3,7 @@ use crate::catalog::Schema;
 use crate::common::ScalarValue;
 use crate::error::BustubxResult;
 use crate::expression::ExprTrait;
-use crate::storage::tuple::Tuple;
+use crate::storage::Tuple;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Literal {

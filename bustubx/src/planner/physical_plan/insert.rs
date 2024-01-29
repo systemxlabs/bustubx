@@ -5,7 +5,7 @@ use crate::{
     catalog::{Column, DataType, Schema},
     common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
-    storage::tuple::{Tuple, TupleMeta},
+    storage::{Tuple, TupleMeta},
 };
 
 use super::PhysicalPlan;

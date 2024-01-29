@@ -8,11 +8,11 @@ use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::physical_planner::PhysicalPlanner;
 use crate::{
     buffer::buffer_pool::BufferPoolManager,
-    catalog::catalog::Catalog,
+    catalog::Catalog,
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     execution::{ExecutionContext, ExecutionEngine},
     planner::{Planner, PlannerContext},
-    storage::{tuple::Tuple, DiskManager},
+    storage::{DiskManager, Tuple},
 };
 
 pub struct Database {

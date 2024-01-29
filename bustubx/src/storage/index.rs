@@ -759,13 +759,14 @@ impl BPlusTreeIndex {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::remove_file, sync::Arc};
+    use std::sync::Arc;
+    use tempfile::TempDir;
 
     use crate::{
         buffer::buffer_pool,
         catalog::{Column, DataType, Schema},
         common::rid::Rid,
-        storage::{tuple::Tuple, DiskManager},
+        storage::{DiskManager, Tuple},
     };
 
     use super::{BPlusTreeIndex, IndexMetadata};
@@ -796,8 +797,8 @@ mod tests {
 
     #[test]
     pub fn test_index_insert() {
-        let db_path = "./test_index_insert.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
         let index_metadata = IndexMetadata::new(
             "test_index".to_string(),
@@ -808,7 +809,7 @@ mod tests {
             ]),
             vec![0, 1],
         );
-        let disk_manager = DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = buffer_pool::BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 2, 3);
 
@@ -851,14 +852,12 @@ mod tests {
         );
         assert_eq!(index.root_page_id, 6);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 7);
-
-        let _ = remove_file(db_path);
     }
 
     #[test]
     pub fn test_index_delete() {
-        let db_path = "./test_index_delete.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
         let index_metadata = IndexMetadata::new(
             "test_index".to_string(),
@@ -869,7 +868,7 @@ mod tests {
             ]),
             vec![0, 1],
         );
-        let disk_manager = DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = buffer_pool::BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 4, 5);
 
@@ -941,7 +940,5 @@ mod tests {
         assert_eq!(index.root_page_id, 0);
         assert_eq!(index.get(&Tuple::new(vec![2, 2, 2])), None);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
-
-        let _ = remove_file(db_path);
     }
 }
