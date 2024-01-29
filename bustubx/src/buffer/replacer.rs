@@ -3,7 +3,7 @@ use std::collections::{HashMap, LinkedList};
 use super::buffer_pool::FrameId;
 
 #[derive(Debug)]
-pub struct LRUKNode {
+struct LRUKNode {
     frame_id: FrameId,
     k: usize,
     // 该frame最近k次被访问的时间

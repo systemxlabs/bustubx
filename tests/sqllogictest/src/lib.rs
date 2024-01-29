@@ -8,7 +8,7 @@ pub struct BustubxDB {
 
 impl BustubxDB {
     pub fn new() -> Self {
-        let db = Database::new_temp();
+        let db = Database::new_temp().unwrap();
         Self { db }
     }
 }

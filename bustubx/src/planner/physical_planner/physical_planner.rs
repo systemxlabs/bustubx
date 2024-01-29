@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::planner::logical_plan::LogicalPlan;
 
-use super::physical_plan::{build_plan, PhysicalPlan};
+use crate::planner::physical_plan::{build_plan, PhysicalPlan};
 
 pub struct PhysicalPlanner;
 

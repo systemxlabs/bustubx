@@ -3,9 +3,9 @@ use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 use sqlparser::ast::{ObjectName, OrderByExpr};
 
-use super::Planner;
+use super::LogicalPlanner;
 
-impl<'a> Planner<'a> {
+impl<'a> LogicalPlanner<'a> {
     pub fn plan_create_index(
         &self,
         index_name: &ObjectName,

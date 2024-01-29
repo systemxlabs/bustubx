@@ -5,13 +5,13 @@ use tracing::span;
 
 use crate::error::{BustubxError, BustubxResult};
 use crate::planner::logical_plan::LogicalPlan;
-use crate::planner::physical_planner::PhysicalPlanner;
+use crate::planner::PhysicalPlanner;
 use crate::{
     buffer::BufferPoolManager,
     catalog::Catalog,
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     execution::{ExecutionContext, ExecutionEngine},
-    planner::{Planner, PlannerContext},
+    planner::{LogicalPlanner, PlannerContext},
     storage::{DiskManager, Tuple},
 };
 
@@ -21,31 +21,34 @@ pub struct Database {
     temp_dir: Option<TempDir>,
 }
 impl Database {
-    pub fn new_on_disk(db_path: &str) -> Self {
-        let disk_manager = Arc::new(DiskManager::try_new(&db_path).unwrap());
+    pub fn new_on_disk(db_path: &str) -> BustubxResult<Self> {
+        let disk_manager = Arc::new(DiskManager::try_new(&db_path)?);
         let buffer_pool_manager =
             BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
         // TODO load catalog from disk
         let catalog = Catalog::new(buffer_pool_manager);
-        Self {
+        Ok(Self {
             disk_manager,
             catalog,
             temp_dir: None,
-        }
+        })
     }
 
-    pub fn new_temp() -> Self {
-        let temp_dir = TempDir::new().unwrap();
+    pub fn new_temp() -> BustubxResult<Self> {
+        let temp_dir = TempDir::new()?;
         let temp_path = temp_dir.path().join("test.db");
-        let disk_manager = Arc::new(DiskManager::try_new(temp_path.to_str().unwrap()).unwrap());
+        let disk_manager =
+            Arc::new(DiskManager::try_new(temp_path.to_str().ok_or(
+                BustubxError::Internal("Invalid temp path".to_string()),
+            )?)?);
         let buffer_pool_manager =
             BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
         let catalog = Catalog::new(buffer_pool_manager);
-        Self {
+        Ok(Self {
             disk_manager,
             catalog,
             temp_dir: Some(temp_dir),
-        }
+        })
     }
 
     pub fn run(&mut self, sql: &str) -> BustubxResult<Vec<Tuple>> {
@@ -77,7 +80,7 @@ impl Database {
             ));
         }
         let stmt = &stmts[0];
-        let mut planner = Planner {
+        let mut planner = LogicalPlanner {
             context: PlannerContext {
                 catalog: &self.catalog,
             },
@@ -110,7 +113,7 @@ mod tests {
 
     #[test]
     pub fn test_create_table_sql() {
-        let mut db = super::Database::new_temp();
+        let mut db = super::Database::new_temp().unwrap();
         db.run("create table t1 (a int, b int)");
 
         let table = db.catalog.get_table_by_name("t1");
@@ -126,7 +129,7 @@ mod tests {
 
     #[test]
     pub fn test_create_index_sql() {
-        let mut db = super::Database::new_temp();
+        let mut db = super::Database::new_temp().unwrap();
         db.run("create table t1 (a int, b int)");
         db.run("create index idx1 on t1 (a)");
 
@@ -140,7 +143,7 @@ mod tests {
 
     #[test]
     pub fn test_insert_sql() {
-        let mut db = super::Database::new_temp();
+        let mut db = super::Database::new_temp().unwrap();
         db.run(&"create table t1 (a int, b int)".to_string());
         let insert_rows = db
             .run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string())
@@ -157,7 +160,7 @@ mod tests {
 
     #[test]
     pub fn test_select_wildcard_sql() {
-        let mut db = super::Database::new_temp();
+        let mut db = super::Database::new_temp().unwrap();
         db.run(&"create table t1 (a int, b bigint)".to_string());
 
         let select_result = db.run(&"select * from t1".to_string()).unwrap();
@@ -200,7 +203,7 @@ mod tests {
 
     #[test]
     pub fn test_select_where_sql() {
-        let mut db = super::Database::new_temp();
+        let mut db = super::Database::new_temp().unwrap();
         db.run(&"create table t1 (a int, b int)".to_string());
         db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
         let select_result = db
@@ -221,7 +224,7 @@ mod tests {
 
     #[test]
     pub fn test_select_limit_sql() {
-        let mut db = super::Database::new_temp();
+        let mut db = super::Database::new_temp().unwrap();
         db.run(&"create table t1 (a int, b int)".to_string());
         db.run(&"insert into t1 values (1, 1), (2, 3), (5, 4)".to_string());
         let select_result = db
@@ -380,7 +383,7 @@ mod tests {
 
     #[test]
     pub fn test_select_order_by_sql() {
-        let mut db = super::Database::new_temp();
+        let mut db = super::Database::new_temp().unwrap();
         db.run(&"create table t1 (a int, b int)".to_string());
         db.run(&"insert into t1 values (5, 6), (1, 2), (1, 4)".to_string());
         let select_result = db

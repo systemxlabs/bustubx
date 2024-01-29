@@ -1,12 +1,13 @@
+use crate::planner::expr::Expr;
 use sqlparser::ast::{Ident, ObjectName, Query, SetExpr};
 use std::sync::Arc;
 
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 
-use super::{expr::Expr, Planner};
+use super::LogicalPlanner;
 
-impl<'a> Planner<'a> {
+impl<'a> LogicalPlanner<'a> {
     pub fn plan_insert(
         &self,
         table_name: &ObjectName,

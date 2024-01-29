@@ -23,7 +23,7 @@ fn main() -> Result<()> {
         .with(chrome_layer)
         .init();
     */
-    let mut db = Database::new_temp();
+    let mut db = Database::new_temp().unwrap();
     info!("database created");
     let mut rl = DefaultEditor::new()?;
     loop {

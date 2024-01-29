@@ -5,10 +5,11 @@ use crate::planner::expr::constant::Constant;
 use crate::planner::expr::{alias::Alias, Expr};
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
+use crate::planner::order_by::BoundOrderBy;
 
-use super::{order_by::BoundOrderBy, Planner};
+use super::LogicalPlanner;
 
-impl<'a> Planner<'a> {
+impl<'a> LogicalPlanner<'a> {
     pub fn plan_select(&mut self, query: &Query) -> LogicalPlan {
         let select = match query.body.as_ref() {
             SetExpr::Select(select) => &**select,
