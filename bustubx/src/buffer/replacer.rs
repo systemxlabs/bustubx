@@ -122,6 +122,7 @@ impl LRUKReplacer {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::LRUKReplacer;
 

@@ -3,13 +3,8 @@ use std::{
     sync::Arc,
 };
 
-use crate::{
-    common::config::BUSTUBX_PAGE_SIZE,
-    storage::{
-        page::{Page, PageId},
-        DiskManager,
-    },
-};
+use crate::buffer::page::{Page, PageId};
+use crate::{common::config::BUSTUBX_PAGE_SIZE, storage::DiskManager};
 
 use super::replacer::LRUKReplacer;
 
@@ -234,8 +229,9 @@ impl BufferPoolManager {
     }
 }
 
+#[cfg(test)]
 mod tests {
-    use crate::{buffer::buffer_pool::BufferPoolManager, storage::DiskManager};
+    use crate::{buffer::BufferPoolManager, storage::DiskManager};
     use std::{fs::remove_file, sync::Arc};
 
     #[test]

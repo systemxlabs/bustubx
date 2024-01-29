@@ -1,11 +1,11 @@
+use crate::buffer::PageId;
 use crate::catalog::SchemaRef;
 use crate::{
-    buffer::buffer_pool::BufferPoolManager,
+    buffer::BufferPoolManager,
     common::{config::INVALID_PAGE_ID, rid::Rid},
 };
 
 use super::{
-    page::PageId,
     table_page::TablePage,
     tuple::{Tuple, TupleMeta},
 };
@@ -216,7 +216,7 @@ mod tests {
 
     use crate::catalog::Schema;
     use crate::{
-        buffer::buffer_pool::BufferPoolManager,
+        buffer::BufferPoolManager,
         storage::{table_heap::TableHeap, DiskManager, Tuple},
     };
 

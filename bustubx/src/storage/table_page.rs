@@ -1,10 +1,8 @@
+use crate::buffer::PageId;
 use crate::catalog::SchemaRef;
 use crate::common::{config::BUSTUBX_PAGE_SIZE, rid::Rid};
 
-use super::{
-    page::PageId,
-    tuple::{Tuple, TupleMeta},
-};
+use super::tuple::{Tuple, TupleMeta};
 
 pub const TABLE_PAGE_HEADER_SIZE: usize = 4 + 2 + 2;
 pub const TABLE_PAGE_TUPLE_INFO_SIZE: usize = 2 + 2 + (4 + 4 + 4);

@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::atomic::AtomicU32};
 
 use crate::catalog::SchemaRef;
 use crate::{
-    buffer::buffer_pool::BufferPoolManager,
+    buffer::BufferPoolManager,
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     storage::{
         index::{BPlusTreeIndex, IndexMetadata},
@@ -185,7 +185,7 @@ mod tests {
     use std::{fs::remove_file, sync::Arc};
 
     use crate::{
-        buffer::buffer_pool::BufferPoolManager,
+        buffer::BufferPoolManager,
         catalog::{Column, DataType, Schema},
         storage::DiskManager,
     };

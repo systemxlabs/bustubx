@@ -1,9 +1,10 @@
 use std::collections::VecDeque;
 use std::sync::Arc;
 
+use crate::buffer::PageId;
 use crate::catalog::SchemaRef;
 use crate::{
-    buffer::buffer_pool::BufferPoolManager,
+    buffer::BufferPoolManager,
     catalog::Schema,
     common::{config::INVALID_PAGE_ID, rid::Rid},
     storage::index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePage},
@@ -11,7 +12,6 @@ use crate::{
 
 use super::{
     index_page::{InternalKV, LeafKV},
-    page::PageId,
     tuple::Tuple,
 };
 
@@ -781,7 +781,7 @@ mod tests {
     use tempfile::TempDir;
 
     use crate::{
-        buffer::buffer_pool,
+        buffer::BufferPoolManager,
         catalog::{Column, DataType, Schema},
         common::rid::Rid,
         storage::{DiskManager, Tuple},
@@ -828,7 +828,7 @@ mod tests {
             vec![0, 1],
         );
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
-        let buffer_pool_manager = buffer_pool::BufferPoolManager::new(1000, Arc::new(disk_manager));
+        let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 2, 3);
 
         index.insert(&Tuple::new(vec![1, 1, 1]), Rid::new(1, 1));
@@ -887,7 +887,7 @@ mod tests {
             vec![0, 1],
         );
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
-        let buffer_pool_manager = buffer_pool::BufferPoolManager::new(1000, Arc::new(disk_manager));
+        let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 4, 5);
 
         index.insert(&Tuple::new(vec![1, 1, 1]), Rid::new(1, 1));

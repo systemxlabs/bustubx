@@ -1,4 +1,4 @@
-use crate::storage::page::PageId;
+use crate::buffer::PageId;
 
 // 数据页的大小（字节）
 pub const BUSTUBX_PAGE_SIZE: usize = 4096;

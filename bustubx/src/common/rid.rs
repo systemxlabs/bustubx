@@ -1,4 +1,4 @@
-use crate::storage::page::PageId;
+use crate::buffer::PageId;
 
 // Record Identifier
 #[derive(derive_new::new, Debug, Clone, Copy, PartialEq, Eq)]

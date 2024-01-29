@@ -1,6 +1,7 @@
 use std::mem::size_of;
 
-use super::{page::PageId, Tuple};
+use super::Tuple;
+use crate::buffer::PageId;
 use crate::catalog::SchemaRef;
 use crate::{
     catalog::Schema,
@@ -592,7 +593,7 @@ mod tests {
         catalog::{Column, DataType, Schema},
         common::rid::Rid,
         storage::{
-            index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePageType, InternalKV},
+            index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePageType},
             Tuple,
         },
     };

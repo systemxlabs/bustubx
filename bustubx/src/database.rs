@@ -7,7 +7,7 @@ use crate::error::{BustubxError, BustubxResult};
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::physical_planner::PhysicalPlanner;
 use crate::{
-    buffer::buffer_pool::BufferPoolManager,
+    buffer::BufferPoolManager,
     catalog::Catalog,
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     execution::{ExecutionContext, ExecutionEngine},
