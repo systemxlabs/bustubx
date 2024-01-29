@@ -1,5 +1,6 @@
 use crate::catalog::{ColumnRef, SchemaRef};
 use crate::{catalog::Schema, common::config::TransactionId, common::ScalarValue};
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TupleMeta {
@@ -10,40 +11,47 @@ pub struct TupleMeta {
 
 #[derive(Debug, Clone)]
 pub struct Tuple {
+    pub schema: SchemaRef,
     pub data: Vec<u8>,
 }
 
 impl Tuple {
-    pub fn new(data: Vec<u8>) -> Self {
-        Self { data }
+    pub fn new(schema: SchemaRef, data: Vec<u8>) -> Self {
+        Self { schema, data }
     }
 
-    pub fn empty(size: usize) -> Self {
+    pub fn empty(schema: SchemaRef, size: usize) -> Self {
         Self {
+            schema,
             data: vec![0; size],
         }
     }
 
-    pub fn from_values(values: Vec<ScalarValue>) -> Self {
+    pub fn from_values(schema: SchemaRef, values: Vec<ScalarValue>) -> Self {
         let mut data = vec![];
         for value in values {
             data.extend(value.to_bytes());
         }
-        Self { data }
+        Self { schema, data }
     }
 
-    pub fn from_bytes(raw: &[u8]) -> Self {
+    pub fn from_bytes(schema: SchemaRef, raw: &[u8]) -> Self {
         let data = raw.to_vec();
-        Self { data }
+        Self { schema, data }
     }
 
     // TODO add unit test to make sure this still works if tuple format changes
     pub fn from_tuples(tuples: Vec<(Tuple, Schema)>) -> Self {
         let mut data = vec![];
+        let mut merged_schema = Schema::empty();
         for (tuple, schema) in tuples {
             data.extend(tuple.data);
+            merged_schema = Schema::try_merge(vec![merged_schema, schema]).unwrap();
         }
-        Self { data }
+        Self {
+            schema: Arc::new(merged_schema),
+            data,
+        }
     }
 
     pub fn is_zero(&self) -> bool {
@@ -114,18 +122,19 @@ impl Tuple {
 #[cfg(test)]
 mod tests {
     use crate::catalog::{Column, DataType, Schema};
+    use std::sync::Arc;
 
     #[test]
     pub fn test_compare() {
-        let schema = Schema::new(vec![
+        let schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8),
             Column::new("b".to_string(), DataType::Int16),
-        ]);
-        let tuple1 = super::Tuple::new(vec![1u8, 1, 1]);
-        let tuple2 = super::Tuple::new(vec![1u8, 1, 1]);
-        let tuple3 = super::Tuple::new(vec![1u8, 2, 1]);
-        let tuple4 = super::Tuple::new(vec![2u8, 1, 1]);
-        let tuple5 = super::Tuple::new(vec![1u8, 0, 1]);
+        ]));
+        let tuple1 = super::Tuple::new(schema.clone(), vec![1u8, 1, 1]);
+        let tuple2 = super::Tuple::new(schema.clone(), vec![1u8, 1, 1]);
+        let tuple3 = super::Tuple::new(schema.clone(), vec![1u8, 2, 1]);
+        let tuple4 = super::Tuple::new(schema.clone(), vec![2u8, 1, 1]);
+        let tuple5 = super::Tuple::new(schema.clone(), vec![1u8, 0, 1]);
 
         assert_eq!(tuple1.compare(&tuple2, &schema), std::cmp::Ordering::Equal);
         assert_eq!(tuple1.compare(&tuple3, &schema), std::cmp::Ordering::Less);

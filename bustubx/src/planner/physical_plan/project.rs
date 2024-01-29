@@ -34,6 +34,9 @@ impl VolcanoExecutor for PhysicalProject {
         for expr in &self.expressions {
             new_values.push(expr.evaluate(next_tuple.as_ref(), Some(&self.input.output_schema())));
         }
-        return Some(Tuple::from_values(new_values));
+        return Some(Tuple::from_values(
+            Arc::new(self.output_schema()),
+            new_values,
+        ));
     }
 }

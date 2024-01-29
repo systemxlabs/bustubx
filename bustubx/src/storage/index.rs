@@ -140,7 +140,10 @@ impl BPlusTreeIndex {
 
                 // internal page第一个kv对的key为空
                 new_internal_page.insert(
-                    Tuple::empty(self.index_metadata.key_schema.fixed_len()),
+                    Tuple::empty(
+                        self.index_metadata.key_schema.clone(),
+                        self.index_metadata.key_schema.fixed_len(),
+                    ),
                     self.root_page_id,
                     &self.index_metadata.key_schema,
                 );
@@ -818,54 +821,65 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
+        let schema = Arc::new(Schema::new(vec![
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+        ]));
         let index_metadata = IndexMetadata::new(
             "test_index".to_string(),
             "test_table".to_string(),
-            Arc::new(Schema::new(vec![
-                Column::new("a".to_string(), DataType::Int8),
-                Column::new("b".to_string(), DataType::Int16),
-            ])),
+            schema.clone(),
             vec![0, 1],
         );
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 2, 3);
 
-        index.insert(&Tuple::new(vec![1, 1, 1]), Rid::new(1, 1));
+        index.insert(&Tuple::new(schema.clone(), vec![1, 1, 1]), Rid::new(1, 1));
         assert_eq!(
-            index.get(&Tuple::new(vec![1, 1, 1])).unwrap(),
+            index
+                .get(&Tuple::new(schema.clone(), vec![1, 1, 1]))
+                .unwrap(),
             Rid::new(1, 1)
         );
         assert_eq!(index.root_page_id, 0);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
-        index.insert(&Tuple::new(vec![2, 2, 2]), Rid::new(2, 2));
+        index.insert(&Tuple::new(schema.clone(), vec![2, 2, 2]), Rid::new(2, 2));
         assert_eq!(
-            index.get(&Tuple::new(vec![2, 2, 2])).unwrap(),
+            index
+                .get(&Tuple::new(schema.clone(), vec![2, 2, 2]))
+                .unwrap(),
             Rid::new(2, 2)
         );
         assert_eq!(index.root_page_id, 0);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
-        index.insert(&Tuple::new(vec![3, 3, 3]), Rid::new(3, 3));
+        index.insert(&Tuple::new(schema.clone(), vec![3, 3, 3]), Rid::new(3, 3));
         assert_eq!(
-            index.get(&Tuple::new(vec![3, 3, 3])).unwrap(),
+            index
+                .get(&Tuple::new(schema.clone(), vec![3, 3, 3]))
+                .unwrap(),
             Rid::new(3, 3)
         );
         assert_eq!(index.root_page_id, 2);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 3);
 
-        index.insert(&Tuple::new(vec![4, 4, 4]), Rid::new(4, 4));
+        index.insert(&Tuple::new(schema.clone(), vec![4, 4, 4]), Rid::new(4, 4));
         assert_eq!(
-            index.get(&Tuple::new(vec![4, 4, 4])).unwrap(),
+            index
+                .get(&Tuple::new(schema.clone(), vec![4, 4, 4]))
+                .unwrap(),
             Rid::new(4, 4)
         );
         assert_eq!(index.root_page_id, 2);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
 
-        index.insert(&Tuple::new(vec![5, 5, 5]), Rid::new(5, 5));
+        index.insert(&Tuple::new(schema.clone(), vec![5, 5, 5]), Rid::new(5, 5));
         assert_eq!(
-            index.get(&Tuple::new(vec![5, 5, 5])).unwrap(),
+            index
+                .get(&Tuple::new(schema.clone(), vec![5, 5, 5]))
+                .unwrap(),
             Rid::new(5, 5)
         );
         assert_eq!(index.root_page_id, 6);
@@ -877,86 +891,93 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
+        let schema = Arc::new(Schema::new(vec![
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+        ]));
         let index_metadata = IndexMetadata::new(
             "test_index".to_string(),
             "test_table".to_string(),
-            Arc::new(Schema::new(vec![
-                Column::new("a".to_string(), DataType::Int8),
-                Column::new("b".to_string(), DataType::Int16),
-            ])),
+            schema.clone(),
             vec![0, 1],
         );
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 4, 5);
 
-        index.insert(&Tuple::new(vec![1, 1, 1]), Rid::new(1, 1));
-        index.insert(&Tuple::new(vec![2, 2, 2]), Rid::new(2, 2));
-        index.insert(&Tuple::new(vec![3, 3, 3]), Rid::new(3, 3));
-        index.insert(&Tuple::new(vec![4, 4, 4]), Rid::new(4, 4));
-        index.insert(&Tuple::new(vec![5, 5, 5]), Rid::new(5, 5));
-        index.insert(&Tuple::new(vec![6, 6, 6]), Rid::new(6, 6));
-        index.insert(&Tuple::new(vec![7, 7, 7]), Rid::new(7, 7));
-        index.insert(&Tuple::new(vec![8, 8, 8]), Rid::new(8, 8));
-        index.insert(&Tuple::new(vec![9, 9, 9]), Rid::new(9, 9));
-        index.insert(&Tuple::new(vec![10, 10, 10]), Rid::new(10, 10));
+        index.insert(&Tuple::new(schema.clone(), vec![1, 1, 1]), Rid::new(1, 1));
+        index.insert(&Tuple::new(schema.clone(), vec![2, 2, 2]), Rid::new(2, 2));
+        index.insert(&Tuple::new(schema.clone(), vec![3, 3, 3]), Rid::new(3, 3));
+        index.insert(&Tuple::new(schema.clone(), vec![4, 4, 4]), Rid::new(4, 4));
+        index.insert(&Tuple::new(schema.clone(), vec![5, 5, 5]), Rid::new(5, 5));
+        index.insert(&Tuple::new(schema.clone(), vec![6, 6, 6]), Rid::new(6, 6));
+        index.insert(&Tuple::new(schema.clone(), vec![7, 7, 7]), Rid::new(7, 7));
+        index.insert(&Tuple::new(schema.clone(), vec![8, 8, 8]), Rid::new(8, 8));
+        index.insert(&Tuple::new(schema.clone(), vec![9, 9, 9]), Rid::new(9, 9));
+        index.insert(
+            &Tuple::new(schema.clone(), vec![10, 10, 10]),
+            Rid::new(10, 10),
+        );
         assert_eq!(index.buffer_pool_manager.replacer.size(), 5);
         assert_eq!(index.root_page_id, 2);
         index.print_tree();
 
-        index.delete(&Tuple::new(vec![1, 1, 1]));
+        index.delete(&Tuple::new(schema.clone(), vec![1, 1, 1]));
         assert_eq!(index.root_page_id, 2);
-        assert_eq!(index.get(&Tuple::new(vec![1, 1, 1])), None);
+        assert_eq!(index.get(&Tuple::new(schema.clone(), vec![1, 1, 1])), None);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
 
-        index.delete(&Tuple::new(vec![3, 3, 3]));
+        index.delete(&Tuple::new(schema.clone(), vec![3, 3, 3]));
         assert_eq!(index.root_page_id, 2);
-        assert_eq!(index.get(&Tuple::new(vec![3, 3, 3])), None);
+        assert_eq!(index.get(&Tuple::new(schema.clone(), vec![3, 3, 3])), None);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
 
-        index.delete(&Tuple::new(vec![5, 5, 5]));
+        index.delete(&Tuple::new(schema.clone(), vec![5, 5, 5]));
         assert_eq!(index.root_page_id, 2);
-        assert_eq!(index.get(&Tuple::new(vec![5, 5, 5])), None);
+        assert_eq!(index.get(&Tuple::new(schema.clone(), vec![5, 5, 5])), None);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
 
-        index.delete(&Tuple::new(vec![7, 7, 7]));
+        index.delete(&Tuple::new(schema.clone(), vec![7, 7, 7]));
         assert_eq!(index.root_page_id, 2);
-        assert_eq!(index.get(&Tuple::new(vec![7, 7, 7])), None);
+        assert_eq!(index.get(&Tuple::new(schema.clone(), vec![7, 7, 7])), None);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
 
-        index.delete(&Tuple::new(vec![9, 9, 9]));
+        index.delete(&Tuple::new(schema.clone(), vec![9, 9, 9]));
         assert_eq!(index.root_page_id, 2);
-        assert_eq!(index.get(&Tuple::new(vec![9, 9, 9])), None);
+        assert_eq!(index.get(&Tuple::new(schema.clone(), vec![9, 9, 9])), None);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 3);
 
-        index.delete(&Tuple::new(vec![10, 10, 10]));
+        index.delete(&Tuple::new(schema.clone(), vec![10, 10, 10]));
         assert_eq!(index.root_page_id, 2);
-        assert_eq!(index.get(&Tuple::new(vec![10, 10, 10])), None);
+        assert_eq!(
+            index.get(&Tuple::new(schema.clone(), vec![10, 10, 10])),
+            None
+        );
         assert_eq!(index.buffer_pool_manager.replacer.size(), 3);
 
-        index.delete(&Tuple::new(vec![8, 8, 8]));
+        index.delete(&Tuple::new(schema.clone(), vec![8, 8, 8]));
         assert_eq!(index.root_page_id, 0);
-        assert_eq!(index.get(&Tuple::new(vec![8, 8, 8])), None);
+        assert_eq!(index.get(&Tuple::new(schema.clone(), vec![8, 8, 8])), None);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
-        index.delete(&Tuple::new(vec![6, 6, 6]));
+        index.delete(&Tuple::new(schema.clone(), vec![6, 6, 6]));
         assert_eq!(index.root_page_id, 0);
-        assert_eq!(index.get(&Tuple::new(vec![6, 6, 6])), None);
+        assert_eq!(index.get(&Tuple::new(schema.clone(), vec![6, 6, 6])), None);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
-        index.delete(&Tuple::new(vec![4, 4, 4]));
+        index.delete(&Tuple::new(schema.clone(), vec![4, 4, 4]));
         assert_eq!(index.root_page_id, 0);
-        assert_eq!(index.get(&Tuple::new(vec![4, 4, 4])), None);
+        assert_eq!(index.get(&Tuple::new(schema.clone(), vec![4, 4, 4])), None);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
-        index.delete(&Tuple::new(vec![2, 2, 2]));
+        index.delete(&Tuple::new(schema.clone(), vec![2, 2, 2]));
         assert_eq!(index.root_page_id, 0);
-        assert_eq!(index.get(&Tuple::new(vec![2, 2, 2])), None);
+        assert_eq!(index.get(&Tuple::new(schema.clone(), vec![2, 2, 2])), None);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
-        index.delete(&Tuple::new(vec![2, 2, 2]));
+        index.delete(&Tuple::new(schema.clone(), vec![2, 2, 2]));
         assert_eq!(index.root_page_id, 0);
-        assert_eq!(index.get(&Tuple::new(vec![2, 2, 2])), None);
+        assert_eq!(index.get(&Tuple::new(schema.clone(), vec![2, 2, 2])), None);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
     }
 }

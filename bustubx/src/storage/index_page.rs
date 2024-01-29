@@ -235,7 +235,7 @@ impl BPlusTreeInternalPage {
                     self.array.remove(0);
                     self.current_size -= 1;
                     // 把第一个key置空
-                    self.array[0].0 = Tuple::empty(self.array[0].0.data.len());
+                    self.array[0].0 = Tuple::empty(self.schema.clone(), self.array[0].0.data.len());
                 } else {
                     self.array.remove(i as usize);
                     self.current_size -= 1;
@@ -338,7 +338,7 @@ impl BPlusTreeInternalPage {
         for i in 0..current_size {
             let start = 12 + i as usize * kv_size;
             let end = 12 + (i + 1) as usize * kv_size;
-            let key = Tuple::from_bytes(&raw[start..start + key_size]);
+            let key = Tuple::from_bytes(key_schema.clone(), &raw[start..start + key_size]);
             let page_id = u32::from_be_bytes(raw[start + key_size..end].try_into().unwrap());
             array.push((key, page_id));
         }
@@ -442,7 +442,7 @@ impl BPlusTreeLeafPage {
         for i in 0..current_size {
             let start = 16 + i as usize * kv_size;
             let end = 16 + (i + 1) as usize * kv_size;
-            let key = Tuple::from_bytes(&raw[start..start + key_size]);
+            let key = Tuple::from_bytes(key_schema.clone(), &raw[start..start + key_size]);
             let rid = Rid::from_bytes(raw[start + key_size..end].try_into().unwrap());
             array.push((key, rid));
         }
@@ -606,9 +606,17 @@ mod tests {
             Column::new("a".to_string(), DataType::Int16),
         ]));
         let mut ori_page = BPlusTreeInternalPage::new(key_schema.clone(), 5);
-        ori_page.insert(Tuple::empty(3), 0, &key_schema);
-        ori_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
-        ori_page.insert(Tuple::new(vec![2, 2, 2]), 2, &key_schema);
+        ori_page.insert(Tuple::empty(key_schema.clone(), 3), 0, &key_schema);
+        ori_page.insert(
+            Tuple::new(key_schema.clone(), vec![1, 1, 1]),
+            1,
+            &key_schema,
+        );
+        ori_page.insert(
+            Tuple::new(key_schema.clone(), vec![2, 2, 2]),
+            2,
+            &key_schema,
+        );
         assert_eq!(ori_page.current_size, 3);
 
         let bytes = ori_page.to_bytes();
@@ -632,8 +640,16 @@ mod tests {
             Column::new("a".to_string(), DataType::Int16),
         ]));
         let mut ori_page = BPlusTreeLeafPage::new(key_schema.clone(), 5);
-        ori_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
-        ori_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
+        ori_page.insert(
+            Tuple::new(key_schema.clone(), vec![1, 1, 1]),
+            Rid::new(1, 1),
+            &key_schema,
+        );
+        ori_page.insert(
+            Tuple::new(key_schema.clone(), vec![2, 2, 2]),
+            Rid::new(2, 2),
+            &key_schema,
+        );
         assert_eq!(ori_page.current_size, 2);
 
         let bytes = ori_page.to_bytes();
@@ -655,9 +671,21 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16),
         ]));
         let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 3);
-        internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
-        internal_page.insert(Tuple::new(vec![2, 2, 2]), 2, &key_schema);
-        internal_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
+        internal_page.insert(
+            Tuple::empty(key_schema.clone(), key_schema.fixed_len()),
+            0,
+            &key_schema,
+        );
+        internal_page.insert(
+            Tuple::new(key_schema.clone(), vec![2, 2, 2]),
+            2,
+            &key_schema,
+        );
+        internal_page.insert(
+            Tuple::new(key_schema.clone(), vec![1, 1, 1]),
+            1,
+            &key_schema,
+        );
         assert_eq!(internal_page.current_size, 3);
         assert_eq!(internal_page.array[0].0.data, vec![0, 0, 0]);
         assert_eq!(internal_page.array[0].1, 0);
@@ -674,9 +702,21 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16),
         ]));
         let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 3);
-        leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
-        leaf_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
-        leaf_page.insert(Tuple::new(vec![3, 3, 3]), Rid::new(3, 3), &key_schema);
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![2, 2, 2]),
+            Rid::new(2, 2),
+            &key_schema,
+        );
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![1, 1, 1]),
+            Rid::new(1, 1),
+            &key_schema,
+        );
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![3, 3, 3]),
+            Rid::new(3, 3),
+            &key_schema,
+        );
         assert_eq!(leaf_page.current_size, 3);
         assert_eq!(leaf_page.array[0].0.data, vec![1, 1, 1]);
         assert_eq!(leaf_page.array[0].1, Rid::new(1, 1));
@@ -693,39 +733,67 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16),
         ]));
         let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 5);
-        internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
-        internal_page.insert(Tuple::new(vec![2, 2, 2]), 2, &key_schema);
-        internal_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
-        internal_page.insert(Tuple::new(vec![3, 3, 3]), 3, &key_schema);
-        internal_page.insert(Tuple::new(vec![4, 4, 4]), 4, &key_schema);
+        internal_page.insert(
+            Tuple::empty(key_schema.clone(), key_schema.fixed_len()),
+            0,
+            &key_schema,
+        );
+        internal_page.insert(
+            Tuple::new(key_schema.clone(), vec![2, 2, 2]),
+            2,
+            &key_schema,
+        );
+        internal_page.insert(
+            Tuple::new(key_schema.clone(), vec![1, 1, 1]),
+            1,
+            &key_schema,
+        );
+        internal_page.insert(
+            Tuple::new(key_schema.clone(), vec![3, 3, 3]),
+            3,
+            &key_schema,
+        );
+        internal_page.insert(
+            Tuple::new(key_schema.clone(), vec![4, 4, 4]),
+            4,
+            &key_schema,
+        );
 
         assert_eq!(
-            internal_page.look_up(&Tuple::new(vec![0, 0, 0]), &key_schema),
+            internal_page.look_up(&Tuple::new(key_schema.clone(), vec![0, 0, 0]), &key_schema),
             0
         );
         assert_eq!(
-            internal_page.look_up(&Tuple::new(vec![3, 3, 3]), &key_schema),
+            internal_page.look_up(&Tuple::new(key_schema.clone(), vec![3, 3, 3]), &key_schema),
             3
         );
         assert_eq!(
-            internal_page.look_up(&Tuple::new(vec![5, 5, 5]), &key_schema),
+            internal_page.look_up(&Tuple::new(key_schema.clone(), vec![5, 5, 5]), &key_schema),
             4
         );
 
         let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 2);
-        internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
-        internal_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
+        internal_page.insert(
+            Tuple::empty(key_schema.clone(), key_schema.fixed_len()),
+            0,
+            &key_schema,
+        );
+        internal_page.insert(
+            Tuple::new(key_schema.clone(), vec![1, 1, 1]),
+            1,
+            &key_schema,
+        );
 
         assert_eq!(
-            internal_page.look_up(&Tuple::new(vec![0, 0, 0]), &key_schema),
+            internal_page.look_up(&Tuple::new(key_schema.clone(), vec![0, 0, 0]), &key_schema),
             0
         );
         assert_eq!(
-            internal_page.look_up(&Tuple::new(vec![1, 1, 1]), &key_schema),
+            internal_page.look_up(&Tuple::new(key_schema.clone(), vec![1, 1, 1]), &key_schema),
             1
         );
         assert_eq!(
-            internal_page.look_up(&Tuple::new(vec![2, 2, 2]), &key_schema),
+            internal_page.look_up(&Tuple::new(key_schema.clone(), vec![2, 2, 2]), &key_schema),
             1
         );
     }
@@ -737,45 +805,73 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16),
         ]));
         let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 5);
-        leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
-        leaf_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
-        leaf_page.insert(Tuple::new(vec![3, 3, 3]), Rid::new(3, 3), &key_schema);
-        leaf_page.insert(Tuple::new(vec![5, 5, 5]), Rid::new(5, 5), &key_schema);
-        leaf_page.insert(Tuple::new(vec![4, 4, 4]), Rid::new(4, 4), &key_schema);
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![2, 2, 2]),
+            Rid::new(2, 2),
+            &key_schema,
+        );
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![1, 1, 1]),
+            Rid::new(1, 1),
+            &key_schema,
+        );
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![3, 3, 3]),
+            Rid::new(3, 3),
+            &key_schema,
+        );
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![5, 5, 5]),
+            Rid::new(5, 5),
+            &key_schema,
+        );
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![4, 4, 4]),
+            Rid::new(4, 4),
+            &key_schema,
+        );
         assert_eq!(
-            leaf_page.look_up(&Tuple::new(vec![0, 0, 0]), &key_schema),
+            leaf_page.look_up(&Tuple::new(key_schema.clone(), vec![0, 0, 0]), &key_schema),
             None
         );
         assert_eq!(
-            leaf_page.look_up(&Tuple::new(vec![2, 2, 2]), &key_schema),
+            leaf_page.look_up(&Tuple::new(key_schema.clone(), vec![2, 2, 2]), &key_schema),
             Some(Rid::new(2, 2))
         );
         assert_eq!(
-            leaf_page.look_up(&Tuple::new(vec![3, 3, 3]), &key_schema),
+            leaf_page.look_up(&Tuple::new(key_schema.clone(), vec![3, 3, 3]), &key_schema),
             Some(Rid::new(3, 3))
         );
         assert_eq!(
-            leaf_page.look_up(&Tuple::new(vec![6, 6, 6]), &key_schema),
+            leaf_page.look_up(&Tuple::new(key_schema.clone(), vec![6, 6, 6]), &key_schema),
             None
         );
 
         let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 2);
-        leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
-        leaf_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![2, 2, 2]),
+            Rid::new(2, 2),
+            &key_schema,
+        );
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![1, 1, 1]),
+            Rid::new(1, 1),
+            &key_schema,
+        );
         assert_eq!(
-            leaf_page.look_up(&Tuple::new(vec![0, 0, 0]), &key_schema),
+            leaf_page.look_up(&Tuple::new(key_schema.clone(), vec![0, 0, 0]), &key_schema),
             None
         );
         assert_eq!(
-            leaf_page.look_up(&Tuple::new(vec![1, 1, 1]), &key_schema),
+            leaf_page.look_up(&Tuple::new(key_schema.clone(), vec![1, 1, 1]), &key_schema),
             Some(Rid::new(1, 1))
         );
         assert_eq!(
-            leaf_page.look_up(&Tuple::new(vec![2, 2, 2]), &key_schema),
+            leaf_page.look_up(&Tuple::new(key_schema.clone(), vec![2, 2, 2]), &key_schema),
             Some(Rid::new(2, 2))
         );
         assert_eq!(
-            leaf_page.look_up(&Tuple::new(vec![3, 3, 3]), &key_schema),
+            leaf_page.look_up(&Tuple::new(key_schema.clone(), vec![3, 3, 3]), &key_schema),
             None
         );
     }
@@ -787,13 +883,33 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16),
         ]));
         let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 5);
-        internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
-        internal_page.insert(Tuple::new(vec![2, 2, 2]), 2, &key_schema);
-        internal_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
-        internal_page.insert(Tuple::new(vec![3, 3, 3]), 3, &key_schema);
-        internal_page.insert(Tuple::new(vec![4, 4, 4]), 4, &key_schema);
+        internal_page.insert(
+            Tuple::empty(key_schema.clone(), key_schema.fixed_len()),
+            0,
+            &key_schema,
+        );
+        internal_page.insert(
+            Tuple::new(key_schema.clone(), vec![2, 2, 2]),
+            2,
+            &key_schema,
+        );
+        internal_page.insert(
+            Tuple::new(key_schema.clone(), vec![1, 1, 1]),
+            1,
+            &key_schema,
+        );
+        internal_page.insert(
+            Tuple::new(key_schema.clone(), vec![3, 3, 3]),
+            3,
+            &key_schema,
+        );
+        internal_page.insert(
+            Tuple::new(key_schema.clone(), vec![4, 4, 4]),
+            4,
+            &key_schema,
+        );
 
-        internal_page.delete(&Tuple::new(vec![2, 2, 2]), &key_schema);
+        internal_page.delete(&Tuple::new(key_schema.clone(), vec![2, 2, 2]), &key_schema);
         assert_eq!(internal_page.current_size, 4);
         assert_eq!(internal_page.array[0].0.data, vec![0, 0, 0]);
         assert_eq!(internal_page.array[0].1, 0);
@@ -803,13 +919,13 @@ mod tests {
         assert_eq!(internal_page.array[2].1, 3);
         assert_eq!(internal_page.array[3].0.data, vec![4, 4, 4]);
         assert_eq!(internal_page.array[3].1, 4);
-        internal_page.delete(&Tuple::new(vec![4, 4, 4]), &key_schema);
+        internal_page.delete(&Tuple::new(key_schema.clone(), vec![4, 4, 4]), &key_schema);
         assert_eq!(internal_page.current_size, 3);
-        internal_page.delete(&Tuple::new(vec![3, 3, 3]), &key_schema);
+        internal_page.delete(&Tuple::new(key_schema.clone(), vec![3, 3, 3]), &key_schema);
         assert_eq!(internal_page.current_size, 2);
-        internal_page.delete(&Tuple::new(vec![1, 1, 1]), &key_schema);
+        internal_page.delete(&Tuple::new(key_schema.clone(), vec![1, 1, 1]), &key_schema);
         assert_eq!(internal_page.current_size, 0);
-        internal_page.delete(&Tuple::new(vec![1, 1, 1]), &key_schema);
+        internal_page.delete(&Tuple::new(key_schema.clone(), vec![1, 1, 1]), &key_schema);
         assert_eq!(internal_page.current_size, 0);
     }
 
@@ -820,13 +936,33 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16),
         ]));
         let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 5);
-        leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
-        leaf_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
-        leaf_page.insert(Tuple::new(vec![3, 3, 3]), Rid::new(3, 3), &key_schema);
-        leaf_page.insert(Tuple::new(vec![5, 5, 5]), Rid::new(5, 5), &key_schema);
-        leaf_page.insert(Tuple::new(vec![4, 4, 4]), Rid::new(4, 4), &key_schema);
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![2, 2, 2]),
+            Rid::new(2, 2),
+            &key_schema,
+        );
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![1, 1, 1]),
+            Rid::new(1, 1),
+            &key_schema,
+        );
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![3, 3, 3]),
+            Rid::new(3, 3),
+            &key_schema,
+        );
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![5, 5, 5]),
+            Rid::new(5, 5),
+            &key_schema,
+        );
+        leaf_page.insert(
+            Tuple::new(key_schema.clone(), vec![4, 4, 4]),
+            Rid::new(4, 4),
+            &key_schema,
+        );
 
-        leaf_page.delete(&Tuple::new(vec![2, 2, 2]), &key_schema);
+        leaf_page.delete(&Tuple::new(key_schema.clone(), vec![2, 2, 2]), &key_schema);
         assert_eq!(leaf_page.current_size, 4);
         assert_eq!(leaf_page.array[0].0.data, vec![1, 1, 1]);
         assert_eq!(leaf_page.array[0].1, Rid::new(1, 1));
@@ -836,17 +972,17 @@ mod tests {
         assert_eq!(leaf_page.array[2].1, Rid::new(4, 4));
         assert_eq!(leaf_page.array[3].0.data, vec![5, 5, 5]);
         assert_eq!(leaf_page.array[3].1, Rid::new(5, 5));
-        leaf_page.delete(&Tuple::new(vec![3, 3, 3]), &key_schema);
+        leaf_page.delete(&Tuple::new(key_schema.clone(), vec![3, 3, 3]), &key_schema);
         assert_eq!(leaf_page.current_size, 3);
-        leaf_page.delete(&Tuple::new(vec![5, 5, 5]), &key_schema);
+        leaf_page.delete(&Tuple::new(key_schema.clone(), vec![5, 5, 5]), &key_schema);
         assert_eq!(leaf_page.current_size, 2);
-        leaf_page.delete(&Tuple::new(vec![1, 1, 1]), &key_schema);
+        leaf_page.delete(&Tuple::new(key_schema.clone(), vec![1, 1, 1]), &key_schema);
         assert_eq!(leaf_page.current_size, 1);
         assert_eq!(leaf_page.array[0].0.data, vec![4, 4, 4]);
         assert_eq!(leaf_page.array[0].1, Rid::new(4, 4));
-        leaf_page.delete(&Tuple::new(vec![4, 4, 4]), &key_schema);
+        leaf_page.delete(&Tuple::new(key_schema.clone(), vec![4, 4, 4]), &key_schema);
         assert_eq!(leaf_page.current_size, 0);
-        leaf_page.delete(&Tuple::new(vec![4, 4, 4]), &key_schema);
+        leaf_page.delete(&Tuple::new(key_schema.clone(), vec![4, 4, 4]), &key_schema);
         assert_eq!(leaf_page.current_size, 0);
     }
 }

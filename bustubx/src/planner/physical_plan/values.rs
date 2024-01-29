@@ -1,4 +1,5 @@
 use std::sync::atomic::AtomicU32;
+use std::sync::Arc;
 
 use crate::catalog::ColumnRef;
 use crate::{
@@ -40,7 +41,7 @@ impl VolcanoExecutor for PhysicalValues {
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst) as usize;
         if cursor < self.tuples.len() {
             let values = self.tuples[cursor].clone();
-            return Some(Tuple::from_values(values));
+            return Some(Tuple::from_values(Arc::new(self.output_schema()), values));
         } else {
             return None;
         }

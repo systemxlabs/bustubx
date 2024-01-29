@@ -1,4 +1,4 @@
-use crate::catalog::{Schema, SchemaRef};
+use crate::catalog::SchemaRef;
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct LogicalCreateIndexOperator {
