@@ -35,10 +35,11 @@ impl PhysicalNestedLoopJoin {
         }
     }
     pub fn output_schema(&self) -> Schema {
-        Schema::from_schemas(vec![
+        Schema::try_merge(vec![
             self.left_input.output_schema(),
             self.right_input.output_schema(),
         ])
+        .unwrap()
     }
 }
 impl VolcanoExecutor for PhysicalNestedLoopJoin {

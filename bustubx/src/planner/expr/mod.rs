@@ -37,7 +37,7 @@ impl Expr {
             (left_tuple.clone(), left_schema.clone()),
             (right_tuple.clone(), right_schema.clone()),
         ]);
-        let schema = Schema::from_schemas(vec![left_schema.clone(), right_schema.clone()]);
+        let schema = Schema::try_merge(vec![left_schema.clone(), right_schema.clone()]).unwrap();
         self.evaluate(Some(&tuple), Some(&schema))
     }
 }

@@ -1,4 +1,4 @@
-use crate::catalog::ColumnRef;
+use crate::catalog::{ColumnRef, SchemaRef};
 use crate::{catalog::Schema, common::config::TransactionId, common::ScalarValue};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

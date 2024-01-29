@@ -98,7 +98,7 @@ impl BPlusTreeIndex {
             .fetch_page_mut(leaf_page_id)
             .expect("Leaf page can not be fetched");
         let mut leaf_page =
-            BPlusTreeLeafPage::from_bytes(&page.data, &self.index_metadata.key_schema);
+            BPlusTreeLeafPage::from_bytes(&page.data, self.index_metadata.key_schema.clone());
         leaf_page.insert(key.clone(), rid, &self.index_metadata.key_schema);
 
         let mut curr_page = BPlusTreePage::Leaf(leaf_page);
@@ -120,7 +120,7 @@ impl BPlusTreeIndex {
                     .fetch_page_mut(page_id)
                     .expect("Page can not be fetched");
                 let mut tree_page =
-                    BPlusTreePage::from_bytes(&page.data, &self.index_metadata.key_schema);
+                    BPlusTreePage::from_bytes(&page.data, self.index_metadata.key_schema.clone());
                 self.buffer_pool_manager.unpin_page(page_id, false);
                 tree_page.insert_internalkv(internalkv, &self.index_metadata.key_schema);
 
@@ -133,8 +133,10 @@ impl BPlusTreeIndex {
                     .new_page()
                     .expect("can not new root page");
                 let new_root_page_id = new_root_page.page_id;
-                let mut new_internal_page =
-                    BPlusTreeInternalPage::new(self.internal_max_size as u32);
+                let mut new_internal_page = BPlusTreeInternalPage::new(
+                    self.index_metadata.key_schema.clone(),
+                    self.internal_max_size,
+                );
 
                 // internal page第一个kv对的key为空
                 new_internal_page.insert(
@@ -176,7 +178,7 @@ impl BPlusTreeIndex {
             .fetch_page_mut(leaf_page_id)
             .expect("Leaf page can not be fetched");
         let mut leaf_page =
-            BPlusTreeLeafPage::from_bytes(&page.data, &self.index_metadata.key_schema);
+            BPlusTreeLeafPage::from_bytes(&page.data, self.index_metadata.key_schema.clone());
         leaf_page.delete(key, &self.index_metadata.key_schema);
 
         let mut curr_page = BPlusTreePage::Leaf(leaf_page);
@@ -196,7 +198,7 @@ impl BPlusTreeIndex {
                         .expect("Left sibling page can not be fetched");
                     let mut left_sibling_tree_page = BPlusTreePage::from_bytes(
                         &left_sibling_page.data,
-                        &self.index_metadata.key_schema,
+                        self.index_metadata.key_schema.clone(),
                     );
                     if left_sibling_tree_page.can_borrow() {
                         // 从左兄弟借一个，返回父节点需要更新的key
@@ -258,7 +260,7 @@ impl BPlusTreeIndex {
                             .expect("Parent page can not be fetched");
                         let mut parent_internal_page = BPlusTreeInternalPage::from_bytes(
                             &parent_page.data,
-                            &self.index_metadata.key_schema,
+                            self.index_metadata.key_schema.clone(),
                         );
                         parent_internal_page.replace_key(
                             &old_internal_key,
@@ -282,7 +284,7 @@ impl BPlusTreeIndex {
                         .expect("Right sibling page can not be fetched");
                     let mut right_sibling_tree_page = BPlusTreePage::from_bytes(
                         &right_sibling_page.data,
-                        &self.index_metadata.key_schema,
+                        self.index_metadata.key_schema.clone(),
                     );
                     if right_sibling_tree_page.can_borrow() {
                         // 从右兄弟借一个，返回父节点需要更新的key
@@ -331,7 +333,7 @@ impl BPlusTreeIndex {
                             .expect("Parent page can not be fetched");
                         let mut parent_internal_page = BPlusTreeInternalPage::from_bytes(
                             &parent_page.data,
-                            &self.index_metadata.key_schema,
+                            self.index_metadata.key_schema.clone(),
                         );
                         parent_internal_page.replace_key(
                             &old_internal_key,
@@ -355,7 +357,7 @@ impl BPlusTreeIndex {
                         .expect("Left sibling page can not be fetched");
                     let mut left_sibling_tree_page = BPlusTreePage::from_bytes(
                         &left_sibling_page.data,
-                        &self.index_metadata.key_schema,
+                        self.index_metadata.key_schema.clone(),
                     );
                     // 将当前页向左兄弟合入
                     match left_sibling_tree_page {
@@ -404,7 +406,7 @@ impl BPlusTreeIndex {
                         .expect("Parent page can not be fetched");
                     let mut parent_internal_page = BPlusTreeInternalPage::from_bytes(
                         &parent_page.data,
-                        &self.index_metadata.key_schema,
+                        self.index_metadata.key_schema.clone(),
                     );
                     parent_internal_page.delete_page_id(deleted_page_id);
                     // 根节点只有一个子节点（叶子）时，则叶子节点成为新的根节点
@@ -431,7 +433,7 @@ impl BPlusTreeIndex {
                         .expect("Right sibling page can not be fetched");
                     let mut right_sibling_tree_page = BPlusTreePage::from_bytes(
                         &right_sibling_page.data,
-                        &self.index_metadata.key_schema,
+                        self.index_metadata.key_schema.clone(),
                     );
                     // 将右兄弟合入当前页
                     match right_sibling_tree_page {
@@ -476,7 +478,7 @@ impl BPlusTreeIndex {
                         .expect("Parent page can not be fetched");
                     let mut parent_internal_page = BPlusTreeInternalPage::from_bytes(
                         &parent_page.data,
-                        &self.index_metadata.key_schema,
+                        self.index_metadata.key_schema.clone(),
                     );
                     parent_internal_page.delete_page_id(deleted_page_id);
                     // 根节点只有一个子节点（叶子）时，则叶子节点成为新的根节点
@@ -513,7 +515,8 @@ impl BPlusTreeIndex {
             .expect("failed to start new tree");
         let new_page_id = new_page.page_id;
 
-        let mut leaf_page = BPlusTreeLeafPage::new(self.leaf_max_size as u32);
+        let mut leaf_page =
+            BPlusTreeLeafPage::new(self.index_metadata.key_schema.clone(), self.leaf_max_size);
         leaf_page.insert(key.clone(), rid, &self.index_metadata.key_schema);
 
         new_page.data = leaf_page.to_bytes();
@@ -542,7 +545,7 @@ impl BPlusTreeIndex {
             .fetch_page_mut(leaf_page_id)
             .expect("Leaf page can not be fetched");
         let leaf_page =
-            BPlusTreeLeafPage::from_bytes(&leaf_page.data, &self.index_metadata.key_schema);
+            BPlusTreeLeafPage::from_bytes(&leaf_page.data, self.index_metadata.key_schema.clone());
         let result = leaf_page.look_up(key, &self.index_metadata.key_schema);
         self.buffer_pool_manager.unpin_page(leaf_page_id, false);
         return result;
@@ -558,7 +561,7 @@ impl BPlusTreeIndex {
             .expect("Root page can not be fetched");
         let mut curr_page_id = curr_page.page_id;
         let mut curr_page =
-            BPlusTreePage::from_bytes(&curr_page.data, &self.index_metadata.key_schema);
+            BPlusTreePage::from_bytes(&curr_page.data, self.index_metadata.key_schema.clone());
 
         // 找到leaf page
         loop {
@@ -573,8 +576,10 @@ impl BPlusTreeIndex {
                         .buffer_pool_manager
                         .fetch_page(next_page_id)
                         .expect("Next page can not be fetched");
-                    let next_page =
-                        BPlusTreePage::from_bytes(&next_page.data, &self.index_metadata.key_schema);
+                    let next_page = BPlusTreePage::from_bytes(
+                        &next_page.data,
+                        self.index_metadata.key_schema.clone(),
+                    );
                     curr_page_id = next_page_id;
                     curr_page = next_page;
                 }
@@ -597,7 +602,10 @@ impl BPlusTreeIndex {
                 let new_page_id = new_page.page_id;
 
                 // 拆分kv对
-                let mut new_leaf_page = BPlusTreeLeafPage::new(self.leaf_max_size as u32);
+                let mut new_leaf_page = BPlusTreeLeafPage::new(
+                    self.index_metadata.key_schema.clone(),
+                    self.leaf_max_size,
+                );
                 new_leaf_page.batch_insert(
                     leaf_page.split_off(leaf_page.current_size as usize / 2),
                     &self.index_metadata.key_schema,
@@ -620,8 +628,10 @@ impl BPlusTreeIndex {
                 let new_page_id = new_page.page_id;
 
                 // 拆分kv对
-                let mut new_internal_page =
-                    BPlusTreeInternalPage::new(self.internal_max_size as u32);
+                let mut new_internal_page = BPlusTreeInternalPage::new(
+                    self.index_metadata.key_schema.clone(),
+                    self.internal_max_size as u32,
+                );
                 new_internal_page.batch_insert(
                     internal_page.split_off(internal_page.current_size as usize / 2),
                     &self.index_metadata.key_schema,
@@ -649,8 +659,10 @@ impl BPlusTreeIndex {
             .buffer_pool_manager
             .fetch_page(parent_page_id)
             .expect("Parent page can not be fetched");
-        let parent_page =
-            BPlusTreeInternalPage::from_bytes(&parent_page.data, &self.index_metadata.key_schema);
+        let parent_page = BPlusTreeInternalPage::from_bytes(
+            &parent_page.data,
+            self.index_metadata.key_schema.clone(),
+        );
         self.buffer_pool_manager.unpin_page(parent_page_id, false);
         return parent_page.sibling_page_ids(child_page_id);
     }
@@ -666,7 +678,7 @@ impl BPlusTreeIndex {
             .fetch_page(page_id)
             .expect("Page can not be fetched");
         let mut curr_page =
-            BPlusTreePage::from_bytes(&curr_page.data, &self.index_metadata.key_schema);
+            BPlusTreePage::from_bytes(&curr_page.data, self.index_metadata.key_schema.clone());
         self.buffer_pool_manager.unpin_page(page_id, false);
         loop {
             match curr_page {
@@ -676,8 +688,10 @@ impl BPlusTreeIndex {
                         .buffer_pool_manager
                         .fetch_page(page_id)
                         .expect("Page can not be fetched");
-                    curr_page =
-                        BPlusTreePage::from_bytes(&page.data, &self.index_metadata.key_schema);
+                    curr_page = BPlusTreePage::from_bytes(
+                        &page.data,
+                        self.index_metadata.key_schema.clone(),
+                    );
                     self.buffer_pool_manager.unpin_page(page_id, false);
                 }
                 BPlusTreePage::Leaf(leaf_page) => {
@@ -694,7 +708,7 @@ impl BPlusTreeIndex {
             .fetch_page(page_id)
             .expect("Page can not be fetched");
         let mut curr_page =
-            BPlusTreePage::from_bytes(&curr_page.data, &self.index_metadata.key_schema);
+            BPlusTreePage::from_bytes(&curr_page.data, self.index_metadata.key_schema.clone());
         self.buffer_pool_manager.unpin_page(page_id, false);
         loop {
             match curr_page {
@@ -704,8 +718,10 @@ impl BPlusTreeIndex {
                         .buffer_pool_manager
                         .fetch_page(page_id)
                         .expect("Page can not be fetched");
-                    curr_page =
-                        BPlusTreePage::from_bytes(&page.data, &self.index_metadata.key_schema);
+                    curr_page = BPlusTreePage::from_bytes(
+                        &page.data,
+                        self.index_metadata.key_schema.clone(),
+                    );
                     self.buffer_pool_manager.unpin_page(page_id, false);
                 }
                 BPlusTreePage::Leaf(leaf_page) => {
@@ -738,7 +754,7 @@ impl BPlusTreeIndex {
                     .fetch_page(page_id)
                     .expect("Page can not be fetched");
                 let curr_page =
-                    BPlusTreePage::from_bytes(&page.data, &self.index_metadata.key_schema);
+                    BPlusTreePage::from_bytes(&page.data, self.index_metadata.key_schema.clone());
                 self.buffer_pool_manager.unpin_page(page_id, false);
                 match curr_page {
                     BPlusTreePage::Internal(internal_page) => {

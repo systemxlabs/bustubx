@@ -1,4 +1,5 @@
 use super::column::{Column, ColumnRef};
+use crate::error::BustubxResult;
 use std::sync::Arc;
 
 pub type SchemaRef = Arc<Schema>;
@@ -27,12 +28,13 @@ impl Schema {
         Self { columns: vec![] }
     }
 
-    pub fn from_schemas(schemas: Vec<Schema>) -> Self {
+    pub fn try_merge(schemas: impl IntoIterator<Item = Self>) -> BustubxResult<Self> {
+        // TODO check column conflict
         let mut columns = Vec::new();
         for schema in schemas {
             columns.extend(schema.columns);
         }
-        Self { columns }
+        Ok(Self { columns })
     }
 
     pub fn copy_schema(from: SchemaRef, key_attrs: &[u32]) -> Self {

@@ -1,6 +1,7 @@
 use std::mem::size_of;
 
 use super::{page::PageId, Tuple};
+use crate::catalog::SchemaRef;
 use crate::{
     catalog::Schema,
     common::{
@@ -20,14 +21,14 @@ pub enum BPlusTreePage {
     Leaf(BPlusTreeLeafPage),
 }
 impl BPlusTreePage {
-    pub fn from_bytes(raw: &[u8; BUSTUBX_PAGE_SIZE], key_schema: &Schema) -> Self {
+    pub fn from_bytes(raw: &[u8; BUSTUBX_PAGE_SIZE], key_schema: SchemaRef) -> Self {
         let page_type = BPlusTreePageType::from_bytes(&raw[0..4].try_into().unwrap());
         return match page_type {
             BPlusTreePageType::InternalPage => {
-                Self::Internal(BPlusTreeInternalPage::from_bytes(raw, key_schema))
+                Self::Internal(BPlusTreeInternalPage::from_bytes(raw, key_schema.clone()))
             }
             BPlusTreePageType::LeafPage => {
-                Self::Leaf(BPlusTreeLeafPage::from_bytes(raw, key_schema))
+                Self::Leaf(BPlusTreeLeafPage::from_bytes(raw, key_schema.clone()))
             }
             BPlusTreePageType::InvalidPage => panic!("Invalid b+ tree page type"),
         };
@@ -113,6 +114,7 @@ pub type LeafKV = (Tuple, Rid);
  */
 #[derive(Debug, Clone)]
 pub struct BPlusTreeInternalPage {
+    pub schema: SchemaRef,
     pub page_type: BPlusTreePageType,
     pub current_size: u32,
     // 能存放的最大kv数
@@ -121,8 +123,9 @@ pub struct BPlusTreeInternalPage {
     pub array: Vec<InternalKV>,
 }
 impl BPlusTreeInternalPage {
-    pub fn new(max_size: u32) -> Self {
+    pub fn new(schema: SchemaRef, max_size: u32) -> Self {
         Self {
+            schema,
             page_type: BPlusTreePageType::InternalPage,
             current_size: 0,
             max_size,
@@ -323,7 +326,7 @@ impl BPlusTreeInternalPage {
         }
     }
 
-    pub fn from_bytes(raw: &[u8; BUSTUBX_PAGE_SIZE], key_schema: &Schema) -> Self {
+    pub fn from_bytes(raw: &[u8; BUSTUBX_PAGE_SIZE], key_schema: SchemaRef) -> Self {
         let page_type = BPlusTreePageType::from_bytes(&raw[0..4].try_into().unwrap());
         let current_size = u32::from_be_bytes(raw[4..8].try_into().unwrap());
         let max_size = u32::from_be_bytes(raw[8..12].try_into().unwrap());
@@ -339,6 +342,7 @@ impl BPlusTreeInternalPage {
             array.push((key, page_id));
         }
         Self {
+            schema: key_schema,
             page_type,
             current_size,
             max_size,
@@ -406,6 +410,7 @@ impl BPlusTreeInternalPage {
  */
 #[derive(Debug, Clone)]
 pub struct BPlusTreeLeafPage {
+    pub schema: SchemaRef,
     pub page_type: BPlusTreePageType,
     pub current_size: u32,
     // 能存放的最大kv数
@@ -414,8 +419,9 @@ pub struct BPlusTreeLeafPage {
     pub array: Vec<LeafKV>,
 }
 impl BPlusTreeLeafPage {
-    pub fn new(max_size: u32) -> Self {
+    pub fn new(schema: SchemaRef, max_size: u32) -> Self {
         Self {
+            schema,
             page_type: BPlusTreePageType::LeafPage,
             current_size: 0,
             max_size,
@@ -423,7 +429,7 @@ impl BPlusTreeLeafPage {
             array: Vec::with_capacity(max_size as usize),
         }
     }
-    pub fn from_bytes(raw: &[u8; BUSTUBX_PAGE_SIZE], key_schema: &Schema) -> Self {
+    pub fn from_bytes(raw: &[u8; BUSTUBX_PAGE_SIZE], key_schema: SchemaRef) -> Self {
         let page_type = BPlusTreePageType::from_bytes(&raw[0..4].try_into().unwrap());
         let current_size = u32::from_be_bytes(raw[4..8].try_into().unwrap());
         let max_size = u32::from_be_bytes(raw[8..12].try_into().unwrap());
@@ -440,6 +446,7 @@ impl BPlusTreeLeafPage {
             array.push((key, rid));
         }
         Self {
+            schema: key_schema,
             page_type,
             current_size,
             max_size,
@@ -589,14 +596,15 @@ mod tests {
             Tuple,
         },
     };
+    use std::sync::Arc;
 
     #[test]
     pub fn test_internal_page_from_to_bytes() {
-        let key_schema = Schema::new(vec![
+        let key_schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8),
             Column::new("a".to_string(), DataType::Int16),
-        ]);
-        let mut ori_page = BPlusTreeInternalPage::new(5);
+        ]));
+        let mut ori_page = BPlusTreeInternalPage::new(key_schema.clone(), 5);
         ori_page.insert(Tuple::empty(3), 0, &key_schema);
         ori_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
         ori_page.insert(Tuple::new(vec![2, 2, 2]), 2, &key_schema);
@@ -604,7 +612,7 @@ mod tests {
 
         let bytes = ori_page.to_bytes();
 
-        let new_page = BPlusTreeInternalPage::from_bytes(&bytes, &key_schema);
+        let new_page = BPlusTreeInternalPage::from_bytes(&bytes, key_schema.clone());
         assert_eq!(new_page.page_type, BPlusTreePageType::InternalPage);
         assert_eq!(new_page.current_size, 3);
         assert_eq!(new_page.max_size, 5);
@@ -618,18 +626,18 @@ mod tests {
 
     #[test]
     pub fn test_leaf_page_from_to_bytes() {
-        let key_schema = Schema::new(vec![
+        let key_schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8),
             Column::new("a".to_string(), DataType::Int16),
-        ]);
-        let mut ori_page = BPlusTreeLeafPage::new(5);
+        ]));
+        let mut ori_page = BPlusTreeLeafPage::new(key_schema.clone(), 5);
         ori_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
         ori_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
         assert_eq!(ori_page.current_size, 2);
 
         let bytes = ori_page.to_bytes();
 
-        let new_page = BPlusTreeLeafPage::from_bytes(&bytes, &key_schema);
+        let new_page = BPlusTreeLeafPage::from_bytes(&bytes, key_schema.clone());
         assert_eq!(new_page.page_type, BPlusTreePageType::LeafPage);
         assert_eq!(new_page.current_size, 2);
         assert_eq!(new_page.max_size, 5);
@@ -641,11 +649,11 @@ mod tests {
 
     #[test]
     pub fn test_internal_page_insert() {
-        let key_schema = Schema::new(vec![
+        let key_schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8),
             Column::new("b".to_string(), DataType::Int16),
-        ]);
-        let mut internal_page = BPlusTreeInternalPage::new(3);
+        ]));
+        let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 3);
         internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
         internal_page.insert(Tuple::new(vec![2, 2, 2]), 2, &key_schema);
         internal_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
@@ -660,11 +668,11 @@ mod tests {
 
     #[test]
     pub fn test_leaf_page_insert() {
-        let key_schema = Schema::new(vec![
+        let key_schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8),
             Column::new("b".to_string(), DataType::Int16),
-        ]);
-        let mut leaf_page = BPlusTreeLeafPage::new(3);
+        ]));
+        let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 3);
         leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
         leaf_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
         leaf_page.insert(Tuple::new(vec![3, 3, 3]), Rid::new(3, 3), &key_schema);
@@ -679,11 +687,11 @@ mod tests {
 
     #[test]
     pub fn test_internal_page_look_up() {
-        let key_schema = Schema::new(vec![
+        let key_schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8),
             Column::new("b".to_string(), DataType::Int16),
-        ]);
-        let mut internal_page = BPlusTreeInternalPage::new(5);
+        ]));
+        let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 5);
         internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
         internal_page.insert(Tuple::new(vec![2, 2, 2]), 2, &key_schema);
         internal_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
@@ -703,7 +711,7 @@ mod tests {
             4
         );
 
-        let mut internal_page = BPlusTreeInternalPage::new(2);
+        let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 2);
         internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
         internal_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
 
@@ -723,11 +731,11 @@ mod tests {
 
     #[test]
     pub fn test_leaf_page_look_up() {
-        let key_schema = Schema::new(vec![
+        let key_schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8),
             Column::new("b".to_string(), DataType::Int16),
-        ]);
-        let mut leaf_page = BPlusTreeLeafPage::new(5);
+        ]));
+        let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 5);
         leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
         leaf_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
         leaf_page.insert(Tuple::new(vec![3, 3, 3]), Rid::new(3, 3), &key_schema);
@@ -750,7 +758,7 @@ mod tests {
             None
         );
 
-        let mut leaf_page = BPlusTreeLeafPage::new(2);
+        let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 2);
         leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
         leaf_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
         assert_eq!(
@@ -773,11 +781,11 @@ mod tests {
 
     #[test]
     pub fn test_internal_page_delete() {
-        let key_schema = Schema::new(vec![
+        let key_schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8),
             Column::new("b".to_string(), DataType::Int16),
-        ]);
-        let mut internal_page = BPlusTreeInternalPage::new(5);
+        ]));
+        let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 5);
         internal_page.insert(Tuple::empty(key_schema.fixed_len()), 0, &key_schema);
         internal_page.insert(Tuple::new(vec![2, 2, 2]), 2, &key_schema);
         internal_page.insert(Tuple::new(vec![1, 1, 1]), 1, &key_schema);
@@ -806,11 +814,11 @@ mod tests {
 
     #[test]
     pub fn test_leaf_page_delete() {
-        let key_schema = Schema::new(vec![
+        let key_schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8),
             Column::new("b".to_string(), DataType::Int16),
-        ]);
-        let mut leaf_page = BPlusTreeLeafPage::new(5);
+        ]));
+        let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 5);
         leaf_page.insert(Tuple::new(vec![2, 2, 2]), Rid::new(2, 2), &key_schema);
         leaf_page.insert(Tuple::new(vec![1, 1, 1]), Rid::new(1, 1), &key_schema);
         leaf_page.insert(Tuple::new(vec![3, 3, 3]), Rid::new(3, 3), &key_schema);
