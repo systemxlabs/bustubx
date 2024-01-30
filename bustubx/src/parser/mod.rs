@@ -3,7 +3,6 @@ use sqlparser::{ast::Statement, dialect::PostgreSqlDialect, parser::Parser};
 use tracing::span;
 
 pub fn parse_sql(sql: &str) -> BustubxResult<Vec<Statement>> {
-    let _parse_sql_span = span!(tracing::Level::INFO, "parse_sql", sql).entered();
     let stmts = Parser::parse_sql(&PostgreSqlDialect {}, sql)?;
     Ok(stmts)
 }

@@ -52,8 +52,6 @@ impl Database {
     }
 
     pub fn run(&mut self, sql: &str) -> BustubxResult<Vec<Tuple>> {
-        let _db_run_span = span!(tracing::Level::INFO, "database.run", sql).entered();
-
         let logical_plan = self.build_logical_plan(sql)?;
         println!("{:?}", logical_plan);
 
