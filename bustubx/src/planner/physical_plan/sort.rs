@@ -2,7 +2,6 @@ use std::sync::{atomic::AtomicU32, Arc, Mutex};
 
 use crate::catalog::SchemaRef;
 use crate::{
-    catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
     planner::order_by::BoundOrderBy,
     storage::Tuple,
@@ -26,9 +25,6 @@ impl PhysicalSort {
             all_tuples: Mutex::new(Vec::new()),
             cursor: AtomicU32::new(0),
         }
-    }
-    pub fn output_schema(&self) -> SchemaRef {
-        self.input.output_schema()
     }
 }
 impl VolcanoExecutor for PhysicalSort {
@@ -82,5 +78,9 @@ impl VolcanoExecutor for PhysicalSort {
             .unwrap()
             .get(cursor)
             .map(|t| t.clone());
+    }
+
+    fn output_schema(&self) -> SchemaRef {
+        self.input.output_schema()
     }
 }

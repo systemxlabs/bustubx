@@ -27,12 +27,6 @@ impl PhysicalInsert {
             insert_rows: AtomicU32::new(0),
         }
     }
-    pub fn output_schema(&self) -> SchemaRef {
-        Arc::new(Schema::new(vec![Column::new(
-            "insert_rows".to_string(),
-            DataType::Int32,
-        )]))
-    }
 }
 impl VolcanoExecutor for PhysicalInsert {
     fn init(&self, context: &mut ExecutionContext) {
@@ -76,5 +70,12 @@ impl VolcanoExecutor for PhysicalInsert {
             self.insert_rows
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         }
+    }
+
+    fn output_schema(&self) -> SchemaRef {
+        Arc::new(Schema::new(vec![Column::new(
+            "insert_rows".to_string(),
+            DataType::Int32,
+        )]))
     }
 }

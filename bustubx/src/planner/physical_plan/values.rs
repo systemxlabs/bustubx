@@ -24,11 +24,6 @@ impl PhysicalValues {
             cursor: AtomicU32::new(0),
         }
     }
-    pub fn output_schema(&self) -> SchemaRef {
-        Arc::new(Schema {
-            columns: self.columns.clone(),
-        })
-    }
 }
 impl VolcanoExecutor for PhysicalValues {
     fn init(&self, context: &mut ExecutionContext) {
@@ -45,5 +40,11 @@ impl VolcanoExecutor for PhysicalValues {
         } else {
             return None;
         }
+    }
+
+    fn output_schema(&self) -> SchemaRef {
+        Arc::new(Schema {
+            columns: self.columns.clone(),
+        })
     }
 }

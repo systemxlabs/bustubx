@@ -11,11 +11,7 @@ pub struct PhysicalCreateTable {
     pub table_name: String,
     pub schema: Schema,
 }
-impl PhysicalCreateTable {
-    pub fn output_schema(&self) -> SchemaRef {
-        Arc::new(self.schema.clone())
-    }
-}
+
 impl VolcanoExecutor for PhysicalCreateTable {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init create table executor");
@@ -25,5 +21,8 @@ impl VolcanoExecutor for PhysicalCreateTable {
             .catalog
             .create_table(self.table_name.clone(), Arc::new(self.schema.clone()));
         None
+    }
+    fn output_schema(&self) -> SchemaRef {
+        Arc::new(self.schema.clone())
     }
 }

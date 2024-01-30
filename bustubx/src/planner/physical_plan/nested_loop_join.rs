@@ -35,15 +35,6 @@ impl PhysicalNestedLoopJoin {
             left_tuple: Mutex::new(None),
         }
     }
-    pub fn output_schema(&self) -> SchemaRef {
-        Arc::new(
-            Schema::try_merge(vec![
-                self.left_input.output_schema().as_ref().clone(),
-                self.right_input.output_schema().as_ref().clone(),
-            ])
-            .unwrap(),
-        )
-    }
 }
 impl VolcanoExecutor for PhysicalNestedLoopJoin {
     fn init(&self, context: &mut ExecutionContext) {
@@ -99,5 +90,15 @@ impl VolcanoExecutor for PhysicalNestedLoopJoin {
             left_next_tuple = self.left_input.next(context);
         }
         return None;
+    }
+
+    fn output_schema(&self) -> SchemaRef {
+        Arc::new(
+            Schema::try_merge(vec![
+                self.left_input.output_schema().as_ref().clone(),
+                self.right_input.output_schema().as_ref().clone(),
+            ])
+            .unwrap(),
+        )
     }
 }

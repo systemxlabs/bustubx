@@ -2,15 +2,13 @@ use std::sync::Arc;
 
 use tracing::span;
 
-use crate::{
-    catalog::{Catalog, Schema},
-    planner::physical_plan::PhysicalPlan,
-    storage::Tuple,
-};
+use crate::catalog::SchemaRef;
+use crate::{catalog::Catalog, planner::physical_plan::PhysicalPlan, storage::Tuple};
 
 pub trait VolcanoExecutor {
     fn init(&self, context: &mut ExecutionContext);
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple>;
+    fn output_schema(&self) -> SchemaRef;
 }
 
 #[derive(derive_new::new)]

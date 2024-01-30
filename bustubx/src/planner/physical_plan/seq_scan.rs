@@ -22,11 +22,6 @@ impl PhysicalSeqScan {
             iterator: Mutex::new(TableIterator::new(None, None)),
         }
     }
-    pub fn output_schema(&self) -> SchemaRef {
-        Arc::new(Schema {
-            columns: self.columns.clone(),
-        })
-    }
 }
 impl VolcanoExecutor for PhysicalSeqScan {
     fn init(&self, context: &mut ExecutionContext) {
@@ -47,5 +42,11 @@ impl VolcanoExecutor for PhysicalSeqScan {
         let mut iterator = self.iterator.lock().unwrap();
         let full_tuple = iterator.next(&mut table_info.table);
         return full_tuple.map(|t| t.1);
+    }
+
+    fn output_schema(&self) -> SchemaRef {
+        Arc::new(Schema {
+            columns: self.columns.clone(),
+        })
     }
 }

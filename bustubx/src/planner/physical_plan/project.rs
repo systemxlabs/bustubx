@@ -15,12 +15,6 @@ pub struct PhysicalProject {
     pub expressions: Vec<Expr>,
     pub input: Arc<PhysicalPlan>,
 }
-impl PhysicalProject {
-    pub fn output_schema(&self) -> SchemaRef {
-        // TODO consider aggr/alias
-        self.input.output_schema()
-    }
-}
 impl VolcanoExecutor for PhysicalProject {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init project executor");
@@ -36,5 +30,10 @@ impl VolcanoExecutor for PhysicalProject {
             new_values.push(expr.evaluate(next_tuple.as_ref(), Some(&self.input.output_schema())));
         }
         return Some(Tuple::new(self.output_schema(), new_values));
+    }
+
+    fn output_schema(&self) -> SchemaRef {
+        // TODO consider aggr/alias
+        self.input.output_schema()
     }
 }

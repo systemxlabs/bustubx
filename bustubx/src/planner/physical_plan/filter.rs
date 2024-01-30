@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::catalog::SchemaRef;
 use crate::{
-    catalog::Schema,
     common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     planner::expr::Expr,
@@ -16,11 +15,7 @@ pub struct PhysicalFilter {
     pub predicate: Expr,
     pub input: Arc<PhysicalPlan>,
 }
-impl PhysicalFilter {
-    pub fn output_schema(&self) -> SchemaRef {
-        self.input.output_schema()
-    }
-}
+
 impl VolcanoExecutor for PhysicalFilter {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init filter executor");
@@ -43,5 +38,9 @@ impl VolcanoExecutor for PhysicalFilter {
                 panic!("filter predicate should be boolean")
             }
         }
+    }
+
+    fn output_schema(&self) -> SchemaRef {
+        self.input.output_schema()
     }
 }

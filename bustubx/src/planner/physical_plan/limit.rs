@@ -26,9 +26,6 @@ impl PhysicalLimit {
             cursor: AtomicU32::new(0),
         }
     }
-    pub fn output_schema(&self) -> SchemaRef {
-        self.input.output_schema()
-    }
 }
 impl VolcanoExecutor for PhysicalLimit {
     fn init(&self, context: &mut ExecutionContext) {
@@ -60,5 +57,9 @@ impl VolcanoExecutor for PhysicalLimit {
                 return next_tuple;
             }
         }
+    }
+
+    fn output_schema(&self) -> SchemaRef {
+        self.input.output_schema()
     }
 }
