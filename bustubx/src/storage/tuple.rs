@@ -12,31 +12,33 @@ pub struct TupleMeta {
 #[derive(Debug, Clone)]
 pub struct Tuple {
     pub schema: SchemaRef,
-    pub data: Vec<u8>,
+    pub data: Vec<ScalarValue>,
 }
 
 impl Tuple {
-    pub fn new(schema: SchemaRef, data: Vec<u8>) -> Self {
+    pub fn new(schema: SchemaRef, data: Vec<ScalarValue>) -> Self {
         Self { schema, data }
     }
 
-    pub fn empty(schema: SchemaRef, size: usize) -> Self {
-        Self {
-            schema,
-            data: vec![0; size],
-        }
-    }
-
-    pub fn from_values(schema: SchemaRef, values: Vec<ScalarValue>) -> Self {
+    pub fn empty(schema: SchemaRef) -> Self {
         let mut data = vec![];
-        for value in values {
-            data.extend(value.to_bytes());
+        for col in schema.columns.iter() {
+            data.push(ScalarValue::new_empty(col.data_type));
         }
         Self { schema, data }
     }
 
     pub fn from_bytes(schema: SchemaRef, raw: &[u8]) -> Self {
-        let data = raw.to_vec();
+        let mut data = vec![];
+        let mut raw_data = raw.to_vec();
+        for col in schema.columns.iter() {
+            data.push(ScalarValue::from_bytes(raw_data.as_ref(), col.data_type));
+            raw_data = raw_data
+                .into_iter()
+                .skip(col.data_type.type_size())
+                .into_iter()
+                .collect::<Vec<u8>>();
+        }
         Self { schema, data }
     }
 
@@ -54,14 +56,15 @@ impl Tuple {
     }
 
     pub fn is_zero(&self) -> bool {
-        // Iterate over each element in the 'data' vector using the 'iter' method.
-        // The closure '|&x| x == 0' checks if each element is equal to 0.
-        // The 'all' method returns 'true' if the closure returns 'true' for all elements.
-        self.data.iter().all(|&x| x == 0)
+        self.data.iter().all(|x| x.is_null())
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        self.data.clone()
+        let mut bytes = vec![];
+        for v in self.data.iter() {
+            bytes.extend(v.to_bytes());
+        }
+        bytes
     }
 
     pub fn all_values(&self, schema: &Schema) -> Vec<ScalarValue> {
@@ -88,13 +91,14 @@ impl Tuple {
     }
 
     pub fn get_value_by_col(&self, column: ColumnRef) -> ScalarValue {
-        let offset = column.column_offset;
-        let len = column.data_type.type_size();
-        // Intercept the byte sequence starting from offset,
-        // and get length len from data as the current col row bytes.
-        let raw = &self.data[offset..offset + len];
-
-        ScalarValue::from_bytes(raw, column.data_type)
+        let (idx, col) = self
+            .schema
+            .columns
+            .iter()
+            .enumerate()
+            .find(|c| c.1 == &column)
+            .unwrap();
+        self.data.get(idx).unwrap().clone()
     }
 
     // TODO 比较索引key大小
@@ -129,11 +133,11 @@ mod tests {
             Column::new("a".to_string(), DataType::Int8),
             Column::new("b".to_string(), DataType::Int16),
         ]));
-        let tuple1 = super::Tuple::new(schema.clone(), vec![1u8, 1, 1]);
-        let tuple2 = super::Tuple::new(schema.clone(), vec![1u8, 1, 1]);
-        let tuple3 = super::Tuple::new(schema.clone(), vec![1u8, 2, 1]);
-        let tuple4 = super::Tuple::new(schema.clone(), vec![2u8, 1, 1]);
-        let tuple5 = super::Tuple::new(schema.clone(), vec![1u8, 0, 1]);
+        let tuple1 = super::Tuple::new(schema.clone(), vec![1i8.into(), 2i16.into()]);
+        let tuple2 = super::Tuple::new(schema.clone(), vec![1i8.into(), 2i16.into()]);
+        let tuple3 = super::Tuple::new(schema.clone(), vec![1i8.into(), 3i16.into()]);
+        let tuple4 = super::Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]);
+        let tuple5 = super::Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]);
 
         assert_eq!(tuple1.compare(&tuple2, &schema), std::cmp::Ordering::Equal);
         assert_eq!(tuple1.compare(&tuple3, &schema), std::cmp::Ordering::Less);

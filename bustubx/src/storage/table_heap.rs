@@ -214,7 +214,7 @@ mod tests {
     use std::sync::Arc;
     use tempfile::TempDir;
 
-    use crate::catalog::Schema;
+    use crate::catalog::{Column, DataType, Schema};
     use crate::{
         buffer::BufferPoolManager,
         storage::{table_heap::TableHeap, DiskManager, Tuple},
@@ -238,7 +238,10 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
-        let schema = Arc::new(Schema::empty());
+        let schema = Arc::new(Schema::new(vec![
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+        ]));
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::new(schema.clone(), buffer_pool_manager);
@@ -248,17 +251,26 @@ mod tests {
             is_deleted: false,
         };
 
-        table_heap.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![1; 2000]));
+        table_heap.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
+        );
         assert_eq!(table_heap.first_page_id, 0);
         assert_eq!(table_heap.last_page_id, 0);
         assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 1);
 
-        table_heap.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![1; 2000]));
+        table_heap.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
+        );
         assert_eq!(table_heap.first_page_id, 0);
         assert_eq!(table_heap.last_page_id, 0);
         assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 1);
 
-        table_heap.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![1; 2000]));
+        table_heap.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
+        );
         assert_eq!(table_heap.first_page_id, 0);
         assert_eq!(table_heap.last_page_id, 1);
         assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 2);
@@ -269,7 +281,10 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
-        let schema = Arc::new(Schema::empty());
+        let schema = Arc::new(Schema::new(vec![
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+        ]));
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::new(schema.clone(), buffer_pool_manager);
@@ -280,13 +295,22 @@ mod tests {
         };
 
         let rid1 = table_heap
-            .insert_tuple(&meta, &Tuple::new(schema.clone(), vec![1; 2000]))
+            .insert_tuple(
+                &meta,
+                &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
+            )
             .unwrap();
         let rid2 = table_heap
-            .insert_tuple(&meta, &Tuple::new(schema.clone(), vec![2; 2000]))
+            .insert_tuple(
+                &meta,
+                &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
+            )
             .unwrap();
         let rid3 = table_heap
-            .insert_tuple(&meta, &Tuple::new(schema.clone(), vec![3; 2000]))
+            .insert_tuple(
+                &meta,
+                &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
+            )
             .unwrap();
 
         let mut meta = table_heap.get_tuple_meta(rid2);
@@ -307,7 +331,10 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
-        let schema = Arc::new(Schema::empty());
+        let schema = Arc::new(Schema::new(vec![
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+        ]));
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::new(schema.clone(), buffer_pool_manager);
@@ -318,7 +345,10 @@ mod tests {
             is_deleted: false,
         };
         let rid1 = table_heap
-            .insert_tuple(&meta1, &Tuple::new(schema.clone(), vec![1; 2000]))
+            .insert_tuple(
+                &meta1,
+                &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
+            )
             .unwrap();
         let meta2 = super::TupleMeta {
             insert_txn_id: 2,
@@ -326,7 +356,10 @@ mod tests {
             is_deleted: false,
         };
         let rid2 = table_heap
-            .insert_tuple(&meta2, &Tuple::new(schema.clone(), vec![2; 2000]))
+            .insert_tuple(
+                &meta2,
+                &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
+            )
             .unwrap();
         let meta3 = super::TupleMeta {
             insert_txn_id: 3,
@@ -334,20 +367,23 @@ mod tests {
             is_deleted: false,
         };
         let rid3 = table_heap
-            .insert_tuple(&meta3, &Tuple::new(schema.clone(), vec![3; 2000]))
+            .insert_tuple(
+                &meta3,
+                &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
+            )
             .unwrap();
 
         let (meta, tuple) = table_heap.get_tuple(rid1);
         assert_eq!(meta, meta1);
-        assert_eq!(tuple.data, vec![1; 2000]);
+        assert_eq!(tuple.data, vec![1i8.into(), 1i16.into()]);
 
         let (meta, tuple) = table_heap.get_tuple(rid2);
         assert_eq!(meta, meta2);
-        assert_eq!(tuple.data, vec![2; 2000]);
+        assert_eq!(tuple.data, vec![2i8.into(), 2i16.into()]);
 
         let (meta, tuple) = table_heap.get_tuple(rid3);
         assert_eq!(meta, meta3);
-        assert_eq!(tuple.data, vec![3; 2000]);
+        assert_eq!(tuple.data, vec![3i8.into(), 3i16.into()]);
 
         assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 2);
     }
@@ -357,7 +393,10 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
-        let schema = Arc::new(Schema::empty());
+        let schema = Arc::new(Schema::new(vec![
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+        ]));
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
@@ -369,7 +408,10 @@ mod tests {
             is_deleted: false,
         };
         let rid1 = table_heap
-            .insert_tuple(&meta1, &Tuple::new(schema.clone(), vec![1; 2000]))
+            .insert_tuple(
+                &meta1,
+                &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
+            )
             .unwrap();
         let meta2 = super::TupleMeta {
             insert_txn_id: 2,
@@ -377,7 +419,10 @@ mod tests {
             is_deleted: false,
         };
         let rid2 = table_heap
-            .insert_tuple(&meta2, &Tuple::new(schema.clone(), vec![2; 2000]))
+            .insert_tuple(
+                &meta2,
+                &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
+            )
             .unwrap();
         let meta3 = super::TupleMeta {
             insert_txn_id: 3,
@@ -385,22 +430,25 @@ mod tests {
             is_deleted: false,
         };
         let rid3 = table_heap
-            .insert_tuple(&meta3, &Tuple::new(schema.clone(), vec![3; 2000]))
+            .insert_tuple(
+                &meta3,
+                &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
+            )
             .unwrap();
 
         let mut iterator = table_heap.iter(None, None);
 
         let (meta, tuple) = iterator.next(&mut table_heap).unwrap();
         assert_eq!(meta, meta1);
-        assert_eq!(tuple.data, vec![1; 2000]);
+        assert_eq!(tuple.data, vec![1i8.into(), 1i16.into()]);
 
         let (meta, tuple) = iterator.next(&mut table_heap).unwrap();
         assert_eq!(meta, meta2);
-        assert_eq!(tuple.data, vec![2; 2000]);
+        assert_eq!(tuple.data, vec![2i8.into(), 2i16.into()]);
 
         let (meta, tuple) = iterator.next(&mut table_heap).unwrap();
         assert_eq!(meta, meta3);
-        assert_eq!(tuple.data, vec![3; 2000]);
+        assert_eq!(tuple.data, vec![3i8.into(), 3i16.into()]);
 
         assert!(iterator.next(&mut table_heap).is_none());
 

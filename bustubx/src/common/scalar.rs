@@ -133,3 +133,25 @@ impl std::fmt::Display for ScalarValue {
         }
     }
 }
+
+macro_rules! impl_from_for_scalar {
+    ($ty:ty, $scalar:tt) => {
+        impl From<$ty> for ScalarValue {
+            fn from(value: $ty) -> Self {
+                ScalarValue::$scalar(Some(value))
+            }
+        }
+
+        impl From<Option<$ty>> for ScalarValue {
+            fn from(value: Option<$ty>) -> Self {
+                ScalarValue::$scalar(value)
+            }
+        }
+    };
+}
+
+impl_from_for_scalar!(i8, Int8);
+impl_from_for_scalar!(i16, Int16);
+impl_from_for_scalar!(i32, Int32);
+impl_from_for_scalar!(i64, Int64);
+impl_from_for_scalar!(bool, Boolean);

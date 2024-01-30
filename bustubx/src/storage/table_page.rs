@@ -98,7 +98,7 @@ impl TablePage {
 
         // Copy the tuple's data into the appropriate position within the page's data buffer.
         self.data[tuple_offset as usize..(tuple_offset + tuple.data.len() as u16) as usize]
-            .copy_from_slice(&tuple.data);
+            .copy_from_slice(&tuple.to_bytes());
         return Some(tuple_id);
     }
 
@@ -121,9 +121,9 @@ impl TablePage {
         }
 
         let (offset, size, meta) = self.tuple_info[tuple_id as usize];
-        let tuple = Tuple::new(
+        let tuple = Tuple::from_bytes(
             self.schema.clone(),
-            self.data[offset as usize..(offset + size) as usize].to_vec(),
+            &self.data[offset as usize..(offset + size) as usize].to_vec(),
         );
 
         return (meta, tuple);
@@ -219,7 +219,7 @@ impl TablePage {
 
 #[cfg(test)]
 mod tests {
-    use crate::catalog::Schema;
+    use crate::catalog::{Column, DataType, Schema};
     use crate::{
         common::{config::BUSTUBX_PAGE_SIZE, rid::Rid},
         storage::Tuple,
@@ -228,14 +228,20 @@ mod tests {
 
     #[test]
     pub fn test_table_page_insert() {
-        let schema = Arc::new(Schema::empty());
+        let schema = Arc::new(Schema::new(vec![
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+        ]));
         let mut table_page = super::TablePage::new(schema.clone(), 0);
         let meta = super::TupleMeta {
             insert_txn_id: 0,
             delete_txn_id: 0,
             is_deleted: false,
         };
-        let tuple_id = table_page.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![1, 1, 1]));
+        let tuple_id = table_page.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
+        );
         assert_eq!(tuple_id, Some(0));
         assert_eq!(table_page.num_tuples, 1);
         assert_eq!(table_page.num_deleted_tuples, 0);
@@ -247,7 +253,10 @@ mod tests {
         assert_eq!(table_page.tuple_info[tuple_id.unwrap() as usize].1, 3);
         assert_eq!(table_page.tuple_info[tuple_id.unwrap() as usize].2, meta);
 
-        let tuple_id = table_page.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![1, 1, 1]));
+        let tuple_id = table_page.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
+        );
         assert_eq!(tuple_id, Some(1));
         assert_eq!(table_page.num_tuples, 2);
         assert_eq!(table_page.num_deleted_tuples, 0);
@@ -262,41 +271,65 @@ mod tests {
 
     #[test]
     pub fn test_table_page_get_tuple() {
-        let schema = Arc::new(Schema::empty());
+        let schema = Arc::new(Schema::new(vec![
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+        ]));
         let mut table_page = super::TablePage::new(schema.clone(), 0);
         let meta = super::TupleMeta {
             insert_txn_id: 0,
             delete_txn_id: 0,
             is_deleted: false,
         };
-        let tuple_id = table_page.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![1, 1, 1]));
+        let tuple_id = table_page.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
+        );
         assert_eq!(tuple_id, Some(0));
-        let tuple_id = table_page.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![2, 2, 2]));
+        let tuple_id = table_page.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
+        );
         assert_eq!(tuple_id, Some(1));
-        let tuple_id = table_page.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![3, 3, 3]));
+        let tuple_id = table_page.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
+        );
         assert_eq!(tuple_id, Some(2));
 
         let (tuple_meta, tuple) = table_page.get_tuple(&super::Rid::new(0, 0));
         assert_eq!(tuple_meta, meta);
-        assert_eq!(tuple.data, vec![1, 1, 1]);
+        assert_eq!(tuple.data, vec![1i8.into(), 1i16.into()]);
         let (tuple_meta, tuple) = table_page.get_tuple(&super::Rid::new(0, 1));
-        assert_eq!(tuple.data, vec![2, 2, 2]);
+        assert_eq!(tuple.data, vec![2i8.into(), 2i16.into()]);
         let (tuple_meta, tuple) = table_page.get_tuple(&super::Rid::new(0, 2));
-        assert_eq!(tuple.data, vec![3, 3, 3]);
+        assert_eq!(tuple.data, vec![3i8.into(), 3i16.into()]);
     }
 
     #[test]
     pub fn test_table_page_update_tuple_meta() {
-        let schema = Arc::new(Schema::empty());
+        let schema = Arc::new(Schema::new(vec![
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+        ]));
         let mut table_page = super::TablePage::new(schema.clone(), 0);
         let meta = super::TupleMeta {
             insert_txn_id: 0,
             delete_txn_id: 0,
             is_deleted: false,
         };
-        let tuple_id = table_page.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![1, 1, 1]));
-        let tuple_id = table_page.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![2, 2, 2]));
-        let tuple_id = table_page.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![3, 3, 3]));
+        let tuple_id = table_page.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
+        );
+        let tuple_id = table_page.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
+        );
+        let tuple_id = table_page.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
+        );
 
         let mut tuple_meta = table_page.get_tuple_meta(&super::Rid::new(0, 0));
         tuple_meta.is_deleted = true;
@@ -312,16 +345,28 @@ mod tests {
 
     #[test]
     pub fn test_table_page_from_to_bytes() {
-        let schema = Arc::new(Schema::empty());
+        let schema = Arc::new(Schema::new(vec![
+            Column::new("a".to_string(), DataType::Int8),
+            Column::new("b".to_string(), DataType::Int16),
+        ]));
         let mut table_page = super::TablePage::new(schema.clone(), 1);
         let meta = super::TupleMeta {
             insert_txn_id: 0,
             delete_txn_id: 0,
             is_deleted: false,
         };
-        let tuple_id1 = table_page.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![1, 1, 1]));
-        let tuple_id2 = table_page.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![2, 2, 2]));
-        let tuple_id3 = table_page.insert_tuple(&meta, &Tuple::new(schema.clone(), vec![3, 3, 3]));
+        let tuple_id1 = table_page.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
+        );
+        let tuple_id2 = table_page.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
+        );
+        let tuple_id3 = table_page.insert_tuple(
+            &meta,
+            &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
+        );
 
         let bytes = table_page.to_bytes();
         let table_page2 = super::TablePage::from_bytes(schema.clone(), &bytes);
@@ -347,6 +392,6 @@ mod tests {
 
         let (tuple_meta, tuple) = table_page2.get_tuple(&Rid::new(0, tuple_id2.unwrap() as u32));
         assert_eq!(tuple_meta, meta);
-        assert_eq!(tuple.data, vec![2, 2, 2]);
+        assert_eq!(tuple.data, vec![2i8.into(), 2i16.into()]);
     }
 }

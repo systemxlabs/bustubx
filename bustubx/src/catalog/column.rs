@@ -14,6 +14,12 @@ pub struct Column {
     pub column_offset: usize,
 }
 
+impl PartialEq for Column {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.data_type == other.data_type
+    }
+}
+
 impl Column {
     pub fn new(name: String, data_type: DataType) -> Self {
         Self {
