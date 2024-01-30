@@ -25,19 +25,14 @@ impl Expr {
         }
     }
 
-    pub fn evaluate_join(
-        &self,
-        left_tuple: &Tuple,
-        left_schema: &Schema,
-        right_tuple: &Tuple,
-        right_schema: &Schema,
-    ) -> ScalarValue {
+    pub fn evaluate_join(&self, left_tuple: &Tuple, right_tuple: &Tuple) -> ScalarValue {
         // combine left and right tuple, left and right schema
-        let tuple = Tuple::from_tuples(vec![
-            (left_tuple.clone(), left_schema.clone()),
-            (right_tuple.clone(), right_schema.clone()),
-        ]);
-        let schema = Schema::try_merge(vec![left_schema.clone(), right_schema.clone()]).unwrap();
+        let tuple = Tuple::try_merge(vec![left_tuple.clone(), right_tuple.clone()]).unwrap();
+        let schema = Schema::try_merge(vec![
+            left_tuple.schema.as_ref().clone(),
+            right_tuple.schema.as_ref().clone(),
+        ])
+        .unwrap();
         self.evaluate(Some(&tuple), Some(&schema))
     }
 }

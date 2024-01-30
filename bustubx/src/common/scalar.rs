@@ -105,6 +105,16 @@ impl ScalarValue {
             ScalarValue::Int64(_) => DataType::Int64,
         }
     }
+
+    pub fn is_null(&self) -> bool {
+        match self {
+            ScalarValue::Boolean(v) => v.is_none(),
+            ScalarValue::Int8(v) => v.is_none(),
+            ScalarValue::Int16(v) => v.is_none(),
+            ScalarValue::Int32(v) => v.is_none(),
+            ScalarValue::Int64(v) => v.is_none(),
+        }
+    }
 }
 
 impl std::fmt::Display for ScalarValue {

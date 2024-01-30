@@ -1,5 +1,5 @@
 use crate::catalog::{ColumnRef, SchemaRef};
-use crate::{catalog::Schema, common::config::TransactionId, common::ScalarValue};
+use crate::{catalog::Schema, common::config::TransactionId, common::ScalarValue, BustubxResult};
 use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,18 +40,17 @@ impl Tuple {
         Self { schema, data }
     }
 
-    // TODO add unit test to make sure this still works if tuple format changes
-    pub fn from_tuples(tuples: Vec<(Tuple, Schema)>) -> Self {
+    pub fn try_merge(tuples: impl IntoIterator<Item = Self>) -> BustubxResult<Self> {
         let mut data = vec![];
         let mut merged_schema = Schema::empty();
-        for (tuple, schema) in tuples {
+        for tuple in tuples {
             data.extend(tuple.data);
-            merged_schema = Schema::try_merge(vec![merged_schema, schema]).unwrap();
+            merged_schema = Schema::try_merge(vec![merged_schema, tuple.schema.as_ref().clone()])?;
         }
-        Self {
+        Ok(Self {
             schema: Arc::new(merged_schema),
             data,
-        }
+        })
     }
 
     pub fn is_zero(&self) -> bool {
