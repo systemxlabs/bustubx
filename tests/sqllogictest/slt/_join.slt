@@ -1,0 +1,38 @@
+statement ok
+create table t1 (a int, b int)
+
+statement ok
+create table t2 (a int, b int)
+
+statement ok
+insert into t1 values (1, 2), (3, 4)
+
+statement ok
+insert into t2 values (5, 6), (7, 8)
+
+query IIII rowsort
+select * from t1, t2
+----
+1 2 5 6
+1 2 7 8
+3 4 5 6
+3 4 7 8
+
+
+
+statement ok
+create table t3 (a int, b int)
+
+statement ok
+create table t4 (a int, b int)
+
+statement ok
+insert into t3 values (1, 2), (5, 6)
+
+statement ok
+insert into t4 values (3, 4), (7, 8)
+
+query IIII rowsort
+select * from t3 inner join t4 on t3.a > t4.a
+----
+5 6 3 4

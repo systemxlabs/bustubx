@@ -14,7 +14,15 @@ impl BustubxDB {
 }
 
 fn tuples_to_sqllogictest_string(tuples: Vec<Tuple>) -> Vec<Vec<String>> {
-    todo!()
+    let mut output = vec![];
+    for tuple in tuples.iter() {
+        let mut row = vec![];
+        for value in tuple.data.iter() {
+            row.push(format!("{value}"));
+        }
+        output.push(row);
+    }
+    output
 }
 
 impl sqllogictest::DB for BustubxDB {
@@ -37,8 +45,7 @@ impl sqllogictest::DB for BustubxDB {
                 return Ok(DBOutput::StatementComplete(0));
             }
         }
-        // TODO fix type count
-        let types = vec![DefaultColumnType::Any; 3];
+        let types = vec![DefaultColumnType::Any; tuples[0].schema.column_count()];
         let rows = tuples_to_sqllogictest_string(tuples);
         Ok(DBOutput::Rows { types, rows })
     }

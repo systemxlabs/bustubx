@@ -1,0 +1,12 @@
+statement ok
+create table t1 (a int, b int)
+
+statement ok
+insert into t1 values (1, 1), (2, 3), (5, 4)
+
+query II rowsort
+select a, b from t1
+----
+1 1
+2 3
+5 4

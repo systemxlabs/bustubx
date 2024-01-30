@@ -7,6 +7,5 @@ edition = "2021"
 
 [dependencies]
 sqllogictest = "0.13.0"
-tempfile = "3"
 bustubx = { path = "../../bustubx" }
-async-trait = "0.1.77"
+regex = "1.10.3"

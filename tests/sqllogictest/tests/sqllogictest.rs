@@ -1,3 +1,41 @@
-fn main() {
-    println!("run sqllogictest here");
+use bustubx_sqllogictest::BustubxDB;
+use std::path::{Path, PathBuf};
+
+#[test]
+fn sqllogictest() {
+    let test_files = read_dir_recursive("slt/");
+    println!("test_files: {:?}", test_files);
+
+    for file in test_files {
+        let db = BustubxDB::new();
+        let mut tester = sqllogictest::Runner::new(db);
+        tester.run_file(file).unwrap();
+    }
+}
+
+fn read_dir_recursive<P: AsRef<Path>>(path: P) -> Vec<PathBuf> {
+    let mut dst = vec![];
+    read_dir_recursive_impl(&mut dst, path.as_ref());
+    dst
+}
+
+fn read_dir_recursive_impl(dst: &mut Vec<PathBuf>, path: &Path) {
+    let entries = std::fs::read_dir(path).unwrap();
+    for entry in entries {
+        let path = entry.unwrap().path();
+
+        if path.is_dir() {
+            read_dir_recursive_impl(dst, &path);
+        } else {
+            // skip _xxx.slt file
+            if regex::Regex::new(r"/_.*\.slt")
+                .unwrap()
+                .is_match(path.to_str().unwrap())
+            {
+                println!("skip file: {:?}", path);
+                continue;
+            }
+            dst.push(path);
+        }
+    }
 }

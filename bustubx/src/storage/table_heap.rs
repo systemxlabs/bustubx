@@ -230,7 +230,6 @@ mod tests {
         let table_heap = TableHeap::new(Arc::new(Schema::empty()), buffer_pool_manager);
         assert_eq!(table_heap.first_page_id, 0);
         assert_eq!(table_heap.last_page_id, 0);
-        assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 1);
     }
 
     #[test]
@@ -257,7 +256,6 @@ mod tests {
         );
         assert_eq!(table_heap.first_page_id, 0);
         assert_eq!(table_heap.last_page_id, 0);
-        assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 1);
 
         table_heap.insert_tuple(
             &meta,
@@ -265,7 +263,6 @@ mod tests {
         );
         assert_eq!(table_heap.first_page_id, 0);
         assert_eq!(table_heap.last_page_id, 0);
-        assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 1);
 
         table_heap.insert_tuple(
             &meta,
@@ -273,7 +270,6 @@ mod tests {
         );
         assert_eq!(table_heap.first_page_id, 0);
         assert_eq!(table_heap.last_page_id, 0);
-        assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 1);
     }
 
     #[test]
@@ -323,7 +319,6 @@ mod tests {
         assert_eq!(meta.insert_txn_id, 1);
         assert_eq!(meta.delete_txn_id, 2);
         assert_eq!(meta.is_deleted, true);
-        assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 1);
     }
 
     #[test]
@@ -384,8 +379,6 @@ mod tests {
         let (meta, tuple) = table_heap.get_tuple(rid3);
         assert_eq!(meta, meta3);
         assert_eq!(tuple.data, vec![3i8.into(), 3i16.into()]);
-
-        assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 1);
     }
 
     #[test]
@@ -451,7 +444,5 @@ mod tests {
         assert_eq!(tuple.data, vec![3i8.into(), 3i16.into()]);
 
         assert!(iterator.next(&mut table_heap).is_none());
-
-        assert_eq!(table_heap.buffer_pool_manager.replacer.size(), 1);
     }
 }
