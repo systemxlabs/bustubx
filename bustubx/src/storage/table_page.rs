@@ -59,13 +59,13 @@ impl TablePage {
         };
 
         // Check if the current slot has enough space for the new tuple. Return None if not.
-        if slot_end_offset < tuple.data.len() as u16 {
+        if slot_end_offset < tuple.to_bytes().len() as u16 {
             return None;
         }
 
         // Calculate the insertion offset for the new tuple by subtracting its data length
         // from the ending offset of the current slot.
-        let tuple_offset = slot_end_offset - tuple.data.len() as u16;
+        let tuple_offset = slot_end_offset - tuple.to_bytes().len() as u16;
 
         // Calculate the minimum valid tuple insertion offset, including the table page header size,
         // the total size of each tuple info (existing tuple infos and newly added tuple info).
@@ -86,7 +86,7 @@ impl TablePage {
 
         // Store tuple information including offset, length, and metadata.
         self.tuple_info
-            .push((tuple_offset, tuple.data.len() as u16, meta.clone()));
+            .push((tuple_offset, tuple.to_bytes().len() as u16, meta.clone()));
 
         // only check
         assert_eq!(tuple_id, self.tuple_info.len() as u16 - 1);
@@ -97,7 +97,7 @@ impl TablePage {
         }
 
         // Copy the tuple's data into the appropriate position within the page's data buffer.
-        self.data[tuple_offset as usize..(tuple_offset + tuple.data.len() as u16) as usize]
+        self.data[tuple_offset as usize..(tuple_offset + tuple.to_bytes().len() as u16) as usize]
             .copy_from_slice(&tuple.to_bytes());
         return Some(tuple_id);
     }

@@ -359,7 +359,7 @@ impl BPlusTreeInternalPage {
         if self.current_size == 0 {
             buf[12..BUSTUBX_PAGE_SIZE].fill(0);
         } else {
-            let key_size = self.array[0].0.data.len();
+            let key_size = self.array[0].0.to_bytes().len();
             let value_size = size_of::<PageId>();
             let kv_size = key_size + value_size;
             for i in 0..self.current_size {
@@ -465,7 +465,7 @@ impl BPlusTreeLeafPage {
         if self.current_size == 0 {
             buf[16..BUSTUBX_PAGE_SIZE].fill(0);
         } else {
-            let key_size = self.array[0].0.data.len();
+            let key_size = self.array[0].0.to_bytes().len();
             let value_size = size_of::<Rid>();
             let kv_size = key_size + value_size;
             for i in 0..self.current_size {
@@ -628,7 +628,7 @@ mod tests {
         assert_eq!(new_page.max_size, 5);
         assert_eq!(
             new_page.array[0].0.data,
-            vec![ScalarValue::Int8(None), ScalarValue::Int16(None)]
+            vec![ScalarValue::Int8(Some(0)), ScalarValue::Int16(Some(0))]
         );
         assert_eq!(new_page.array[0].1, 0);
         assert_eq!(new_page.array[1].0.data, vec![1i8.into(), 1i16.into()]);

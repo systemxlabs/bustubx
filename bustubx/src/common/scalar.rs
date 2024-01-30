@@ -41,6 +41,13 @@ impl ScalarValue {
             Self::Int16(Some(v)) => v.to_be_bytes().to_vec(),
             Self::Int32(Some(v)) => v.to_be_bytes().to_vec(),
             Self::Int64(Some(v)) => v.to_be_bytes().to_vec(),
+
+            // TODO fixme
+            Self::Boolean(None) => vec![0u8; 1],
+            Self::Int8(None) => vec![0u8; 1],
+            Self::Int16(None) => vec![0u8; 2],
+            Self::Int32(None) => vec![0u8; 4],
+            Self::Int64(None) => vec![0u8; 8],
             _ => unimplemented!(),
         }
     }
