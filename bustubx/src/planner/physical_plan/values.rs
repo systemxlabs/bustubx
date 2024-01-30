@@ -1,7 +1,7 @@
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
-use crate::catalog::ColumnRef;
+use crate::catalog::{ColumnRef, SchemaRef};
 use crate::{
     catalog::Schema,
     common::ScalarValue,
@@ -24,10 +24,10 @@ impl PhysicalValues {
             cursor: AtomicU32::new(0),
         }
     }
-    pub fn output_schema(&self) -> Schema {
-        Schema {
+    pub fn output_schema(&self) -> SchemaRef {
+        Arc::new(Schema {
             columns: self.columns.clone(),
-        }
+        })
     }
 }
 impl VolcanoExecutor for PhysicalValues {
@@ -41,7 +41,7 @@ impl VolcanoExecutor for PhysicalValues {
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst) as usize;
         if cursor < self.tuples.len() {
             let values = self.tuples[cursor].clone();
-            return Some(Tuple::new(Arc::new(self.output_schema()), values));
+            return Some(Tuple::new(self.output_schema(), values));
         } else {
             return None;
         }

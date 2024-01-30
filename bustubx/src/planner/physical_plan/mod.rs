@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::catalog::SchemaRef;
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 use crate::{
@@ -11,7 +12,7 @@ use crate::{
 use self::{
     create_index::PhysicalCreateIndex, create_table::PhysicalCreateTable, filter::PhysicalFilter,
     insert::PhysicalInsert, limit::PhysicalLimit, nested_loop_join::PhysicalNestedLoopJoin,
-    project::PhysicalProject, sort::PhysicalSort, table_scan::PhysicalTableScan,
+    project::PhysicalProject, seq_scan::PhysicalSeqScan, sort::PhysicalSort,
     values::PhysicalValues,
 };
 
@@ -22,8 +23,8 @@ pub mod insert;
 pub mod limit;
 pub mod nested_loop_join;
 pub mod project;
+pub mod seq_scan;
 pub mod sort;
-pub mod table_scan;
 pub mod values;
 
 #[derive(Debug)]
@@ -33,7 +34,7 @@ pub enum PhysicalPlan {
     CreateIndex(PhysicalCreateIndex),
     Project(PhysicalProject),
     Filter(PhysicalFilter),
-    TableScan(PhysicalTableScan),
+    TableScan(PhysicalSeqScan),
     Limit(PhysicalLimit),
     Insert(PhysicalInsert),
     Values(PhysicalValues),
@@ -41,9 +42,9 @@ pub enum PhysicalPlan {
     Sort(PhysicalSort),
 }
 impl PhysicalPlan {
-    pub fn output_schema(&self) -> Schema {
+    pub fn output_schema(&self) -> SchemaRef {
         match self {
-            Self::Dummy => Schema::new(vec![]),
+            Self::Dummy => Arc::new(Schema::new(vec![])),
             Self::CreateTable(op) => op.output_schema(),
             Self::CreateIndex(op) => op.output_schema(),
             Self::Insert(op) => op.output_schema(),
@@ -106,7 +107,7 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
             ))
         }
         LogicalOperator::Scan(ref logical_table_scan) => {
-            PhysicalPlan::TableScan(PhysicalTableScan::new(
+            PhysicalPlan::TableScan(PhysicalSeqScan::new(
                 logical_table_scan.table_oid.clone(),
                 logical_table_scan.columns.clone(),
             ))
@@ -161,6 +162,7 @@ impl VolcanoExecutor for PhysicalPlan {
             PhysicalPlan::Sort(op) => op.init(context),
         }
     }
+
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
         match self {
             PhysicalPlan::Dummy => None,

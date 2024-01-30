@@ -4,6 +4,7 @@ use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
 };
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub struct PhysicalCreateIndex {
@@ -26,8 +27,11 @@ impl PhysicalCreateIndex {
             key_attrs,
         }
     }
-    pub fn output_schema(&self) -> Schema {
-        Schema::copy_schema(self.table_schema.clone(), &self.key_attrs)
+    pub fn output_schema(&self) -> SchemaRef {
+        Arc::new(Schema::copy_schema(
+            self.table_schema.clone(),
+            &self.key_attrs,
+        ))
     }
 }
 impl VolcanoExecutor for PhysicalCreateIndex {

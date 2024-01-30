@@ -1,5 +1,6 @@
 use std::sync::{atomic::AtomicU32, Arc, Mutex};
 
+use crate::catalog::SchemaRef;
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
@@ -26,7 +27,7 @@ impl PhysicalSort {
             cursor: AtomicU32::new(0),
         }
     }
-    pub fn output_schema(&self) -> Schema {
+    pub fn output_schema(&self) -> SchemaRef {
         self.input.output_schema()
     }
 }

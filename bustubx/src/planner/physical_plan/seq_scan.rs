@@ -1,34 +1,34 @@
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
-use crate::catalog::ColumnRef;
+use crate::catalog::{ColumnRef, SchemaRef};
 use crate::{
     catalog::{Schema, TableOid},
     execution::{ExecutionContext, VolcanoExecutor},
-    storage::{table_heap::TableIterator, Tuple},
+    storage::{TableIterator, Tuple},
 };
 
 #[derive(Debug)]
-pub struct PhysicalTableScan {
+pub struct PhysicalSeqScan {
     pub table_oid: TableOid,
     pub columns: Vec<ColumnRef>,
 
     iterator: Mutex<TableIterator>,
 }
-impl PhysicalTableScan {
+impl PhysicalSeqScan {
     pub fn new(table_oid: TableOid, columns: Vec<ColumnRef>) -> Self {
-        PhysicalTableScan {
+        PhysicalSeqScan {
             table_oid,
             columns,
             iterator: Mutex::new(TableIterator::new(None, None)),
         }
     }
-    pub fn output_schema(&self) -> Schema {
-        Schema {
+    pub fn output_schema(&self) -> SchemaRef {
+        Arc::new(Schema {
             columns: self.columns.clone(),
-        }
+        })
     }
 }
-impl VolcanoExecutor for PhysicalTableScan {
+impl VolcanoExecutor for PhysicalSeqScan {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init table scan executor");
         let table_info = context

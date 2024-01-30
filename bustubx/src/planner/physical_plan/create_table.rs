@@ -1,3 +1,4 @@
+use crate::catalog::SchemaRef;
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
@@ -11,8 +12,8 @@ pub struct PhysicalCreateTable {
     pub schema: Schema,
 }
 impl PhysicalCreateTable {
-    pub fn output_schema(&self) -> Schema {
-        self.schema.clone()
+    pub fn output_schema(&self) -> SchemaRef {
+        Arc::new(self.schema.clone())
     }
 }
 impl VolcanoExecutor for PhysicalCreateTable {

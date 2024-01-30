@@ -1,5 +1,6 @@
 use std::sync::{atomic::AtomicU32, Arc};
 
+use crate::catalog::SchemaRef;
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
@@ -25,8 +26,8 @@ impl PhysicalLimit {
             cursor: AtomicU32::new(0),
         }
     }
-    pub fn output_schema(&self) -> Schema {
-        return self.input.output_schema();
+    pub fn output_schema(&self) -> SchemaRef {
+        self.input.output_schema()
     }
 }
 impl VolcanoExecutor for PhysicalLimit {

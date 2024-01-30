@@ -65,9 +65,8 @@ impl Database {
         let mut execution_engine = ExecutionEngine {
             context: execution_ctx,
         };
-        let (tuples, schema) = execution_engine.execute(Arc::new(physical_plan));
+        let tuples = execution_engine.execute(Arc::new(physical_plan));
         // println!("execution result: {:?}", tuples);
-        // print_tuples(&tuples, &schema);
         Ok(tuples)
     }
 

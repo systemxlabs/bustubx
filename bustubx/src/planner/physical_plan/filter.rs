@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::catalog::SchemaRef;
 use crate::{
     catalog::Schema,
     common::ScalarValue,
@@ -16,7 +17,7 @@ pub struct PhysicalFilter {
     pub input: Arc<PhysicalPlan>,
 }
 impl PhysicalFilter {
-    pub fn output_schema(&self) -> Schema {
+    pub fn output_schema(&self) -> SchemaRef {
         self.input.output_schema()
     }
 }

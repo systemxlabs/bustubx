@@ -7,7 +7,7 @@ use crate::{
     common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     storage::{
         index::{BPlusTreeIndex, IndexMetadata},
-        table_heap::TableHeap,
+        TableHeap,
     },
 };
 

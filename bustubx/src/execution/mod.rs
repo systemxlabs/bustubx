@@ -22,7 +22,7 @@ pub struct ExecutionEngine<'a> {
     pub context: ExecutionContext<'a>,
 }
 impl ExecutionEngine<'_> {
-    pub fn execute(&mut self, plan: Arc<PhysicalPlan>) -> (Vec<Tuple>, Schema) {
+    pub fn execute(&mut self, plan: Arc<PhysicalPlan>) -> Vec<Tuple> {
         let _execute_span = span!(tracing::Level::INFO, "executionengine.execute").entered();
         plan.init(&mut self.context);
         let mut result = Vec::new();
@@ -34,7 +34,6 @@ impl ExecutionEngine<'_> {
                 break;
             }
         }
-        let schema = plan.output_schema();
-        (result, schema)
+        result
     }
 }

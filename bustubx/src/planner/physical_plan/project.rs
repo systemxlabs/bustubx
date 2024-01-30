@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::catalog::SchemaRef;
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
@@ -15,7 +16,7 @@ pub struct PhysicalProject {
     pub input: Arc<PhysicalPlan>,
 }
 impl PhysicalProject {
-    pub fn output_schema(&self) -> Schema {
+    pub fn output_schema(&self) -> SchemaRef {
         // TODO consider aggr/alias
         self.input.output_schema()
     }
@@ -34,6 +35,6 @@ impl VolcanoExecutor for PhysicalProject {
         for expr in &self.expressions {
             new_values.push(expr.evaluate(next_tuple.as_ref(), Some(&self.input.output_schema())));
         }
-        return Some(Tuple::new(Arc::new(self.output_schema()), new_values));
+        return Some(Tuple::new(self.output_schema(), new_values));
     }
 }

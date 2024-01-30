@@ -1,6 +1,6 @@
 use std::sync::{atomic::AtomicU32, Arc};
 
-use crate::catalog::ColumnRef;
+use crate::catalog::{ColumnRef, SchemaRef};
 use crate::{
     catalog::{Column, DataType, Schema},
     common::ScalarValue,
@@ -27,11 +27,11 @@ impl PhysicalInsert {
             insert_rows: AtomicU32::new(0),
         }
     }
-    pub fn output_schema(&self) -> Schema {
-        Schema::new(vec![Column::new(
+    pub fn output_schema(&self) -> SchemaRef {
+        Arc::new(Schema::new(vec![Column::new(
             "insert_rows".to_string(),
             DataType::Int32,
-        )])
+        )]))
     }
 }
 impl VolcanoExecutor for PhysicalInsert {
@@ -53,7 +53,7 @@ impl VolcanoExecutor for PhysicalInsert {
                     self.insert_rows
                         .store(0, std::sync::atomic::Ordering::SeqCst);
                     return Some(Tuple::new(
-                        Arc::new(self.output_schema()),
+                        self.output_schema(),
                         vec![ScalarValue::Int32(Some(insert_rows as i32))],
                     ));
                 }
