@@ -1,9 +1,3 @@
-use crate::catalog::DataType;
-use crate::catalog::Schema;
-use crate::common::ScalarValue;
-use crate::error::BustubxResult;
-use crate::storage::Tuple;
-
 mod alias;
 mod binary;
 mod column;
@@ -13,6 +7,13 @@ pub use alias::Alias;
 pub use binary::{BinaryExpr, BinaryOp};
 pub use column::ColumnExpr;
 pub use literal::Literal;
+
+use crate::catalog::DataType;
+use crate::catalog::Schema;
+use crate::common::ScalarValue;
+use crate::storage::Tuple;
+use crate::BustubxError;
+use crate::BustubxResult;
 
 pub trait ExprTrait {
     /// Get the data type of this expression, given the schema of the input
@@ -50,6 +51,23 @@ impl ExprTrait for Expr {
             Expr::Column(column) => column.evaluate(tuple),
             Expr::Literal(literal) => literal.evaluate(tuple),
             Expr::BinaryExpr(binary) => binary.evaluate(tuple),
+        }
+    }
+}
+
+impl TryFrom<&sqlparser::ast::Expr> for Expr {
+    type Error = BustubxError;
+
+    fn try_from(value: &sqlparser::ast::Expr) -> Result<Self, Self::Error> {
+        match value {
+            sqlparser::ast::Expr::Value(value) => todo!(),
+            sqlparser::ast::Expr::BinaryOp { left, op, right } => todo!(),
+            sqlparser::ast::Expr::Identifier(ident) => todo!(),
+            sqlparser::ast::Expr::CompoundIdentifier(idents) => todo!(),
+            _ => Err(BustubxError::NotSupport(format!(
+                "sqlparser expr not supported: {}",
+                value
+            ))),
         }
     }
 }

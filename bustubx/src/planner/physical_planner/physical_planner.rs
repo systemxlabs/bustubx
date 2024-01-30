@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 
-use crate::planner::physical_plan::PhysicalCreateIndex;
 use crate::planner::physical_plan::PhysicalCreateTable;
 use crate::planner::physical_plan::PhysicalFilter;
 use crate::planner::physical_plan::PhysicalInsert;
@@ -14,6 +13,7 @@ use crate::planner::physical_plan::PhysicalProject;
 use crate::planner::physical_plan::PhysicalSeqScan;
 use crate::planner::physical_plan::PhysicalSort;
 use crate::planner::physical_plan::PhysicalValues;
+use crate::planner::physical_plan::{Dummy, PhysicalCreateIndex};
 
 pub struct PhysicalPlanner;
 
@@ -30,7 +30,7 @@ impl PhysicalPlanner {
 
 pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
     let plan = match logical_plan.operator {
-        LogicalOperator::Dummy => PhysicalPlan::Dummy,
+        LogicalOperator::Dummy => PhysicalPlan::Dummy(Dummy {}),
         LogicalOperator::CreateTable(ref logic_create_table) => {
             PhysicalPlan::CreateTable(PhysicalCreateTable::new(
                 logic_create_table.table_name.clone(),

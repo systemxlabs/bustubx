@@ -84,3 +84,9 @@ impl VolcanoExecutor for PhysicalSort {
         self.input.output_schema()
     }
 }
+
+impl std::fmt::Display for PhysicalSort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}

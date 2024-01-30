@@ -13,9 +13,6 @@ pub struct PhysicalCreateTable {
 }
 
 impl VolcanoExecutor for PhysicalCreateTable {
-    fn init(&self, context: &mut ExecutionContext) {
-        println!("init create table executor");
-    }
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
         context
             .catalog
@@ -24,5 +21,11 @@ impl VolcanoExecutor for PhysicalCreateTable {
     }
     fn output_schema(&self) -> SchemaRef {
         Arc::new(self.schema.clone())
+    }
+}
+
+impl std::fmt::Display for PhysicalCreateTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }

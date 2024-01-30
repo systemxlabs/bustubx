@@ -1,14 +1,6 @@
-use std::sync::Arc;
-
-use crate::catalog::SchemaRef;
-use crate::{
-    catalog::Schema,
-    execution::{ExecutionContext, VolcanoExecutor},
-    storage::Tuple,
-};
-
 mod create_index;
 mod create_table;
+mod dummy;
 mod filter;
 mod insert;
 mod limit;
@@ -20,6 +12,7 @@ mod values;
 
 pub use create_index::PhysicalCreateIndex;
 pub use create_table::PhysicalCreateTable;
+pub use dummy::Dummy;
 pub use filter::PhysicalFilter;
 pub use insert::PhysicalInsert;
 pub use limit::PhysicalLimit;
@@ -29,9 +22,15 @@ pub use seq_scan::PhysicalSeqScan;
 pub use sort::PhysicalSort;
 pub use values::PhysicalValues;
 
+use crate::catalog::SchemaRef;
+use crate::{
+    execution::{ExecutionContext, VolcanoExecutor},
+    storage::Tuple,
+};
+
 #[derive(Debug)]
 pub enum PhysicalPlan {
-    Dummy,
+    Dummy(Dummy),
     CreateTable(PhysicalCreateTable),
     CreateIndex(PhysicalCreateIndex),
     Project(PhysicalProject),
@@ -47,7 +46,7 @@ pub enum PhysicalPlan {
 impl VolcanoExecutor for PhysicalPlan {
     fn init(&self, context: &mut ExecutionContext) {
         match self {
-            PhysicalPlan::Dummy => {}
+            PhysicalPlan::Dummy(op) => op.init(context),
             PhysicalPlan::CreateTable(op) => op.init(context),
             PhysicalPlan::CreateIndex(op) => op.init(context),
             PhysicalPlan::Insert(op) => op.init(context),
@@ -63,7 +62,7 @@ impl VolcanoExecutor for PhysicalPlan {
 
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
         match self {
-            PhysicalPlan::Dummy => None,
+            PhysicalPlan::Dummy(op) => op.next(context),
             PhysicalPlan::CreateTable(op) => op.next(context),
             PhysicalPlan::CreateIndex(op) => op.next(context),
             PhysicalPlan::Insert(op) => op.next(context),
@@ -79,7 +78,7 @@ impl VolcanoExecutor for PhysicalPlan {
 
     fn output_schema(&self) -> SchemaRef {
         match self {
-            Self::Dummy => Arc::new(Schema::new(vec![])),
+            Self::Dummy(op) => op.output_schema(),
             Self::CreateTable(op) => op.output_schema(),
             Self::CreateIndex(op) => op.output_schema(),
             Self::Insert(op) => op.output_schema(),
@@ -90,6 +89,24 @@ impl VolcanoExecutor for PhysicalPlan {
             Self::Limit(op) => op.output_schema(),
             Self::NestedLoopJoin(op) => op.output_schema(),
             Self::Sort(op) => op.output_schema(),
+        }
+    }
+}
+
+impl std::fmt::Display for PhysicalPlan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Dummy(op) => write!(f, "{op}"),
+            Self::CreateTable(op) => write!(f, "{op}"),
+            Self::CreateIndex(op) => write!(f, "{op}"),
+            Self::Insert(op) => write!(f, "{op}"),
+            Self::Values(op) => write!(f, "{op}"),
+            Self::Project(op) => write!(f, "{op}"),
+            Self::Filter(op) => write!(f, "{op}"),
+            Self::TableScan(op) => write!(f, "{op}"),
+            Self::Limit(op) => write!(f, "{op}"),
+            Self::NestedLoopJoin(op) => write!(f, "{op}"),
+            Self::Sort(op) => write!(f, "{op}"),
         }
     }
 }

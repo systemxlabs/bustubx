@@ -79,3 +79,9 @@ impl VolcanoExecutor for PhysicalInsert {
         )]))
     }
 }
+
+impl std::fmt::Display for PhysicalInsert {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}

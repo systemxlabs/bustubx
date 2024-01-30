@@ -15,9 +15,6 @@ pub struct PhysicalCreateIndex {
 }
 
 impl VolcanoExecutor for PhysicalCreateIndex {
-    fn init(&self, context: &mut ExecutionContext) {
-        println!("init create index executor");
-    }
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
         context.catalog.create_index(
             self.index_name.clone(),
@@ -31,5 +28,11 @@ impl VolcanoExecutor for PhysicalCreateIndex {
             self.table_schema.clone(),
             &self.key_attrs,
         ))
+    }
+}
+
+impl std::fmt::Display for PhysicalCreateIndex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }

@@ -6,7 +6,7 @@ use crate::catalog::SchemaRef;
 use crate::{catalog::Catalog, planner::physical_plan::PhysicalPlan, storage::Tuple};
 
 pub trait VolcanoExecutor {
-    fn init(&self, context: &mut ExecutionContext);
+    fn init(&self, context: &mut ExecutionContext) {}
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple>;
     fn output_schema(&self) -> SchemaRef;
 }

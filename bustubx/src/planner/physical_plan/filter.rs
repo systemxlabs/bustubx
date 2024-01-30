@@ -21,6 +21,7 @@ impl VolcanoExecutor for PhysicalFilter {
         println!("init filter executor");
         self.input.init(context);
     }
+
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
         loop {
             let next_tuple = self.input.next(context);
@@ -42,5 +43,11 @@ impl VolcanoExecutor for PhysicalFilter {
 
     fn output_schema(&self) -> SchemaRef {
         self.input.output_schema()
+    }
+}
+
+impl std::fmt::Display for PhysicalFilter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }

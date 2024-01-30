@@ -26,25 +26,27 @@ impl PhysicalValues {
     }
 }
 impl VolcanoExecutor for PhysicalValues {
-    fn init(&self, context: &mut ExecutionContext) {
-        println!("init values executor");
-        self.cursor.store(0, std::sync::atomic::Ordering::SeqCst);
-    }
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
         let cursor = self
             .cursor
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst) as usize;
-        if cursor < self.tuples.len() {
+        return if cursor < self.tuples.len() {
             let values = self.tuples[cursor].clone();
-            return Some(Tuple::new(self.output_schema(), values));
+            Some(Tuple::new(self.output_schema(), values))
         } else {
-            return None;
-        }
+            None
+        };
     }
 
     fn output_schema(&self) -> SchemaRef {
         Arc::new(Schema {
             columns: self.columns.clone(),
         })
+    }
+}
+
+impl std::fmt::Display for PhysicalValues {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }

@@ -63,3 +63,9 @@ impl VolcanoExecutor for PhysicalLimit {
         self.input.output_schema()
     }
 }
+
+impl std::fmt::Display for PhysicalLimit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}

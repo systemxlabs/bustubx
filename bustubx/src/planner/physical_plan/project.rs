@@ -15,11 +15,13 @@ pub struct PhysicalProject {
     pub expressions: Vec<Expr>,
     pub input: Arc<PhysicalPlan>,
 }
+
 impl VolcanoExecutor for PhysicalProject {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init project executor");
         self.input.init(context);
     }
+
     fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
         let next_tuple = self.input.next(context);
         if next_tuple.is_none() {
@@ -35,5 +37,11 @@ impl VolcanoExecutor for PhysicalProject {
     fn output_schema(&self) -> SchemaRef {
         // TODO consider aggr/alias
         self.input.output_schema()
+    }
+}
+
+impl std::fmt::Display for PhysicalProject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }

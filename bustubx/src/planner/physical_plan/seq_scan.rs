@@ -14,6 +14,7 @@ pub struct PhysicalSeqScan {
 
     iterator: Mutex<TableIterator>,
 }
+
 impl PhysicalSeqScan {
     pub fn new(table_oid: TableOid, columns: Vec<ColumnRef>) -> Self {
         PhysicalSeqScan {
@@ -23,6 +24,7 @@ impl PhysicalSeqScan {
         }
     }
 }
+
 impl VolcanoExecutor for PhysicalSeqScan {
     fn init(&self, context: &mut ExecutionContext) {
         println!("init table scan executor");
@@ -48,5 +50,11 @@ impl VolcanoExecutor for PhysicalSeqScan {
         Arc::new(Schema {
             columns: self.columns.clone(),
         })
+    }
+}
+
+impl std::fmt::Display for PhysicalSeqScan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
     }
 }
