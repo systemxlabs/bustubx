@@ -1,3 +1,4 @@
+use crate::BustubxResult;
 use sqlparser::ast::{JoinConstraint, JoinOperator, Statement, TableFactor, TableWithJoins};
 use std::sync::Arc;
 
@@ -5,6 +6,7 @@ use crate::catalog::{Catalog, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
 use crate::common::table_ref::TableReference;
 use crate::expression::Expr;
 use crate::planner::logical_plan::LogicalPlan;
+use crate::planner::logical_plan_v2::OrderByExpr;
 use crate::planner::operator::LogicalOperator;
 
 use crate::planner::table_ref::{
@@ -194,5 +196,17 @@ impl<'a> LogicalPlanner<'a> {
             }
             _ => unimplemented!(),
         }
+    }
+
+    pub fn plan_order_by(
+        &self,
+        order_by: &sqlparser::ast::OrderByExpr,
+    ) -> BustubxResult<OrderByExpr> {
+        let expr = self.plan_expr(&order_by.expr)?;
+        Ok(OrderByExpr {
+            expr: Box::new(expr),
+            asc: order_by.asc.unwrap_or(true),
+            nulls_first: order_by.nulls_first.unwrap_or(false),
+        })
     }
 }
