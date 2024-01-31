@@ -6,6 +6,6 @@ use std::sync::Arc;
 #[derive(derive_new::new, Debug, Clone)]
 pub struct Insert {
     pub table: TableReference,
-    pub schema: SchemaRef,
+    pub columns: Vec<String>,
     pub input: Arc<LogicalPlanV2>,
 }

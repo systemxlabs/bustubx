@@ -1,8 +1,10 @@
 use crate::expression::{Cast, Expr};
+use crate::BustubxResult;
 use sqlparser::ast::{Ident, ObjectName, Query, SetExpr};
 use std::sync::Arc;
 
 use crate::planner::logical_plan::LogicalPlan;
+use crate::planner::logical_plan_v2::{Insert, LogicalPlanV2};
 use crate::planner::operator::LogicalOperator;
 
 use super::LogicalPlanner;
@@ -65,5 +67,24 @@ impl<'a> LogicalPlanner<'a> {
         } else {
             unimplemented!()
         }
+    }
+
+    pub fn plan_insert_v2(
+        &self,
+        table_name: &ObjectName,
+        columns_ident: &Vec<Ident>,
+        source: &Query,
+    ) -> BustubxResult<LogicalPlanV2> {
+        let values = self.plan_set_expr(source.body.as_ref())?;
+        let table = self.plan_table_name(table_name)?;
+        let columns = columns_ident
+            .iter()
+            .map(|ident| ident.value.clone())
+            .collect();
+        Ok(LogicalPlanV2::Insert(Insert {
+            table,
+            columns,
+            input: Arc::new(values),
+        }))
     }
 }
