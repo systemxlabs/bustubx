@@ -3,11 +3,15 @@ use std::sync::Arc;
 use tracing::span;
 
 use crate::catalog::SchemaRef;
-use crate::{catalog::Catalog, planner::physical_plan::PhysicalPlan, storage::Tuple};
+use crate::{
+    catalog::Catalog, planner::physical_plan::PhysicalPlan, storage::Tuple, BustubxResult,
+};
 
 pub trait VolcanoExecutor {
-    fn init(&self, context: &mut ExecutionContext) {}
-    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple>;
+    fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
+        Ok(())
+    }
+    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>>;
     fn output_schema(&self) -> SchemaRef;
 }
 
@@ -20,17 +24,17 @@ pub struct ExecutionEngine<'a> {
     pub context: ExecutionContext<'a>,
 }
 impl ExecutionEngine<'_> {
-    pub fn execute(&mut self, plan: Arc<PhysicalPlan>) -> Vec<Tuple> {
-        plan.init(&mut self.context);
+    pub fn execute(&mut self, plan: Arc<PhysicalPlan>) -> BustubxResult<Vec<Tuple>> {
+        plan.init(&mut self.context)?;
         let mut result = Vec::new();
         loop {
-            let next_tuple = plan.next(&mut self.context);
+            let next_tuple = plan.next(&mut self.context)?;
             if next_tuple.is_some() {
                 result.push(next_tuple.unwrap());
             } else {
                 break;
             }
         }
-        result
+        Ok(result)
     }
 }

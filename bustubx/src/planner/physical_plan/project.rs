@@ -5,6 +5,7 @@ use crate::expression::{Expr, ExprTrait};
 use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
+    BustubxResult,
 };
 
 use super::PhysicalPlan;
@@ -16,22 +17,22 @@ pub struct PhysicalProject {
 }
 
 impl VolcanoExecutor for PhysicalProject {
-    fn init(&self, context: &mut ExecutionContext) {
+    fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         println!("init project executor");
-        self.input.init(context);
+        self.input.init(context)
     }
 
-    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
-        let next_tuple = self.input.next(context);
+    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
+        let next_tuple = self.input.next(context)?;
         if next_tuple.is_none() {
-            return None;
+            return Ok(None);
         }
         let next_tuple = next_tuple.unwrap();
         let mut new_values = Vec::new();
         for expr in &self.expressions {
-            new_values.push(expr.evaluate(&next_tuple).unwrap());
+            new_values.push(expr.evaluate(&next_tuple)?);
         }
-        return Some(Tuple::new(self.output_schema(), new_values));
+        return Ok(Some(Tuple::new(self.output_schema(), new_values)));
     }
 
     fn output_schema(&self) -> SchemaRef {

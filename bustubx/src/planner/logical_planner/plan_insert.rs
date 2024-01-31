@@ -48,7 +48,6 @@ impl<'a> LogicalPlanner<'a> {
                     }
                     records.push(record);
                 }
-                println!("LWZTEST columns: {:?}, records: {:?}", columns, records);
                 let values_node = LogicalPlan {
                     operator: LogicalOperator::new_values_operator(columns.clone(), records),
                     children: Vec::new(),

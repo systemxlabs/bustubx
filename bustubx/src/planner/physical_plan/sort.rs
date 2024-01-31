@@ -6,6 +6,7 @@ use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
     planner::order_by::BoundOrderBy,
     storage::Tuple,
+    BustubxResult,
 };
 
 use super::PhysicalPlan;
@@ -29,13 +30,14 @@ impl PhysicalSort {
     }
 }
 impl VolcanoExecutor for PhysicalSort {
-    fn init(&self, context: &mut ExecutionContext) {
+    fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         println!("init sort executor");
-        self.input.init(context);
+        self.input.init(context)?;
+        // TODO move to next method
         // load all tuples from input
         let mut all_tuples = Vec::new();
         loop {
-            let next_tuple = self.input.next(context);
+            let next_tuple = self.input.next(context)?;
             if next_tuple.is_none() {
                 break;
             }
@@ -60,21 +62,22 @@ impl VolcanoExecutor for PhysicalSort {
         });
         *self.all_tuples.lock().unwrap() = all_tuples;
         self.cursor.store(0, std::sync::atomic::Ordering::SeqCst);
+        Ok(())
     }
 
-    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
+    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         let cursor = self
             .cursor
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst) as usize;
         if cursor >= self.all_tuples.lock().unwrap().len() {
-            return None;
+            return Ok(None);
         }
-        return self
+        return Ok(self
             .all_tuples
             .lock()
             .unwrap()
             .get(cursor)
-            .map(|t| t.clone());
+            .map(|t| t.clone()));
     }
 
     fn output_schema(&self) -> SchemaRef {

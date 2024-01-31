@@ -6,6 +6,7 @@ use crate::{
     common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::{Tuple, TupleMeta},
+    BustubxResult,
 };
 
 use super::PhysicalPlan;
@@ -29,27 +30,27 @@ impl PhysicalInsert {
     }
 }
 impl VolcanoExecutor for PhysicalInsert {
-    fn init(&self, context: &mut ExecutionContext) {
+    fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         println!("init insert executor");
         self.insert_rows
             .store(0, std::sync::atomic::Ordering::SeqCst);
-        self.input.init(context);
+        self.input.init(context)
     }
-    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
+    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         loop {
-            let next_tuple = self.input.next(context);
+            let next_tuple = self.input.next(context)?;
             if next_tuple.is_none() {
                 // only return insert_rows when input exhausted
                 if self.insert_rows.load(std::sync::atomic::Ordering::SeqCst) == 0 {
-                    return None;
+                    return Ok(None);
                 } else {
                     let insert_rows = self.insert_rows.load(std::sync::atomic::Ordering::SeqCst);
                     self.insert_rows
                         .store(0, std::sync::atomic::Ordering::SeqCst);
-                    return Some(Tuple::new(
+                    return Ok(Some(Tuple::new(
                         self.output_schema(),
                         vec![ScalarValue::Int32(Some(insert_rows as i32))],
-                    ));
+                    )));
                 }
             }
 

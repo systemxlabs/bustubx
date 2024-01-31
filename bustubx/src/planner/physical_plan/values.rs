@@ -5,9 +5,9 @@ use crate::catalog::{ColumnRef, SchemaRef};
 use crate::expression::{Expr, ExprTrait};
 use crate::{
     catalog::Schema,
-    common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
+    BustubxResult,
 };
 
 #[derive(Debug)]
@@ -27,13 +27,13 @@ impl PhysicalValues {
     }
 }
 impl VolcanoExecutor for PhysicalValues {
-    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
+    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         let cursor = self
             .cursor
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst) as usize;
         return if cursor < self.tuples.len() {
             let values = self.tuples[cursor].clone();
-            Some(Tuple::new(
+            Ok(Some(Tuple::new(
                 self.output_schema(),
                 values
                     .into_iter()
@@ -42,9 +42,9 @@ impl VolcanoExecutor for PhysicalValues {
                             .unwrap()
                     })
                     .collect(),
-            ))
+            )))
         } else {
-            None
+            Ok(None)
         };
     }
 

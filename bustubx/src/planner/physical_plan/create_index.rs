@@ -3,6 +3,7 @@ use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
+    BustubxResult,
 };
 use std::sync::Arc;
 
@@ -15,13 +16,13 @@ pub struct PhysicalCreateIndex {
 }
 
 impl VolcanoExecutor for PhysicalCreateIndex {
-    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
+    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         context.catalog.create_index(
             self.index_name.clone(),
             self.table_name.clone(),
             self.key_attrs.clone(),
         );
-        None
+        Ok(None)
     }
     fn output_schema(&self) -> SchemaRef {
         Arc::new(Schema::copy_schema(

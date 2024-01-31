@@ -8,6 +8,7 @@ use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
     planner::table_ref::join::JoinType,
     storage::Tuple,
+    BustubxResult,
 };
 
 use super::PhysicalPlan;
@@ -38,16 +39,16 @@ impl PhysicalNestedLoopJoin {
     }
 }
 impl VolcanoExecutor for PhysicalNestedLoopJoin {
-    fn init(&self, context: &mut ExecutionContext) {
+    fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         println!("init nested loop join executor");
         *self.left_tuple.lock().unwrap() = None;
-        self.left_input.init(context);
-        self.right_input.init(context);
+        self.left_input.init(context)?;
+        self.right_input.init(context)
     }
-    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
+    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         let left_tuple = self.left_tuple.lock().unwrap();
         let mut left_next_tuple = if left_tuple.is_none() {
-            self.left_input.next(context)
+            self.left_input.next(context)?
         } else {
             Some(left_tuple.clone().unwrap())
         };
@@ -57,7 +58,7 @@ impl VolcanoExecutor for PhysicalNestedLoopJoin {
         while left_next_tuple.is_some() {
             let left_tuple = left_next_tuple.clone().unwrap();
 
-            let mut right_next_tuple = self.right_input.next(context);
+            let mut right_next_tuple = self.right_input.next(context)?;
             while right_next_tuple.is_some() {
                 let right_tuple = right_next_tuple.unwrap();
 
@@ -66,33 +67,33 @@ impl VolcanoExecutor for PhysicalNestedLoopJoin {
                     // save latest left_next_result before return
                     *self.left_tuple.lock().unwrap() = Some(left_tuple.clone());
 
-                    return Some(Tuple::try_merge(vec![left_tuple, right_tuple]).unwrap());
+                    return Ok(Some(Tuple::try_merge(vec![left_tuple, right_tuple])?));
                 } else {
                     let condition = self.condition.clone().unwrap();
                     let merged_tuple =
-                        Tuple::try_merge(vec![left_tuple.clone(), right_tuple.clone()]).unwrap();
-                    let evaluate_res = condition.evaluate(&merged_tuple).unwrap();
+                        Tuple::try_merge(vec![left_tuple.clone(), right_tuple.clone()])?;
+                    let evaluate_res = condition.evaluate(&merged_tuple)?;
                     // TODO support left/right join after null support added
                     if let ScalarValue::Boolean(Some(v)) = evaluate_res {
                         if v {
                             // save latest left_next_result before return
                             *self.left_tuple.lock().unwrap() = Some(left_tuple.clone());
 
-                            return Some(Tuple::try_merge(vec![left_tuple, right_tuple]).unwrap());
+                            return Ok(Some(Tuple::try_merge(vec![left_tuple, right_tuple])?));
                         }
                     } else {
                         panic!("nested loop join condition should be boolean")
                     }
                 }
 
-                right_next_tuple = self.right_input.next(context);
+                right_next_tuple = self.right_input.next(context)?;
             }
 
             // reset right executor
-            self.right_input.init(context);
-            left_next_tuple = self.left_input.next(context);
+            self.right_input.init(context)?;
+            left_next_tuple = self.left_input.next(context)?;
         }
-        return None;
+        return Ok(None);
     }
 
     fn output_schema(&self) -> SchemaRef {

@@ -3,6 +3,7 @@ use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
+    BustubxResult,
 };
 use std::sync::Arc;
 
@@ -13,11 +14,11 @@ pub struct PhysicalCreateTable {
 }
 
 impl VolcanoExecutor for PhysicalCreateTable {
-    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
+    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         context
             .catalog
             .create_table(self.table_name.clone(), Arc::new(self.schema.clone()));
-        None
+        Ok(None)
     }
     fn output_schema(&self) -> SchemaRef {
         Arc::new(self.schema.clone())

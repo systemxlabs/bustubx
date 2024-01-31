@@ -26,6 +26,7 @@ use crate::catalog::SchemaRef;
 use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
+    BustubxResult,
 };
 
 #[derive(Debug)]
@@ -44,7 +45,7 @@ pub enum PhysicalPlan {
 }
 
 impl VolcanoExecutor for PhysicalPlan {
-    fn init(&self, context: &mut ExecutionContext) {
+    fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         match self {
             PhysicalPlan::Dummy(op) => op.init(context),
             PhysicalPlan::CreateTable(op) => op.init(context),
@@ -60,7 +61,7 @@ impl VolcanoExecutor for PhysicalPlan {
         }
     }
 
-    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
+    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         match self {
             PhysicalPlan::Dummy(op) => op.next(context),
             PhysicalPlan::CreateTable(op) => op.next(context),

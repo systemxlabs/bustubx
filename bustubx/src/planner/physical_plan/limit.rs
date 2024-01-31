@@ -5,6 +5,7 @@ use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
+    BustubxResult,
 };
 
 use super::PhysicalPlan;
@@ -28,16 +29,16 @@ impl PhysicalLimit {
     }
 }
 impl VolcanoExecutor for PhysicalLimit {
-    fn init(&self, context: &mut ExecutionContext) {
+    fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         println!("init limit executor");
         self.cursor.store(0, std::sync::atomic::Ordering::SeqCst);
-        self.input.init(context);
+        self.input.init(context)
     }
-    fn next(&self, context: &mut ExecutionContext) -> Option<Tuple> {
+    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         loop {
-            let next_tuple = self.input.next(context);
+            let next_tuple = self.input.next(context)?;
             if next_tuple.is_none() {
-                return None;
+                return Ok(None);
             }
             let cursor = self
                 .cursor
@@ -49,12 +50,12 @@ impl VolcanoExecutor for PhysicalLimit {
             if self.limit.is_some() {
                 let limit = self.limit.unwrap();
                 if (cursor as usize) < offset + limit {
-                    return next_tuple;
+                    return Ok(next_tuple);
                 } else {
-                    return None;
+                    return Ok(None);
                 }
             } else {
-                return next_tuple;
+                return Ok(next_tuple);
             }
         }
     }
