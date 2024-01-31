@@ -54,20 +54,3 @@ impl ExprTrait for Expr {
         }
     }
 }
-
-impl TryFrom<&sqlparser::ast::Expr> for Expr {
-    type Error = BustubxError;
-
-    fn try_from(value: &sqlparser::ast::Expr) -> Result<Self, Self::Error> {
-        match value {
-            sqlparser::ast::Expr::Value(value) => todo!(),
-            sqlparser::ast::Expr::BinaryOp { left, op, right } => todo!(),
-            sqlparser::ast::Expr::Identifier(ident) => todo!(),
-            sqlparser::ast::Expr::CompoundIdentifier(idents) => todo!(),
-            _ => Err(BustubxError::NotSupport(format!(
-                "sqlparser expr not supported: {}",
-                value
-            ))),
-        }
-    }
-}

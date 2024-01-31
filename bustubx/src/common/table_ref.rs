@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum TableReference {
     /// An unqualified table reference, e.g. "table"
@@ -21,4 +23,22 @@ pub enum TableReference {
         /// The table name
         table: String,
     },
+}
+
+impl TableReference {
+    pub fn bare(table: String) -> Self {
+        Self::Bare { table }
+    }
+
+    pub fn partial(schema: String, table: String) -> Self {
+        Self::Partial { schema, table }
+    }
+
+    pub fn full(catalog: String, schema: String, table: String) -> Self {
+        Self::Full {
+            catalog,
+            schema,
+            table,
+        }
+    }
 }

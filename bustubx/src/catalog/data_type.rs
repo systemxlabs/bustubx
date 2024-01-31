@@ -7,6 +7,7 @@ pub enum DataType {
     Int16,
     Int32,
     Int64,
+    UInt64,
 }
 
 impl DataType {
@@ -17,6 +18,7 @@ impl DataType {
             DataType::Int16 => 2,
             DataType::Int32 => 4,
             DataType::Int64 => 8,
+            DataType::UInt64 => 8,
         }
     }
 }
@@ -31,6 +33,7 @@ impl TryFrom<&sqlparser::ast::DataType> for DataType {
             sqlparser::ast::DataType::SmallInt(_) => Ok(DataType::Int16),
             sqlparser::ast::DataType::Int(_) => Ok(DataType::Int32),
             sqlparser::ast::DataType::BigInt(_) => Ok(DataType::Int64),
+            sqlparser::ast::DataType::UnsignedBigInt(_) => Ok(DataType::UInt64),
             _ => Err(BustubxError::NotSupport(format!(
                 "Not support datatype {}",
                 value

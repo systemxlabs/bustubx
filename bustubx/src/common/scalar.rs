@@ -7,6 +7,7 @@ pub enum ScalarValue {
     Int16(Option<i16>),
     Int32(Option<i32>),
     Int64(Option<i64>),
+    UInt64(Option<u64>),
 }
 
 impl ScalarValue {
@@ -17,6 +18,7 @@ impl ScalarValue {
             DataType::Int16 => Self::Int16(None),
             DataType::Int32 => Self::Int32(None),
             DataType::Int64 => Self::Int64(None),
+            DataType::UInt64 => Self::UInt64(None),
         }
     }
     pub fn from_bytes(bytes: &[u8], data_type: DataType) -> Self {
@@ -30,7 +32,9 @@ impl ScalarValue {
             DataType::Int64 => Self::Int64(Some(i64::from_be_bytes([
                 bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
             ]))),
-            _ => panic!("Not implemented"),
+            DataType::UInt64 => Self::UInt64(Some(u64::from_be_bytes([
+                bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+            ]))),
         }
     }
 
@@ -41,6 +45,7 @@ impl ScalarValue {
             Self::Int16(Some(v)) => v.to_be_bytes().to_vec(),
             Self::Int32(Some(v)) => v.to_be_bytes().to_vec(),
             Self::Int64(Some(v)) => v.to_be_bytes().to_vec(),
+            Self::UInt64(Some(v)) => v.to_be_bytes().to_vec(),
 
             // TODO fixme
             Self::Boolean(None) => vec![0u8; 1],
@@ -48,6 +53,7 @@ impl ScalarValue {
             Self::Int16(None) => vec![0u8; 2],
             Self::Int32(None) => vec![0u8; 4],
             Self::Int64(None) => vec![0u8; 8],
+            Self::UInt64(None) => vec![0u8; 8],
             _ => unimplemented!(),
         }
     }
@@ -59,6 +65,7 @@ impl ScalarValue {
                 DataType::Int16 => Self::Int16(Some(v.parse::<i16>().unwrap())),
                 DataType::Int32 => Self::Int32(Some(v.parse::<i32>().unwrap())),
                 DataType::Int64 => Self::Int64(Some(v.parse::<i64>().unwrap())),
+                DataType::UInt64 => Self::UInt64(Some(v.parse::<u64>().unwrap())),
                 _ => panic!("Not implemented"),
             },
             sqlparser::ast::Value::Boolean(b) => ScalarValue::Boolean(Some(*b)),
@@ -89,6 +96,10 @@ impl ScalarValue {
                 Self::Int64(v2) => v1.cmp(v2),
                 _ => panic!("Not implemented"),
             },
+            Self::UInt64(v1) => match other {
+                Self::UInt64(v2) => v1.cmp(v2),
+                _ => panic!("Not implemented"),
+            },
         }
     }
 
@@ -110,6 +121,7 @@ impl ScalarValue {
             ScalarValue::Int16(_) => DataType::Int16,
             ScalarValue::Int32(_) => DataType::Int32,
             ScalarValue::Int64(_) => DataType::Int64,
+            ScalarValue::UInt64(_) => DataType::UInt64,
         }
     }
 
@@ -120,6 +132,7 @@ impl ScalarValue {
             ScalarValue::Int16(v) => v.is_none(),
             ScalarValue::Int32(v) => v.is_none(),
             ScalarValue::Int64(v) => v.is_none(),
+            ScalarValue::UInt64(v) => v.is_none(),
         }
     }
 }
@@ -137,6 +150,8 @@ impl std::fmt::Display for ScalarValue {
             ScalarValue::Int32(Some(v)) => write!(f, "{v}"),
             ScalarValue::Int64(None) => write!(f, "NULL"),
             ScalarValue::Int64(Some(v)) => write!(f, "{v}"),
+            ScalarValue::UInt64(None) => write!(f, "NULL"),
+            ScalarValue::UInt64(Some(v)) => write!(f, "{v}"),
         }
     }
 }
@@ -161,4 +176,5 @@ impl_from_for_scalar!(i8, Int8);
 impl_from_for_scalar!(i16, Int16);
 impl_from_for_scalar!(i32, Int32);
 impl_from_for_scalar!(i64, Int64);
+impl_from_for_scalar!(u64, UInt64);
 impl_from_for_scalar!(bool, Boolean);

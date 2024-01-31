@@ -1,6 +1,7 @@
 mod logical_planner;
 mod plan_create_index;
 mod plan_create_table;
+mod plan_expr;
 mod plan_insert;
 mod plan_select;
 

@@ -7,7 +7,7 @@ use crate::storage::Tuple;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Literal {
-    value: ScalarValue,
+    pub value: ScalarValue,
 }
 
 impl ExprTrait for Literal {

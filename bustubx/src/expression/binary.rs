@@ -4,6 +4,7 @@ use crate::common::ScalarValue;
 use crate::error::BustubxResult;
 use crate::expression::{Expr, ExprTrait};
 use crate::storage::Tuple;
+use crate::BustubxError;
 
 /// Binary expression
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -37,7 +38,50 @@ impl ExprTrait for BinaryExpr {
     }
 
     fn evaluate(&self, tuple: &Tuple) -> BustubxResult<ScalarValue> {
-        todo!()
+        let l = self.left.evaluate(tuple)?;
+        let r = self.right.evaluate(tuple)?;
+        match self.op {
+            BinaryOp::Gt => {
+                let order = l.compare(&r);
+                Ok(ScalarValue::Boolean(Some(
+                    order == std::cmp::Ordering::Greater,
+                )))
+            }
+            BinaryOp::Lt => {
+                let order = l.compare(&r);
+                Ok(ScalarValue::Boolean(Some(
+                    order == std::cmp::Ordering::Less,
+                )))
+            }
+            BinaryOp::GtEq => {
+                let order = l.compare(&r);
+                Ok(ScalarValue::Boolean(Some(
+                    order == std::cmp::Ordering::Greater || order == std::cmp::Ordering::Equal,
+                )))
+            }
+            BinaryOp::LtEq => {
+                let order = l.compare(&r);
+                Ok(ScalarValue::Boolean(Some(
+                    order == std::cmp::Ordering::Less || order == std::cmp::Ordering::Equal,
+                )))
+            }
+            BinaryOp::Eq => {
+                let order = l.compare(&r);
+                Ok(ScalarValue::Boolean(Some(
+                    order == std::cmp::Ordering::Equal,
+                )))
+            }
+            BinaryOp::NotEq => {
+                let order = l.compare(&r);
+                Ok(ScalarValue::Boolean(Some(
+                    order != std::cmp::Ordering::Equal,
+                )))
+            }
+            _ => Err(BustubxError::NotSupport(format!(
+                "binary operator {:?} not support evaluating yet",
+                self.op
+            ))),
+        }
     }
 }
 
@@ -55,4 +99,29 @@ pub enum BinaryOp {
     NotEq,
     And,
     Or,
+}
+
+impl TryFrom<&sqlparser::ast::BinaryOperator> for BinaryOp {
+    type Error = BustubxError;
+
+    fn try_from(value: &sqlparser::ast::BinaryOperator) -> Result<Self, Self::Error> {
+        match value {
+            sqlparser::ast::BinaryOperator::Plus => Ok(BinaryOp::Plus),
+            sqlparser::ast::BinaryOperator::Minus => Ok(BinaryOp::Minus),
+            sqlparser::ast::BinaryOperator::Multiply => Ok(BinaryOp::Multiply),
+            sqlparser::ast::BinaryOperator::Divide => Ok(BinaryOp::Divide),
+            sqlparser::ast::BinaryOperator::Gt => Ok(BinaryOp::Gt),
+            sqlparser::ast::BinaryOperator::Lt => Ok(BinaryOp::Lt),
+            sqlparser::ast::BinaryOperator::GtEq => Ok(BinaryOp::GtEq),
+            sqlparser::ast::BinaryOperator::LtEq => Ok(BinaryOp::LtEq),
+            sqlparser::ast::BinaryOperator::Eq => Ok(BinaryOp::Eq),
+            sqlparser::ast::BinaryOperator::NotEq => Ok(BinaryOp::NotEq),
+            sqlparser::ast::BinaryOperator::And => Ok(BinaryOp::And),
+            sqlparser::ast::BinaryOperator::Or => Ok(BinaryOp::Or),
+            _ => Err(BustubxError::NotSupport(format!(
+                "sqlparser binary operator {} not supported",
+                value
+            ))),
+        }
+    }
 }
