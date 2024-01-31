@@ -68,7 +68,9 @@ impl VolcanoExecutor for PhysicalNestedLoopJoin {
                     return Some(Tuple::try_merge(vec![left_tuple, right_tuple]).unwrap());
                 } else {
                     let condition = self.condition.clone().unwrap();
-                    let evaluate_res = condition.evaluate_join(&left_tuple, &right_tuple);
+                    let merged_tuple =
+                        Tuple::try_merge(vec![left_tuple.clone(), right_tuple.clone()]).unwrap();
+                    let evaluate_res = condition.evaluate(Some(&merged_tuple));
                     // TODO support left/right join after null support added
                     if let ScalarValue::Boolean(Some(v)) = evaluate_res {
                         if v {

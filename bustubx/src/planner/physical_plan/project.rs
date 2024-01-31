@@ -29,7 +29,7 @@ impl VolcanoExecutor for PhysicalProject {
         }
         let mut new_values = Vec::new();
         for expr in &self.expressions {
-            new_values.push(expr.evaluate(next_tuple.as_ref(), Some(&self.input.output_schema())));
+            new_values.push(expr.evaluate(next_tuple.as_ref()));
         }
         return Some(Tuple::new(self.output_schema(), new_values));
     }

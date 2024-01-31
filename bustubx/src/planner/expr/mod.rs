@@ -15,24 +15,13 @@ pub enum Expr {
     BinaryOp(BinaryOp),
 }
 impl Expr {
-    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> ScalarValue {
+    pub fn evaluate(&self, tuple: Option<&Tuple>) -> ScalarValue {
         match self {
             Expr::Constant(c) => c.evaluate(),
-            Expr::ColumnRef(c) => c.evaluate(tuple, schema),
-            Expr::BinaryOp(b) => b.evaluate(tuple, schema),
-            Expr::Alias(a) => a.evaluate(tuple, schema),
+            Expr::ColumnRef(c) => c.evaluate(tuple),
+            Expr::BinaryOp(b) => b.evaluate(tuple),
+            Expr::Alias(a) => a.evaluate(tuple),
             _ => unimplemented!(),
         }
-    }
-
-    pub fn evaluate_join(&self, left_tuple: &Tuple, right_tuple: &Tuple) -> ScalarValue {
-        // combine left and right tuple, left and right schema
-        let tuple = Tuple::try_merge(vec![left_tuple.clone(), right_tuple.clone()]).unwrap();
-        let schema = Schema::try_merge(vec![
-            left_tuple.schema.as_ref().clone(),
-            right_tuple.schema.as_ref().clone(),
-        ])
-        .unwrap();
-        self.evaluate(Some(&tuple), Some(&schema))
     }
 }

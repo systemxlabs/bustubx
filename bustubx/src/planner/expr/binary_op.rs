@@ -45,9 +45,9 @@ pub struct BinaryOp {
     pub rarg: Box<Expr>,
 }
 impl BinaryOp {
-    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> ScalarValue {
-        let l = self.larg.evaluate(tuple, schema);
-        let r = self.rarg.evaluate(tuple, schema);
+    pub fn evaluate(&self, tuple: Option<&Tuple>) -> ScalarValue {
+        let l = self.larg.evaluate(tuple);
+        let r = self.rarg.evaluate(tuple);
         match self.op {
             // BinaryOperator::Plus => l + r,
             // BinaryOperator::Minus => l - r,

@@ -29,8 +29,7 @@ impl VolcanoExecutor for PhysicalFilter {
                 return None;
             }
             let tuple = next_tuple.unwrap();
-            let output_schema = self.input.output_schema();
-            let compare_res = self.predicate.evaluate(Some(&tuple), Some(&output_schema));
+            let compare_res = self.predicate.evaluate(Some(&tuple));
             if let ScalarValue::Boolean(Some(v)) = compare_res {
                 if v {
                     return Some(tuple);

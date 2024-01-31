@@ -46,12 +46,8 @@ impl VolcanoExecutor for PhysicalSort {
             let mut ordering = std::cmp::Ordering::Equal;
             let mut index = 0;
             while ordering == std::cmp::Ordering::Equal && index < self.order_bys.len() {
-                let a_value = self.order_bys[index]
-                    .expression
-                    .evaluate(Some(a), Some(&self.input.output_schema()));
-                let b_value = self.order_bys[index]
-                    .expression
-                    .evaluate(Some(b), Some(&self.input.output_schema()));
+                let a_value = self.order_bys[index].expression.evaluate(Some(a));
+                let b_value = self.order_bys[index].expression.evaluate(Some(b));
                 ordering = if self.order_bys[index].desc {
                     b_value.compare(&a_value)
                 } else {

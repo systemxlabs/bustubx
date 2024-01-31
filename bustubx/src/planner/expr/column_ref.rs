@@ -8,12 +8,11 @@ pub struct ColumnRef {
     pub col_name: String,
 }
 impl ColumnRef {
-    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> ScalarValue {
-        if tuple.is_none() || schema.is_none() {
+    pub fn evaluate(&self, tuple: Option<&Tuple>) -> ScalarValue {
+        if tuple.is_none() {
             panic!("tuple or schema is none")
         }
         let tuple = tuple.unwrap();
-        let schema = schema.unwrap();
-        tuple.get_value_by_col_name(schema, &self.col_name)
+        tuple.get_value_by_col_name(&tuple.schema, &self.col_name)
     }
 }

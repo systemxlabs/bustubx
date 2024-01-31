@@ -9,7 +9,7 @@ pub struct Alias {
     pub expr: Box<Expr>,
 }
 impl Alias {
-    pub fn evaluate(&self, tuple: Option<&Tuple>, schema: Option<&Schema>) -> ScalarValue {
-        self.expr.evaluate(tuple, schema)
+    pub fn evaluate(&self, tuple: Option<&Tuple>) -> ScalarValue {
+        self.expr.evaluate(tuple)
     }
 }
