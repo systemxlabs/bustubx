@@ -1,6 +1,5 @@
 use crate::expression::{Cast, Expr};
 use crate::BustubxResult;
-use sqlparser::ast::{Ident, ObjectName, Query, SetExpr};
 use std::sync::Arc;
 
 use crate::planner::logical_plan::LogicalPlan;
@@ -12,11 +11,11 @@ use super::LogicalPlanner;
 impl<'a> LogicalPlanner<'a> {
     pub fn plan_insert(
         &self,
-        table_name: &ObjectName,
-        columns_ident: &Vec<Ident>,
-        source: &Query,
+        table_name: &sqlparser::ast::ObjectName,
+        columns_ident: &Vec<sqlparser::ast::Ident>,
+        source: &sqlparser::ast::Query,
     ) -> LogicalPlan {
-        if let SetExpr::Values(values) = source.body.as_ref() {
+        if let sqlparser::ast::SetExpr::Values(values) = source.body.as_ref() {
             if let Some(table_info) = self
                 .context
                 .catalog
@@ -71,9 +70,9 @@ impl<'a> LogicalPlanner<'a> {
 
     pub fn plan_insert_v2(
         &self,
-        table_name: &ObjectName,
-        columns_ident: &Vec<Ident>,
-        source: &Query,
+        table_name: &sqlparser::ast::ObjectName,
+        columns_ident: &Vec<sqlparser::ast::Ident>,
+        source: &sqlparser::ast::Query,
     ) -> BustubxResult<LogicalPlanV2> {
         let values = self.plan_set_expr(source.body.as_ref())?;
         let table = self.plan_table_name(table_name)?;

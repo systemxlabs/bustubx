@@ -1,5 +1,5 @@
 use crate::{BustubxError, BustubxResult};
-use sqlparser::ast::{Ident, JoinConstraint, JoinOperator, Statement, TableFactor, TableWithJoins};
+use sqlparser::ast::{JoinConstraint, JoinOperator, Statement, TableFactor, TableWithJoins};
 use std::sync::Arc;
 
 use crate::catalog::{Catalog, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};

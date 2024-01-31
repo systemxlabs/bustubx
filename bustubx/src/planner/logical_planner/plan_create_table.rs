@@ -1,5 +1,4 @@
 use crate::BustubxResult;
-use sqlparser::ast::{ColumnDef, ObjectName};
 
 use crate::catalog::Column;
 use crate::catalog::Schema;
@@ -12,8 +11,8 @@ use super::LogicalPlanner;
 impl<'a> LogicalPlanner<'a> {
     pub fn plan_create_table(
         &self,
-        name: &ObjectName,
-        column_defs: &Vec<ColumnDef>,
+        name: &sqlparser::ast::ObjectName,
+        column_defs: &Vec<sqlparser::ast::ColumnDef>,
     ) -> LogicalPlan {
         let table_name = name.to_string();
         let columns = column_defs
@@ -29,8 +28,8 @@ impl<'a> LogicalPlanner<'a> {
 
     pub fn plan_create_table_v2(
         &self,
-        name: &ObjectName,
-        column_defs: &Vec<ColumnDef>,
+        name: &sqlparser::ast::ObjectName,
+        column_defs: &Vec<sqlparser::ast::ColumnDef>,
     ) -> BustubxResult<LogicalPlanV2> {
         let name = self.plan_table_name(name)?;
         let mut columns = vec![];
