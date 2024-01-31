@@ -1,6 +1,10 @@
+use crate::common::table_ref::TableReference;
 use crate::expression::{ColumnExpr, Expr};
 use crate::planner::logical_plan::LogicalPlan;
+use crate::planner::logical_plan_v2::{CreateIndex, LogicalPlanV2};
 use crate::planner::operator::LogicalOperator;
+use crate::{BustubxError, BustubxResult};
+use itertools::Itertools;
 use sqlparser::ast::{ObjectName, OrderByExpr};
 
 use super::LogicalPlanner;
@@ -36,5 +40,30 @@ impl<'a> LogicalPlanner<'a> {
             ),
             children: Vec::new(),
         }
+    }
+
+    pub fn plan_create_index_v2(
+        &self,
+        index_name: &ObjectName,
+        table_name: &ObjectName,
+        columns: &Vec<OrderByExpr>,
+    ) -> BustubxResult<LogicalPlanV2> {
+        let index_name = index_name
+            .0
+            .get(0)
+            .map_or(Err(BustubxError::Plan("".to_string())), |ident| {
+                Ok(ident.value.clone())
+            })?;
+        let table = self.plan_table_name(table_name)?;
+        let mut columns_expr = vec![];
+        for col in columns.iter() {
+            let col_expr = self.plan_order_by_v2(&col)?;
+            columns_expr.push(col_expr);
+        }
+        Ok(LogicalPlanV2::CreateIndex(CreateIndex {
+            index_name,
+            table,
+            columns: columns_expr,
+        }))
     }
 }

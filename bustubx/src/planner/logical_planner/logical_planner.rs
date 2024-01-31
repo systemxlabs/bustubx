@@ -1,5 +1,5 @@
-use crate::BustubxResult;
-use sqlparser::ast::{JoinConstraint, JoinOperator, Statement, TableFactor, TableWithJoins};
+use crate::{BustubxError, BustubxResult};
+use sqlparser::ast::{Ident, JoinConstraint, JoinOperator, Statement, TableFactor, TableWithJoins};
 use std::sync::Arc;
 
 use crate::catalog::{Catalog, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
@@ -198,7 +198,7 @@ impl<'a> LogicalPlanner<'a> {
         }
     }
 
-    pub fn plan_order_by(
+    pub fn plan_order_by_v2(
         &self,
         order_by: &sqlparser::ast::OrderByExpr,
     ) -> BustubxResult<OrderByExpr> {
@@ -208,5 +208,27 @@ impl<'a> LogicalPlanner<'a> {
             asc: order_by.asc.unwrap_or(true),
             nulls_first: order_by.nulls_first.unwrap_or(false),
         })
+    }
+
+    pub fn plan_table_name(
+        &self,
+        table_name: &sqlparser::ast::ObjectName,
+    ) -> BustubxResult<TableReference> {
+        match table_name.0.as_slice() {
+            [table] => Ok(TableReference::bare(table.value.clone())),
+            [schema, table] => Ok(TableReference::partial(
+                schema.value.clone(),
+                table.value.clone(),
+            )),
+            [catalog, schema, table] => Ok(TableReference::full(
+                catalog.value.clone(),
+                schema.value.clone(),
+                table.value.clone(),
+            )),
+            _ => Err(BustubxError::Plan(format!(
+                "Fail to plan table name: {}",
+                table_name
+            ))),
+        }
     }
 }
