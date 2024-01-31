@@ -1,9 +1,11 @@
 use crate::common::ScalarValue;
-use crate::expression::{Alias, Expr, Literal};
-use sqlparser::ast::{Offset, OrderByExpr, Query, SelectItem, SetExpr};
+use crate::expression::{Alias, Expr};
+use crate::{BustubxError, BustubxResult};
+use sqlparser::ast::{OrderByExpr, Query, SelectItem, SetExpr};
 use std::sync::Arc;
 
 use crate::planner::logical_plan::LogicalPlan;
+use crate::planner::logical_plan_v2::{Limit, LogicalPlanV2};
 use crate::planner::operator::LogicalOperator;
 use crate::planner::order_by::BoundOrderBy;
 
@@ -130,7 +132,7 @@ impl<'a> LogicalPlanner<'a> {
     pub fn bind_limit(
         &self,
         limit: &Option<sqlparser::ast::Expr>,
-        offset: &Option<Offset>,
+        offset: &Option<sqlparser::ast::Offset>,
     ) -> (Option<Expr>, Option<Expr>) {
         let limit = limit.as_ref().map(|expr| self.plan_expr(&expr).unwrap());
         let offset = offset
@@ -147,5 +149,64 @@ impl<'a> LogicalPlanner<'a> {
                 desc: expr.asc.map_or(false, |asc| !asc),
             })
             .collect::<Vec<BoundOrderBy>>()
+    }
+
+    pub fn plan_limit_v2(
+        &self,
+        input: LogicalPlanV2,
+        limit: Option<sqlparser::ast::Expr>,
+        offset: Option<sqlparser::ast::Offset>,
+    ) -> BustubxResult<LogicalPlanV2> {
+        if limit.is_none() && offset.is_none() {
+            return Ok(input);
+        }
+
+        let limit = match limit {
+            None => None,
+            Some(limit_expr) => {
+                let n = match self.plan_expr(&limit_expr)? {
+                    Expr::Literal(lit) => match lit.value {
+                        ScalarValue::Int64(Some(v)) if v >= 0 => Ok(v as usize),
+                        _ => Err(BustubxError::Plan(format!(
+                            "LIMIT must not be negative, {}",
+                            lit.value
+                        ))),
+                    },
+                    _ => Err(BustubxError::Plan(format!(
+                        "LIMIT must be literal, {}",
+                        limit_expr
+                    ))),
+                }?;
+                Some(n)
+            }
+        };
+
+        let offset = match offset {
+            None => 0,
+            Some(offset_expr) => match self.plan_expr(&offset_expr.value)? {
+                Expr::Literal(lit) => match lit.value {
+                    ScalarValue::Int64(Some(v)) => {
+                        if v < 0 {
+                            return Err(BustubxError::Plan(format!("Offset must be >= 0, {}", v)));
+                        }
+                        Ok(v as usize)
+                    }
+                    _ => Err(BustubxError::Plan(format!(
+                        "Offset value not int64, {}",
+                        lit.value
+                    ))),
+                },
+                _ => Err(BustubxError::Plan(format!(
+                    "Offset expression not expected, {}",
+                    offset_expr
+                ))),
+            }?,
+        };
+
+        Ok(LogicalPlanV2::Limit(Limit {
+            limit,
+            offset,
+            input: Arc::new(input),
+        }))
     }
 }

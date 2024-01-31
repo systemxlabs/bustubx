@@ -59,8 +59,8 @@ impl LogicalPlanner<'_> {
     pub fn plan_value(&self, value: &sqlparser::ast::Value) -> BustubxResult<Expr> {
         match value {
             sqlparser::ast::Value::Number(s, _) => {
-                let num: u64 = s.parse::<u64>().map_err(|e| {
-                    BustubxError::Internal("Failed to parse literal as u64".to_string())
+                let num: i64 = s.parse::<i64>().map_err(|e| {
+                    BustubxError::Internal("Failed to parse literal as i64".to_string())
                 })?;
                 Ok(Expr::Literal(Literal { value: num.into() }))
             }

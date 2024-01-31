@@ -13,7 +13,7 @@ pub struct Cast {
 }
 
 impl ExprTrait for Cast {
-    fn data_type(&self, input_schema: &Schema) -> BustubxResult<DataType> {
+    fn data_type(&self, _input_schema: &Schema) -> BustubxResult<DataType> {
         Ok(self.data_type)
     }
 
@@ -49,6 +49,7 @@ impl ExprTrait for Cast {
                 ))),
             },
             ScalarValue::Int64(v) => match self.data_type {
+                DataType::Int32 => Ok(v.map(|v| v as i32).into()),
                 DataType::Int64 => Ok(value),
                 _ => Err(BustubxError::Internal(format!(
                     "Failed to cast {} as {}",

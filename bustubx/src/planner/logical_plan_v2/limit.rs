@@ -4,6 +4,6 @@ use std::sync::Arc;
 #[derive(derive_new::new, Debug, Clone)]
 pub struct Limit {
     pub limit: Option<usize>,
-    pub offset: Option<usize>,
+    pub offset: usize,
     pub input: Arc<LogicalPlanV2>,
 }
