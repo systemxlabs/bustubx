@@ -10,8 +10,6 @@ pub type ColumnRef = Arc<Column>;
 pub struct Column {
     pub name: String,
     pub data_type: DataType,
-    // 列在元组中的偏移量
-    pub column_offset: usize,
 }
 
 impl PartialEq for Column {
@@ -22,11 +20,7 @@ impl PartialEq for Column {
 
 impl Column {
     pub fn new(name: String, data_type: DataType) -> Self {
-        Self {
-            name,
-            data_type,
-            column_offset: 0,
-        }
+        Self { name, data_type }
     }
 
     pub fn from_sqlparser_column(column_def: &ColumnDef) -> Self {

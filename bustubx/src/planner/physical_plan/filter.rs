@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use crate::catalog::SchemaRef;
+use crate::expression::{Expr, ExprTrait};
 use crate::{
     common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
-    planner::expr::Expr,
     storage::Tuple,
 };
 
@@ -29,7 +29,7 @@ impl VolcanoExecutor for PhysicalFilter {
                 return None;
             }
             let tuple = next_tuple.unwrap();
-            let compare_res = self.predicate.evaluate(Some(&tuple));
+            let compare_res = self.predicate.evaluate(&tuple).unwrap();
             if let ScalarValue::Boolean(Some(v)) = compare_res {
                 if v {
                     return Some(tuple);

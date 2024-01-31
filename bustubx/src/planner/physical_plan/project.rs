@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
 use crate::catalog::SchemaRef;
+use crate::expression::{Expr, ExprTrait};
 use crate::{
-    catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
-    planner::expr::Expr,
     storage::Tuple,
 };
 
@@ -27,9 +26,10 @@ impl VolcanoExecutor for PhysicalProject {
         if next_tuple.is_none() {
             return None;
         }
+        let next_tuple = next_tuple.unwrap();
         let mut new_values = Vec::new();
         for expr in &self.expressions {
-            new_values.push(expr.evaluate(next_tuple.as_ref()));
+            new_values.push(expr.evaluate(&next_tuple).unwrap());
         }
         return Some(Tuple::new(self.output_schema(), new_values));
     }

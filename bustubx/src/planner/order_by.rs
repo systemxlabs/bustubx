@@ -1,4 +1,4 @@
-use super::expr::Expr;
+use crate::expression::Expr;
 
 /// BoundOrderBy is an item in the ORDER BY clause.
 #[derive(Debug, Clone)]

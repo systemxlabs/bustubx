@@ -1,8 +1,9 @@
 use crate::catalog::{ColumnRef, SchemaRef};
+use crate::expression::Expr;
 use crate::{
     catalog::{Schema, TableOid},
     common::ScalarValue,
-    planner::{expr::Expr, order_by::BoundOrderBy, table_ref::join::JoinType},
+    planner::{order_by::BoundOrderBy, table_ref::join::JoinType},
 };
 
 use self::{

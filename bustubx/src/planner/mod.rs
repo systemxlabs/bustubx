@@ -1,4 +1,3 @@
-pub mod expr;
 pub mod logical_plan;
 pub mod logical_plan_v2;
 mod logical_planner;

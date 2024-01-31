@@ -1,4 +1,4 @@
-use crate::planner::expr::column_ref::ColumnRef;
+use crate::expression::{ColumnExpr, Expr};
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 use sqlparser::ast::{ObjectName, OrderByExpr};
@@ -15,15 +15,17 @@ impl<'a> LogicalPlanner<'a> {
         let table = self.bind_base_table_by_name(table_name.to_string().as_str(), None);
         let columns = columns
             .iter()
-            .map(|column| self.bind_column_ref_expr(&column.expr))
-            .collect::<Vec<ColumnRef>>();
+            .map(|column| self.plan_expr(&column.expr).unwrap())
+            .collect::<Vec<Expr>>();
         let table_schema = table.schema;
         let mut key_attrs = Vec::new();
         for col in columns {
-            let index = table_schema
-                .get_index_by_name(&col.col_name)
-                .expect("col not found");
-            key_attrs.push(index as u32);
+            if let Expr::Column(col) = col {
+                let index = table_schema
+                    .get_index_by_name(&col.name)
+                    .expect("col not found");
+                key_attrs.push(index as u32);
+            }
         }
         LogicalPlan {
             operator: LogicalOperator::new_create_index_operator(

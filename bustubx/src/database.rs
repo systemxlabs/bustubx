@@ -57,14 +57,14 @@ impl Database {
 
         // logical plan -> physical plan
         let physical_plan = PhysicalPlanner::new().create_physical_plan(logical_plan);
-        // println!("{:?}", physical_plan);
+        println!("{:?}", physical_plan);
 
         let execution_ctx = ExecutionContext::new(&mut self.catalog);
         let mut execution_engine = ExecutionEngine {
             context: execution_ctx,
         };
         let tuples = execution_engine.execute(Arc::new(physical_plan));
-        // println!("execution result: {:?}", tuples);
+        println!("execution result: {:?}", tuples);
         Ok(tuples)
     }
 

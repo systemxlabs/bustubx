@@ -119,6 +119,7 @@ impl TableHeap {
             .expect("Can not fetch page");
         let mut table_page = TablePage::from_bytes(self.schema.clone(), &page.data);
         let result = table_page.get_tuple(&rid);
+        println!("LWZTEST heap get tuple: {:?}", result);
         self.buffer_pool_manager.unpin_page(rid.page_id, false);
         result
     }

@@ -1,4 +1,5 @@
-use crate::planner::{expr::Expr, table_ref::join::JoinType};
+use crate::expression::Expr;
+use crate::planner::table_ref::join::JoinType;
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct LogicalJoinOperator {

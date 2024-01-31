@@ -1,6 +1,5 @@
 use self::{base_table::BoundBaseTableRef, join::BoundJoinRef};
-
-use super::expr::{column_ref::ColumnRef, Expr};
+use crate::expression::{ColumnExpr, Expr};
 
 pub mod base_table;
 pub mod join;
@@ -21,9 +20,9 @@ impl BoundTableRef {
         self.column_names()
             .iter()
             .map(|c| {
-                Expr::ColumnRef(ColumnRef {
+                Expr::Column(ColumnExpr {
                     relation: None,
-                    col_name: c.clone(),
+                    name: c.clone(),
                 })
             })
             .collect::<Vec<Expr>>()

@@ -1,4 +1,5 @@
 use crate::catalog::DataType;
+use crate::BustubxResult;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ScalarValue {

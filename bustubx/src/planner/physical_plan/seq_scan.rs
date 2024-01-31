@@ -43,6 +43,7 @@ impl VolcanoExecutor for PhysicalSeqScan {
             .unwrap();
         let mut iterator = self.iterator.lock().unwrap();
         let full_tuple = iterator.next(&mut table_info.table);
+        println!("LWZTEST seq scan tuple: {:?}", full_tuple);
         return full_tuple.map(|t| t.1);
     }
 

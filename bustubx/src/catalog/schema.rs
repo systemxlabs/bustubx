@@ -11,16 +11,8 @@ pub struct Schema {
 
 impl Schema {
     pub fn new(mut columns: Vec<Column>) -> Self {
-        let mut curr_offset = 0;
-        let mut column_refs = Vec::new();
-        for mut column in columns.into_iter() {
-            // 计算每个column的offset
-            column.column_offset = curr_offset;
-            curr_offset += column.data_type.type_size();
-            column_refs.push(Arc::new(column));
-        }
         Self {
-            columns: column_refs,
+            columns: columns.into_iter().map(|col| Arc::new(col)).collect(),
         }
     }
 

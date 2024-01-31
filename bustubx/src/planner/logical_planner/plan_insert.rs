@@ -1,4 +1,4 @@
-use crate::planner::expr::Expr;
+use crate::expression::Expr;
 use sqlparser::ast::{Ident, ObjectName, Query, SetExpr};
 use std::sync::Arc;
 
@@ -41,13 +41,13 @@ impl<'a> LogicalPlanner<'a> {
                 for row in values.rows.iter() {
                     let mut record = Vec::new();
                     for expr in row {
-                        let data_type = columns[record.len()].data_type;
-                        if let Expr::Constant(constant) = self.bind_expression(expr) {
-                            record.push(constant.value.to_value(data_type));
+                        if let Expr::Literal(lit) = self.plan_expr(expr).unwrap() {
+                            record.push(lit.value);
                         }
                     }
                     records.push(record);
                 }
+                println!("LWZTEST columns: {:?}, records: {:?}", columns, records);
                 let values_node = LogicalPlan {
                     operator: LogicalOperator::new_values_operator(columns.clone(), records),
                     children: Vec::new(),

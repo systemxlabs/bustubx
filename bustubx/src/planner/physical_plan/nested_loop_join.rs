@@ -1,11 +1,12 @@
 use std::sync::{Arc, Mutex};
 
 use crate::catalog::SchemaRef;
+use crate::expression::{Expr, ExprTrait};
 use crate::{
     catalog::Schema,
     common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
-    planner::{expr::Expr, table_ref::join::JoinType},
+    planner::table_ref::join::JoinType,
     storage::Tuple,
 };
 
@@ -70,7 +71,7 @@ impl VolcanoExecutor for PhysicalNestedLoopJoin {
                     let condition = self.condition.clone().unwrap();
                     let merged_tuple =
                         Tuple::try_merge(vec![left_tuple.clone(), right_tuple.clone()]).unwrap();
-                    let evaluate_res = condition.evaluate(Some(&merged_tuple));
+                    let evaluate_res = condition.evaluate(&merged_tuple).unwrap();
                     // TODO support left/right join after null support added
                     if let ScalarValue::Boolean(Some(v)) = evaluate_res {
                         if v {

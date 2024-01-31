@@ -1,6 +1,5 @@
-use crate::planner::expr::Expr;
-
 use super::BoundTableRef;
+use crate::expression::Expr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JoinType {

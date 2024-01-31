@@ -1,6 +1,7 @@
 use std::sync::{atomic::AtomicU32, Arc, Mutex};
 
 use crate::catalog::SchemaRef;
+use crate::expression::ExprTrait;
 use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
     planner::order_by::BoundOrderBy,
@@ -46,8 +47,8 @@ impl VolcanoExecutor for PhysicalSort {
             let mut ordering = std::cmp::Ordering::Equal;
             let mut index = 0;
             while ordering == std::cmp::Ordering::Equal && index < self.order_bys.len() {
-                let a_value = self.order_bys[index].expression.evaluate(Some(a));
-                let b_value = self.order_bys[index].expression.evaluate(Some(b));
+                let a_value = self.order_bys[index].expression.evaluate(a).unwrap();
+                let b_value = self.order_bys[index].expression.evaluate(b).unwrap();
                 ordering = if self.order_bys[index].desc {
                     b_value.compare(&a_value)
                 } else {

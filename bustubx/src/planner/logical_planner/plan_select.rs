@@ -1,8 +1,8 @@
+use crate::common::ScalarValue;
+use crate::expression::{Alias, Expr, Literal};
 use sqlparser::ast::{Offset, OrderByExpr, Query, SelectItem, SetExpr};
 use std::sync::Arc;
 
-use crate::planner::expr::constant::Constant;
-use crate::planner::expr::{alias::Alias, Expr};
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
 use crate::planner::order_by::BoundOrderBy;
@@ -23,13 +23,13 @@ impl<'a> LogicalPlanner<'a> {
         for item in &select.projection {
             match item {
                 SelectItem::UnnamedExpr(expr) => {
-                    let expr = self.bind_expression(expr);
+                    let expr = self.plan_expr(expr).unwrap();
                     select_list.push(expr);
                 }
                 SelectItem::ExprWithAlias { expr, alias } => {
-                    let expr = self.bind_expression(expr);
+                    let expr = self.plan_expr(expr).unwrap();
                     select_list.push(Expr::Alias(Alias {
-                        alias: alias.value.clone(),
+                        name: alias.value.clone(),
                         expr: Box::new(expr),
                     }));
                 }
@@ -50,7 +50,7 @@ impl<'a> LogicalPlanner<'a> {
         let where_clause = select
             .selection
             .as_ref()
-            .map(|expr| self.bind_expression(expr));
+            .map(|expr| self.plan_expr(expr).unwrap());
 
         // bind limit and offset
         let (limit, offset) = self.bind_limit(&query.limit, &query.offset);
@@ -100,16 +100,24 @@ impl<'a> LogicalPlanner<'a> {
 
     pub fn plan_limit(&self, limit: &Option<Expr>, offset: &Option<Expr>) -> LogicalPlan {
         let limit = limit.as_ref().map(|limit| match limit {
-            Expr::Constant(ref constant) => match constant.value {
-                Constant::Number(ref v) => v.parse::<usize>().unwrap(),
+            Expr::Literal(ref lit) => match lit.value {
+                ScalarValue::Int8(Some(v)) => v as usize,
+                ScalarValue::Int16(Some(v)) => v as usize,
+                ScalarValue::Int32(Some(v)) => v as usize,
+                ScalarValue::Int64(Some(v)) => v as usize,
+                ScalarValue::UInt64(Some(v)) => v as usize,
                 _ => panic!("limit must be a number"),
             },
             _ => panic!("limit must be a number"),
         });
         let offset = offset.as_ref().map(|offset| match offset {
-            Expr::Constant(ref constant) => match constant.value {
-                Constant::Number(ref v) => v.parse::<usize>().unwrap(),
-                _ => panic!("offset must be a number"),
+            Expr::Literal(ref lit) => match lit.value {
+                ScalarValue::Int8(Some(v)) => v as usize,
+                ScalarValue::Int16(Some(v)) => v as usize,
+                ScalarValue::Int32(Some(v)) => v as usize,
+                ScalarValue::Int64(Some(v)) => v as usize,
+                ScalarValue::UInt64(Some(v)) => v as usize,
+                _ => panic!("limit must be a number"),
             },
             _ => panic!("offset must be a number"),
         });
@@ -124,10 +132,10 @@ impl<'a> LogicalPlanner<'a> {
         limit: &Option<sqlparser::ast::Expr>,
         offset: &Option<Offset>,
     ) -> (Option<Expr>, Option<Expr>) {
-        let limit = limit.as_ref().map(|expr| self.bind_expression(&expr));
+        let limit = limit.as_ref().map(|expr| self.plan_expr(&expr).unwrap());
         let offset = offset
             .as_ref()
-            .map(|offset| self.bind_expression(&offset.value));
+            .map(|offset| self.plan_expr(&offset.value).unwrap());
         (limit, offset)
     }
 
@@ -135,7 +143,7 @@ impl<'a> LogicalPlanner<'a> {
         order_by_list
             .iter()
             .map(|expr| BoundOrderBy {
-                expression: self.bind_expression(&expr.expr),
+                expression: self.plan_expr(&expr.expr).unwrap(),
                 desc: expr.asc.map_or(false, |asc| !asc),
             })
             .collect::<Vec<BoundOrderBy>>()

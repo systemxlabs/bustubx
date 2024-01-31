@@ -1,27 +1,16 @@
 use sqlparser::ast::{JoinConstraint, JoinOperator, Statement, TableFactor, TableWithJoins};
 use std::sync::Arc;
 
+use crate::catalog::{Catalog, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
 use crate::common::table_ref::TableReference;
+use crate::expression::Expr;
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::operator::LogicalOperator;
-use crate::{
-    catalog::{Catalog, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME},
-    planner::expr::{
-        binary_op::{BinaryOp, BinaryOperator},
-        column_ref::ColumnRef,
-    },
-};
 
-use crate::planner::{
-    expr::{
-        constant::{BoundConstant, Constant},
-        Expr,
-    },
-    table_ref::{
-        base_table::BoundBaseTableRef,
-        join::{BoundJoinRef, JoinType},
-        BoundTableRef,
-    },
+use crate::planner::table_ref::{
+    base_table::BoundBaseTableRef,
+    join::{BoundJoinRef, JoinType},
+    BoundTableRef,
 };
 
 pub struct PlannerContext<'a> {
@@ -49,52 +38,6 @@ impl<'a> LogicalPlanner<'a> {
                 ..
             } => self.plan_insert(table_name, columns, source),
             _ => unimplemented!(),
-        }
-    }
-
-    pub fn bind_expression(&self, expr: &sqlparser::ast::Expr) -> Expr {
-        match expr {
-            sqlparser::ast::Expr::BinaryOp { left, op, right } => {
-                let op = BinaryOperator::from_sqlparser_operator(op);
-                let larg = Box::new(self.bind_expression(left));
-                let rarg = Box::new(self.bind_expression(right));
-                Expr::BinaryOp(BinaryOp { larg, op, rarg })
-            }
-            sqlparser::ast::Expr::Value(value) => Expr::Constant(BoundConstant {
-                value: Constant::from_sqlparser_value(value),
-            }),
-            sqlparser::ast::Expr::Identifier(_) | sqlparser::ast::Expr::CompoundIdentifier(_) => {
-                Expr::ColumnRef(self.bind_column_ref_expr(expr))
-            }
-            _ => unimplemented!(),
-        }
-    }
-
-    pub fn bind_column_ref_expr(&self, expr: &sqlparser::ast::Expr) -> ColumnRef {
-        match expr {
-            sqlparser::ast::Expr::Identifier(ident) => ColumnRef {
-                relation: None,
-                col_name: ident.value.clone(),
-            },
-            sqlparser::ast::Expr::CompoundIdentifier(idents) => {
-                if idents.len() == 0 {
-                    panic!("Invalid column name");
-                }
-                if idents.len() == 1 {
-                    ColumnRef {
-                        relation: None,
-                        col_name: idents[0].value.clone(),
-                    }
-                } else {
-                    ColumnRef {
-                        relation: Some(TableReference::Bare {
-                            table: idents[0].value.clone(),
-                        }),
-                        col_name: idents[1].value.clone(),
-                    }
-                }
-            }
-            _ => unreachable!(),
         }
     }
 
@@ -226,7 +169,7 @@ impl<'a> LogicalPlanner<'a> {
 
     pub fn bind_join_constraint(&self, constraint: &JoinConstraint) -> Expr {
         match constraint {
-            JoinConstraint::On(expr) => self.bind_expression(expr),
+            JoinConstraint::On(expr) => self.plan_expr(expr).unwrap(),
             _ => unimplemented!(),
         }
     }
