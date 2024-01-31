@@ -59,10 +59,7 @@ impl LogicalOperator {
     pub fn new_insert_operator(table_name: String, columns: Vec<ColumnRef>) -> LogicalOperator {
         LogicalOperator::Insert(LogicalInsertOperator::new(table_name, columns))
     }
-    pub fn new_values_operator(
-        columns: Vec<ColumnRef>,
-        tuples: Vec<Vec<ScalarValue>>,
-    ) -> LogicalOperator {
+    pub fn new_values_operator(columns: Vec<ColumnRef>, tuples: Vec<Vec<Expr>>) -> LogicalOperator {
         LogicalOperator::Values(LogicalValuesOperator::new(columns, tuples))
     }
     pub fn new_scan_operator(table_oid: TableOid, columns: Vec<ColumnRef>) -> LogicalOperator {

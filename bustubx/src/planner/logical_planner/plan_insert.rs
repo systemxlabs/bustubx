@@ -1,4 +1,4 @@
-use crate::expression::Expr;
+use crate::expression::{Cast, Expr};
 use sqlparser::ast::{Ident, ObjectName, Query, SetExpr};
 use std::sync::Arc;
 
@@ -40,10 +40,11 @@ impl<'a> LogicalPlanner<'a> {
                 let mut records = Vec::new();
                 for row in values.rows.iter() {
                     let mut record = Vec::new();
-                    for expr in row {
-                        if let Expr::Literal(lit) = self.plan_expr(expr).unwrap() {
-                            record.push(lit.value);
-                        }
+                    for (idx, expr) in row.iter().enumerate() {
+                        record.push(Expr::Cast(Cast {
+                            data_type: columns[idx].data_type,
+                            expr: Box::new(self.plan_expr(expr).unwrap()),
+                        }))
                     }
                     records.push(record);
                 }

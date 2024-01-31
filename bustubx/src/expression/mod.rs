@@ -1,10 +1,12 @@
 mod alias;
 mod binary;
+mod cast;
 mod column;
 mod literal;
 
 pub use alias::Alias;
 pub use binary::{BinaryExpr, BinaryOp};
+pub use cast::Cast;
 pub use column::ColumnExpr;
 pub use literal::Literal;
 
@@ -12,7 +14,6 @@ use crate::catalog::DataType;
 use crate::catalog::Schema;
 use crate::common::ScalarValue;
 use crate::storage::Tuple;
-use crate::BustubxError;
 use crate::BustubxResult;
 
 pub trait ExprTrait {
@@ -33,6 +34,9 @@ pub enum Expr {
     Literal(Literal),
     /// A binary expression such as "age > 21"
     BinaryExpr(BinaryExpr),
+    /// Casts the expression to a given type and will return a runtime error if the expression cannot be cast.
+    /// This expression is guaranteed to have a fixed type.
+    Cast(Cast),
 }
 
 impl ExprTrait for Expr {
@@ -42,6 +46,7 @@ impl ExprTrait for Expr {
             Expr::Column(column) => column.data_type(input_schema),
             Expr::Literal(literal) => literal.data_type(input_schema),
             Expr::BinaryExpr(binary) => binary.data_type(input_schema),
+            Expr::Cast(cast) => cast.data_type(input_schema),
         }
     }
 
@@ -51,6 +56,7 @@ impl ExprTrait for Expr {
             Expr::Column(column) => column.evaluate(tuple),
             Expr::Literal(literal) => literal.evaluate(tuple),
             Expr::BinaryExpr(binary) => binary.evaluate(tuple),
+            Expr::Cast(cast) => cast.evaluate(tuple),
         }
     }
 }
