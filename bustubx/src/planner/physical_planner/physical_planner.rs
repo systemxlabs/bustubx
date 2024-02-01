@@ -1,8 +1,8 @@
 use crate::catalog::Schema;
 use std::sync::Arc;
 
-use crate::planner::logical_plan_v2::{
-    CreateIndex, CreateTable, EmptyRelation, Filter, Insert, Join, Limit, LogicalPlanV2, Project,
+use crate::planner::logical_plan::{
+    CreateIndex, CreateTable, EmptyRelation, Filter, Insert, Join, Limit, LogicalPlan, Project,
     Sort, TableScan, Values,
 };
 
@@ -25,18 +25,18 @@ impl PhysicalPlanner {
         Self {}
     }
 
-    pub fn create_physical_plan(&self, logical_plan: LogicalPlanV2) -> PhysicalPlan {
+    pub fn create_physical_plan(&self, logical_plan: LogicalPlan) -> PhysicalPlan {
         let logical_plan = Arc::new(logical_plan);
-        build_plan_v2(logical_plan)
+        build_plan(logical_plan)
     }
 }
 
-pub fn build_plan_v2(logical_plan: Arc<LogicalPlanV2>) -> PhysicalPlan {
+pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
     let plan = match logical_plan.as_ref() {
-        LogicalPlanV2::CreateTable(CreateTable { name, columns }) => PhysicalPlan::CreateTable(
+        LogicalPlan::CreateTable(CreateTable { name, columns }) => PhysicalPlan::CreateTable(
             PhysicalCreateTable::new(name.clone(), Schema::new(columns.clone())),
         ),
-        LogicalPlanV2::CreateIndex(CreateIndex {
+        LogicalPlan::CreateIndex(CreateIndex {
             index_name,
             table,
             table_schema,
@@ -47,41 +47,41 @@ pub fn build_plan_v2(logical_plan: Arc<LogicalPlanV2>) -> PhysicalPlan {
             table_schema.clone(),
             columns.clone(),
         )),
-        LogicalPlanV2::Insert(Insert {
+        LogicalPlan::Insert(Insert {
             table,
             columns,
             input,
         }) => {
-            let input_physical_plan = build_plan_v2(input.clone());
+            let input_physical_plan = build_plan(input.clone());
             PhysicalPlan::Insert(PhysicalInsert::new(
                 table.clone(),
                 columns.clone(),
                 Arc::new(input_physical_plan),
             ))
         }
-        LogicalPlanV2::Values(Values { schema, values }) => {
+        LogicalPlan::Values(Values { schema, values }) => {
             PhysicalPlan::Values(PhysicalValues::new(schema.clone(), values.clone()))
         }
-        LogicalPlanV2::Project(Project {
+        LogicalPlan::Project(Project {
             exprs,
             input,
             schema,
         }) => {
-            let input_physical_plan = build_plan_v2(input.clone());
+            let input_physical_plan = build_plan(input.clone());
             PhysicalPlan::Project(PhysicalProject::new(
                 exprs.clone(),
                 schema.clone(),
                 Arc::new(input_physical_plan),
             ))
         }
-        LogicalPlanV2::Filter(Filter { predicate, input }) => {
-            let input_physical_plan = build_plan_v2(input.clone());
+        LogicalPlan::Filter(Filter { predicate, input }) => {
+            let input_physical_plan = build_plan(input.clone());
             PhysicalPlan::Filter(PhysicalFilter::new(
                 predicate.clone(),
                 Arc::new(input_physical_plan),
             ))
         }
-        LogicalPlanV2::TableScan(TableScan {
+        LogicalPlan::TableScan(TableScan {
             table_ref,
             table_schema,
             filters,
@@ -90,27 +90,27 @@ pub fn build_plan_v2(logical_plan: Arc<LogicalPlanV2>) -> PhysicalPlan {
             table_ref.clone(),
             table_schema.clone(),
         )),
-        LogicalPlanV2::Limit(Limit {
+        LogicalPlan::Limit(Limit {
             limit,
             offset,
             input,
         }) => {
-            let input_physical_plan = build_plan_v2((*input).clone());
+            let input_physical_plan = build_plan((*input).clone());
             PhysicalPlan::Limit(PhysicalLimit::new(
                 limit.clone(),
                 *offset,
                 Arc::new(input_physical_plan),
             ))
         }
-        LogicalPlanV2::Join(Join {
+        LogicalPlan::Join(Join {
             left,
             right,
             join_type,
             condition,
             schema,
         }) => {
-            let left_physical_plan = build_plan_v2((*left).clone());
-            let right_physical_plan = build_plan_v2((*right).clone());
+            let left_physical_plan = build_plan((*left).clone());
+            let right_physical_plan = build_plan((*right).clone());
             PhysicalPlan::NestedLoopJoin(PhysicalNestedLoopJoin::new(
                 join_type.clone(),
                 condition.clone(),
@@ -119,18 +119,18 @@ pub fn build_plan_v2(logical_plan: Arc<LogicalPlanV2>) -> PhysicalPlan {
                 schema.clone(),
             ))
         }
-        LogicalPlanV2::Sort(Sort {
+        LogicalPlan::Sort(Sort {
             expr,
             ref input,
             limit,
         }) => {
-            let input_physical_plan = build_plan_v2(Arc::clone(input));
+            let input_physical_plan = build_plan(Arc::clone(input));
             PhysicalPlan::Sort(PhysicalSort::new(
                 expr.clone(),
                 Arc::new(input_physical_plan),
             ))
         }
-        LogicalPlanV2::EmptyRelation(EmptyRelation {
+        LogicalPlan::EmptyRelation(EmptyRelation {
             produce_one_row,
             schema,
         }) => PhysicalPlan::Empty(PhysicalEmpty {

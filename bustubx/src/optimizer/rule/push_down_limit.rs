@@ -1,11 +1,11 @@
 use crate::error::BustubxResult;
 use crate::optimizer::LogicalOptimizerRule;
-use crate::planner::logical_plan_v2::LogicalPlanV2;
+use crate::planner::logical_plan::LogicalPlan;
 
 pub struct PushDownLimit;
 
 impl LogicalOptimizerRule for PushDownLimit {
-    fn try_optimize(&self, plan: &LogicalPlanV2) -> BustubxResult<Option<LogicalPlanV2>> {
+    fn try_optimize(&self, plan: &LogicalPlan) -> BustubxResult<Option<LogicalPlan>> {
         todo!()
     }
 

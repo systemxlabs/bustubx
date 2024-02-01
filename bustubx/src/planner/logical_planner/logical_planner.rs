@@ -2,7 +2,7 @@ use crate::{BustubxError, BustubxResult};
 
 use crate::catalog::Catalog;
 use crate::common::table_ref::TableReference;
-use crate::planner::logical_plan_v2::{LogicalPlanV2, OrderByExpr};
+use crate::planner::logical_plan::{LogicalPlan, OrderByExpr};
 
 pub struct PlannerContext<'a> {
     pub catalog: &'a Catalog,
@@ -12,24 +12,24 @@ pub struct LogicalPlanner<'a> {
     pub context: PlannerContext<'a>,
 }
 impl<'a> LogicalPlanner<'a> {
-    pub fn plan(&mut self, stmt: &sqlparser::ast::Statement) -> BustubxResult<LogicalPlanV2> {
+    pub fn plan(&mut self, stmt: &sqlparser::ast::Statement) -> BustubxResult<LogicalPlan> {
         match stmt {
             sqlparser::ast::Statement::CreateTable { name, columns, .. } => {
-                self.plan_create_table_v2(name, columns)
+                self.plan_create_table(name, columns)
             }
             sqlparser::ast::Statement::CreateIndex {
                 name,
                 table_name,
                 columns,
                 ..
-            } => self.plan_create_index_v2(name, table_name, columns),
-            sqlparser::ast::Statement::Query(query) => self.plan_query_v2(query),
+            } => self.plan_create_index(name, table_name, columns),
+            sqlparser::ast::Statement::Query(query) => self.plan_query(query),
             sqlparser::ast::Statement::Insert {
                 table_name,
                 columns,
                 source,
                 ..
-            } => self.plan_insert_v2(table_name, columns, source),
+            } => self.plan_insert(table_name, columns, source),
             _ => unimplemented!(),
         }
     }

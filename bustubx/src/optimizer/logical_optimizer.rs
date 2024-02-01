@@ -1,16 +1,16 @@
 use crate::error::BustubxResult;
 use crate::optimizer::rule::PushDownLimit;
-use crate::planner::logical_plan_v2::LogicalPlanV2;
+use crate::planner::logical_plan::LogicalPlan;
 use std::sync::Arc;
 
-/// `LogicalOptimizerRule` transforms one [`LogicalPlanV2`] into another which
+/// `LogicalOptimizerRule` transforms one [`LogicalPlan`] into another which
 /// computes the same results, but in a potentially more efficient
 /// way. If there are no suitable transformations for the input plan,
 /// the optimizer can simply return it as is.
 pub trait LogicalOptimizerRule {
     /// Try and rewrite `plan` to an optimized form, returning None if the plan cannot be
     /// optimized by this rule.
-    fn try_optimize(&self, plan: &LogicalPlanV2) -> BustubxResult<Option<LogicalPlanV2>>;
+    fn try_optimize(&self, plan: &LogicalPlan) -> BustubxResult<Option<LogicalPlan>>;
 
     /// A human readable name for this optimizer rule
     fn name(&self) -> &str;
@@ -42,7 +42,7 @@ impl LogicalOptimizer {
         Self { rules }
     }
 
-    pub fn optimize(&self, plan: &LogicalPlanV2) -> BustubxResult<LogicalPlanV2> {
+    pub fn optimize(&self, plan: &LogicalPlan) -> BustubxResult<LogicalPlan> {
         todo!()
     }
 }

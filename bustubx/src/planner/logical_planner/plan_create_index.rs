@@ -1,15 +1,15 @@
-use crate::planner::logical_plan_v2::{CreateIndex, LogicalPlanV2};
+use crate::planner::logical_plan::{CreateIndex, LogicalPlan};
 use crate::{BustubxError, BustubxResult};
 
 use super::LogicalPlanner;
 
 impl<'a> LogicalPlanner<'a> {
-    pub fn plan_create_index_v2(
+    pub fn plan_create_index(
         &self,
         index_name: &sqlparser::ast::ObjectName,
         table_name: &sqlparser::ast::ObjectName,
         columns: &Vec<sqlparser::ast::OrderByExpr>,
-    ) -> BustubxResult<LogicalPlanV2> {
+    ) -> BustubxResult<LogicalPlan> {
         let index_name = index_name
             .0
             .get(0)
@@ -30,7 +30,7 @@ impl<'a> LogicalPlanner<'a> {
                 Err(BustubxError::Plan(format!("table {} not found", table))),
                 |info| Ok(info.schema.clone()),
             )?;
-        Ok(LogicalPlanV2::CreateIndex(CreateIndex {
+        Ok(LogicalPlan::CreateIndex(CreateIndex {
             index_name,
             table,
             table_schema,

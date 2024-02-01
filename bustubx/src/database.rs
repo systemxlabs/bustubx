@@ -2,7 +2,7 @@ use std::sync::Arc;
 use tempfile::TempDir;
 
 use crate::error::{BustubxError, BustubxResult};
-use crate::planner::logical_plan_v2::LogicalPlanV2;
+use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::PhysicalPlanner;
 use crate::{
     buffer::BufferPoolManager,
@@ -66,7 +66,7 @@ impl Database {
         Ok(tuples)
     }
 
-    pub fn build_logical_plan(&mut self, sql: &str) -> BustubxResult<LogicalPlanV2> {
+    pub fn build_logical_plan(&mut self, sql: &str) -> BustubxResult<LogicalPlan> {
         // sql -> ast
         let stmts = crate::parser::parse_sql(sql)?;
         if stmts.len() != 1 {

@@ -6,7 +6,7 @@ use crate::{
     catalog::Schema,
     common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
-    planner::logical_plan_v2::JoinType,
+    planner::logical_plan::JoinType,
     storage::Tuple,
     BustubxResult,
 };

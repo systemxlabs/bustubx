@@ -1,8 +1,8 @@
 use crate::catalog::{Column, Schema};
 use crate::expression::{Alias, Expr, ExprTrait};
-use crate::planner::logical_plan_v2::JoinType;
-use crate::planner::logical_plan_v2::{
-    build_join_schema, project_schema, EmptyRelation, Filter, Join, LogicalPlanV2, Project,
+use crate::planner::logical_plan::JoinType;
+use crate::planner::logical_plan::{
+    build_join_schema, project_schema, EmptyRelation, Filter, Join, LogicalPlan, Project,
     TableScan, Values,
 };
 use crate::planner::LogicalPlanner;
@@ -10,10 +10,7 @@ use crate::{BustubxError, BustubxResult};
 use std::sync::Arc;
 
 impl LogicalPlanner<'_> {
-    pub fn plan_set_expr(
-        &self,
-        set_expr: &sqlparser::ast::SetExpr,
-    ) -> BustubxResult<LogicalPlanV2> {
+    pub fn plan_set_expr(&self, set_expr: &sqlparser::ast::SetExpr) -> BustubxResult<LogicalPlan> {
         match set_expr {
             sqlparser::ast::SetExpr::Select(select) => self.plan_select(select),
             sqlparser::ast::SetExpr::Values(values) => self.plan_values(values),
@@ -24,7 +21,7 @@ impl LogicalPlanner<'_> {
         }
     }
 
-    pub fn plan_select(&self, select: &sqlparser::ast::Select) -> BustubxResult<LogicalPlanV2> {
+    pub fn plan_select(&self, select: &sqlparser::ast::Select) -> BustubxResult<LogicalPlan> {
         let table_scan = self.plan_from_tables(&select.from)?;
         let selection = self.plan_selection(table_scan, &select.selection)?;
         self.plan_project(selection, &select.projection)
@@ -32,9 +29,9 @@ impl LogicalPlanner<'_> {
 
     pub fn plan_project(
         &self,
-        input: LogicalPlanV2,
+        input: LogicalPlan,
         project: &Vec<sqlparser::ast::SelectItem>,
-    ) -> BustubxResult<LogicalPlanV2> {
+    ) -> BustubxResult<LogicalPlan> {
         let mut exprs = vec![];
         for select_item in project {
             match select_item {
@@ -54,7 +51,7 @@ impl LogicalPlanner<'_> {
             }
         }
         let schema = Arc::new(project_schema(&input, &exprs)?);
-        Ok(LogicalPlanV2::Project(Project {
+        Ok(LogicalPlan::Project(Project {
             exprs,
             input: Arc::new(input),
             schema,
@@ -63,14 +60,14 @@ impl LogicalPlanner<'_> {
 
     pub fn plan_selection(
         &self,
-        input: LogicalPlanV2,
+        input: LogicalPlan,
         selection: &Option<sqlparser::ast::Expr>,
-    ) -> BustubxResult<LogicalPlanV2> {
+    ) -> BustubxResult<LogicalPlan> {
         match selection {
             None => Ok(input),
             Some(predicate) => {
                 let predicate = self.plan_expr(predicate)?;
-                Ok(LogicalPlanV2::Filter(Filter {
+                Ok(LogicalPlan::Filter(Filter {
                     input: Arc::new(input),
                     predicate,
                 }))
@@ -81,9 +78,9 @@ impl LogicalPlanner<'_> {
     pub fn plan_from_tables(
         &self,
         from: &Vec<sqlparser::ast::TableWithJoins>,
-    ) -> BustubxResult<LogicalPlanV2> {
+    ) -> BustubxResult<LogicalPlan> {
         match from.len() {
-            0 => Ok(LogicalPlanV2::EmptyRelation(EmptyRelation {
+            0 => Ok(LogicalPlan::EmptyRelation(EmptyRelation {
                 produce_one_row: true,
                 schema: Arc::new(Schema::empty()),
             })),
@@ -102,7 +99,7 @@ impl LogicalPlanner<'_> {
     pub fn plan_table_with_joins(
         &self,
         t: &sqlparser::ast::TableWithJoins,
-    ) -> BustubxResult<LogicalPlanV2> {
+    ) -> BustubxResult<LogicalPlan> {
         let mut left = self.plan_relation(&t.relation)?;
         match t.joins.len() {
             0 => Ok(left),
@@ -117,9 +114,9 @@ impl LogicalPlanner<'_> {
 
     pub fn plan_relation_join(
         &self,
-        left: LogicalPlanV2,
+        left: LogicalPlan,
         join: &sqlparser::ast::Join,
-    ) -> BustubxResult<LogicalPlanV2> {
+    ) -> BustubxResult<LogicalPlan> {
         let right = self.plan_relation(&join.relation)?;
         match &join.join_operator {
             sqlparser::ast::JoinOperator::Inner(constraint) => {
@@ -144,16 +141,16 @@ impl LogicalPlanner<'_> {
 
     pub fn plan_join(
         &self,
-        left: LogicalPlanV2,
-        right: LogicalPlanV2,
+        left: LogicalPlan,
+        right: LogicalPlan,
         constraint: &sqlparser::ast::JoinConstraint,
         join_type: JoinType,
-    ) -> BustubxResult<LogicalPlanV2> {
+    ) -> BustubxResult<LogicalPlan> {
         match constraint {
             sqlparser::ast::JoinConstraint::On(expr) => {
                 let expr = self.plan_expr(expr)?;
                 let schema = Arc::new(build_join_schema(left.schema(), right.schema(), join_type)?);
-                Ok(LogicalPlanV2::Join(Join {
+                Ok(LogicalPlan::Join(Join {
                     left: Arc::new(left),
                     right: Arc::new(right),
                     join_type,
@@ -170,15 +167,15 @@ impl LogicalPlanner<'_> {
 
     pub fn plan_cross_join(
         &self,
-        left: LogicalPlanV2,
-        right: LogicalPlanV2,
-    ) -> BustubxResult<LogicalPlanV2> {
+        left: LogicalPlan,
+        right: LogicalPlan,
+    ) -> BustubxResult<LogicalPlan> {
         let schema = Arc::new(build_join_schema(
             left.schema(),
             right.schema(),
             JoinType::CrossJoin,
         )?);
-        Ok(LogicalPlanV2::Join(Join {
+        Ok(LogicalPlan::Join(Join {
             left: Arc::new(left),
             right: Arc::new(right),
             join_type: JoinType::CrossJoin,
@@ -190,7 +187,7 @@ impl LogicalPlanner<'_> {
     pub fn plan_relation(
         &self,
         relation: &sqlparser::ast::TableFactor,
-    ) -> BustubxResult<LogicalPlanV2> {
+    ) -> BustubxResult<LogicalPlan> {
         match relation {
             sqlparser::ast::TableFactor::Table { name, alias, .. } => {
                 // TODO handle alias
@@ -204,7 +201,7 @@ impl LogicalPlanner<'_> {
                         Err(BustubxError::Plan(format!("table {} not found", table_ref))),
                         |info| Ok(info.schema.clone()),
                     )?;
-                Ok(LogicalPlanV2::TableScan(TableScan {
+                Ok(LogicalPlan::TableScan(TableScan {
                     table_ref,
                     table_schema: schema,
                     filters: vec![],
@@ -225,7 +222,7 @@ impl LogicalPlanner<'_> {
         }
     }
 
-    pub fn plan_values(&self, values: &sqlparser::ast::Values) -> BustubxResult<LogicalPlanV2> {
+    pub fn plan_values(&self, values: &sqlparser::ast::Values) -> BustubxResult<LogicalPlan> {
         let mut result = vec![];
         for row in values.rows.iter() {
             let mut record = vec![];
@@ -235,7 +232,7 @@ impl LogicalPlanner<'_> {
             result.push(record);
         }
         if result.is_empty() {
-            return Ok(LogicalPlanV2::Values(Values {
+            return Ok(LogicalPlan::Values(Values {
                 schema: Arc::new(Schema::empty()),
                 values: vec![],
             }));
@@ -251,7 +248,7 @@ impl LogicalPlanner<'_> {
             ))
         }
 
-        Ok(LogicalPlanV2::Values(Values {
+        Ok(LogicalPlan::Values(Values {
             schema: Arc::new(Schema::new(columns)),
             values: result,
         }))

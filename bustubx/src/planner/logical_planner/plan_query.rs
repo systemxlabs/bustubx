@@ -3,22 +3,22 @@ use crate::expression::Expr;
 use crate::{BustubxError, BustubxResult};
 use std::sync::Arc;
 
-use crate::planner::logical_plan_v2::{Limit, LogicalPlanV2, Sort};
+use crate::planner::logical_plan::{Limit, LogicalPlan, Sort};
 
 use super::LogicalPlanner;
 
 impl<'a> LogicalPlanner<'a> {
-    pub fn plan_query_v2(&self, query: &sqlparser::ast::Query) -> BustubxResult<LogicalPlanV2> {
+    pub fn plan_query(&self, query: &sqlparser::ast::Query) -> BustubxResult<LogicalPlan> {
         let plan = self.plan_set_expr(&query.body)?;
         let plan = self.plan_order_by(plan, &query.order_by)?;
-        self.plan_limit_v2(plan, &query.limit, &query.offset)
+        self.plan_limit(plan, &query.limit, &query.offset)
     }
 
     pub fn plan_order_by(
         &self,
-        input: LogicalPlanV2,
+        input: LogicalPlan,
         order_by: &Vec<sqlparser::ast::OrderByExpr>,
-    ) -> BustubxResult<LogicalPlanV2> {
+    ) -> BustubxResult<LogicalPlan> {
         if order_by.is_empty() {
             return Ok(input);
         }
@@ -28,19 +28,19 @@ impl<'a> LogicalPlanner<'a> {
             order_by_exprs.push(self.plan_order_by_expr(order)?);
         }
 
-        Ok(LogicalPlanV2::Sort(Sort {
+        Ok(LogicalPlan::Sort(Sort {
             expr: order_by_exprs,
             input: Arc::new(input),
             limit: None,
         }))
     }
 
-    pub fn plan_limit_v2(
+    pub fn plan_limit(
         &self,
-        input: LogicalPlanV2,
+        input: LogicalPlan,
         limit: &Option<sqlparser::ast::Expr>,
         offset: &Option<sqlparser::ast::Offset>,
-    ) -> BustubxResult<LogicalPlanV2> {
+    ) -> BustubxResult<LogicalPlan> {
         if limit.is_none() && offset.is_none() {
             return Ok(input);
         }
@@ -87,7 +87,7 @@ impl<'a> LogicalPlanner<'a> {
             }?,
         };
 
-        Ok(LogicalPlanV2::Limit(Limit {
+        Ok(LogicalPlan::Limit(Limit {
             limit,
             offset,
             input: Arc::new(input),

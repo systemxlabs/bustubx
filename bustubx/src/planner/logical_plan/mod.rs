@@ -26,7 +26,7 @@ pub use util::*;
 pub use values::Values;
 
 #[derive(Debug, Clone)]
-pub enum LogicalPlanV2 {
+pub enum LogicalPlan {
     CreateTable(CreateTable),
     CreateIndex(CreateIndex),
     Filter(Filter),
@@ -40,23 +40,23 @@ pub enum LogicalPlanV2 {
     EmptyRelation(EmptyRelation),
 }
 
-impl LogicalPlanV2 {
+impl LogicalPlan {
     pub fn schema(&self) -> &SchemaRef {
         match self {
-            LogicalPlanV2::CreateTable(_) => todo!(),
-            LogicalPlanV2::CreateIndex(_) => todo!(),
-            LogicalPlanV2::Filter(Filter { input, .. }) => input.schema(),
-            LogicalPlanV2::Insert(_) => todo!(),
-            LogicalPlanV2::Join(Join { schema, .. }) => schema,
-            LogicalPlanV2::Limit(Limit { input, .. }) => input.schema(),
-            LogicalPlanV2::Project(Project { schema, .. }) => schema,
-            LogicalPlanV2::TableScan(TableScan {
+            LogicalPlan::CreateTable(_) => todo!(),
+            LogicalPlan::CreateIndex(_) => todo!(),
+            LogicalPlan::Filter(Filter { input, .. }) => input.schema(),
+            LogicalPlan::Insert(_) => todo!(),
+            LogicalPlan::Join(Join { schema, .. }) => schema,
+            LogicalPlan::Limit(Limit { input, .. }) => input.schema(),
+            LogicalPlan::Project(Project { schema, .. }) => schema,
+            LogicalPlan::TableScan(TableScan {
                 table_schema: schema,
                 ..
             }) => schema,
-            LogicalPlanV2::Sort(Sort { input, .. }) => input.schema(),
-            LogicalPlanV2::Values(Values { schema, .. }) => schema,
-            LogicalPlanV2::EmptyRelation(EmptyRelation { schema, .. }) => schema,
+            LogicalPlan::Sort(Sort { input, .. }) => input.schema(),
+            LogicalPlan::Values(Values { schema, .. }) => schema,
+            LogicalPlan::EmptyRelation(EmptyRelation { schema, .. }) => schema,
         }
     }
 }

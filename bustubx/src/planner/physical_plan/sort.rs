@@ -2,7 +2,7 @@ use std::sync::{atomic::AtomicU32, Arc, Mutex};
 
 use crate::catalog::SchemaRef;
 use crate::expression::ExprTrait;
-use crate::planner::logical_plan_v2::OrderByExpr;
+use crate::planner::logical_plan::OrderByExpr;
 use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,

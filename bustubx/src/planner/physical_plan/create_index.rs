@@ -1,6 +1,6 @@
 use crate::catalog::SchemaRef;
 use crate::common::table_ref::TableReference;
-use crate::planner::logical_plan_v2::OrderByExpr;
+use crate::planner::logical_plan::OrderByExpr;
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
