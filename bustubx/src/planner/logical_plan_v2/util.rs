@@ -1,8 +1,8 @@
 use crate::catalog::{ColumnRef, Schema};
-use crate::expression::{ColumnExpr, Expr, ExprTrait};
+use crate::expression::{Expr, ExprTrait};
+use crate::planner::logical_plan_v2::JoinType;
 use crate::planner::logical_plan_v2::LogicalPlanV2;
-use crate::planner::table_ref::join::JoinType;
-use crate::{BustubxError, BustubxResult};
+use crate::BustubxResult;
 use std::sync::Arc;
 
 pub fn build_join_schema(

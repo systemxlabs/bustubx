@@ -1,10 +1,10 @@
 use crate::catalog::{Column, Schema};
 use crate::expression::{Alias, Expr, ExprTrait};
+use crate::planner::logical_plan_v2::JoinType;
 use crate::planner::logical_plan_v2::{
     build_join_schema, project_schema, EmptyRelation, Filter, Join, LogicalPlanV2, Project,
     TableScan, Values,
 };
-use crate::planner::table_ref::join::JoinType;
 use crate::planner::LogicalPlanner;
 use crate::{BustubxError, BustubxResult};
 use std::sync::Arc;

@@ -1,3 +1,4 @@
+use crate::catalog::SchemaRef;
 use crate::common::table_ref::TableReference;
 use crate::planner::logical_plan_v2::OrderByExpr;
 
@@ -5,5 +6,6 @@ use crate::planner::logical_plan_v2::OrderByExpr;
 pub struct CreateIndex {
     pub index_name: String,
     pub table: TableReference,
+    pub table_schema: SchemaRef,
     pub columns: Vec<OrderByExpr>,
 }

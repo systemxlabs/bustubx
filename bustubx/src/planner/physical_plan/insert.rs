@@ -15,13 +15,13 @@ use super::PhysicalPlan;
 #[derive(Debug)]
 pub struct PhysicalInsert {
     pub table: TableReference,
-    pub columns: Vec<ColumnRef>,
+    pub columns: Vec<String>,
     pub input: Arc<PhysicalPlan>,
 
     insert_rows: AtomicU32,
 }
 impl PhysicalInsert {
-    pub fn new(table: TableReference, columns: Vec<ColumnRef>, input: Arc<PhysicalPlan>) -> Self {
+    pub fn new(table: TableReference, columns: Vec<String>, input: Arc<PhysicalPlan>) -> Self {
         Self {
             table,
             columns,

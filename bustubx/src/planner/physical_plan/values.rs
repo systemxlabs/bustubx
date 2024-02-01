@@ -12,16 +12,16 @@ use crate::{
 
 #[derive(Debug)]
 pub struct PhysicalValues {
-    pub columns: Vec<ColumnRef>,
-    pub tuples: Vec<Vec<Expr>>,
+    pub schema: SchemaRef,
+    pub values: Vec<Vec<Expr>>,
 
     cursor: AtomicU32,
 }
 impl PhysicalValues {
-    pub fn new(columns: Vec<ColumnRef>, tuples: Vec<Vec<Expr>>) -> Self {
+    pub fn new(schema: SchemaRef, values: Vec<Vec<Expr>>) -> Self {
         PhysicalValues {
-            columns,
-            tuples,
+            schema,
+            values,
             cursor: AtomicU32::new(0),
         }
     }
@@ -31,8 +31,8 @@ impl VolcanoExecutor for PhysicalValues {
         let cursor = self
             .cursor
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst) as usize;
-        return if cursor < self.tuples.len() {
-            let values = self.tuples[cursor].clone();
+        return if cursor < self.values.len() {
+            let values = self.values[cursor].clone();
             Ok(Some(Tuple::new(
                 self.output_schema(),
                 values
@@ -49,9 +49,7 @@ impl VolcanoExecutor for PhysicalValues {
     }
 
     fn output_schema(&self) -> SchemaRef {
-        Arc::new(Schema {
-            columns: self.columns.clone(),
-        })
+        self.schema.clone()
     }
 }
 

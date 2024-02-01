@@ -13,13 +13,13 @@ use super::PhysicalPlan;
 #[derive(Debug)]
 pub struct PhysicalLimit {
     pub limit: Option<usize>,
-    pub offset: Option<usize>,
+    pub offset: usize,
     pub input: Arc<PhysicalPlan>,
 
     cursor: AtomicU32,
 }
 impl PhysicalLimit {
-    pub fn new(limit: Option<usize>, offset: Option<usize>, input: Arc<PhysicalPlan>) -> Self {
+    pub fn new(limit: Option<usize>, offset: usize, input: Arc<PhysicalPlan>) -> Self {
         PhysicalLimit {
             limit,
             offset,
@@ -43,7 +43,7 @@ impl VolcanoExecutor for PhysicalLimit {
             let cursor = self
                 .cursor
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            let offset = self.offset.unwrap_or(0);
+            let offset = self.offset;
             if (cursor as usize) < offset {
                 continue;
             }

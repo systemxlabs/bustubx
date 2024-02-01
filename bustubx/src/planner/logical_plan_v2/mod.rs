@@ -11,13 +11,13 @@ mod table_scan;
 mod util;
 mod values;
 
-use crate::catalog::{Column, DataType, Schema, SchemaRef};
+use crate::catalog::SchemaRef;
 pub use create_index::CreateIndex;
 pub use create_table::CreateTable;
 pub use empty_relation::EmptyRelation;
 pub use filter::Filter;
 pub use insert::Insert;
-pub use join::Join;
+pub use join::{Join, JoinType};
 pub use limit::Limit;
 pub use project::Project;
 pub use sort::{OrderByExpr, Sort};

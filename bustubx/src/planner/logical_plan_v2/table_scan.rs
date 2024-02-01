@@ -1,4 +1,4 @@
-use crate::catalog::{ColumnRef, SchemaRef};
+use crate::catalog::SchemaRef;
 use crate::common::table_ref::TableReference;
 use crate::expression::Expr;
 

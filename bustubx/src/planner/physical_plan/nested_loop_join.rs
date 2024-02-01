@@ -6,7 +6,7 @@ use crate::{
     catalog::Schema,
     common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
-    planner::table_ref::join::JoinType,
+    planner::logical_plan_v2::JoinType,
     storage::Tuple,
     BustubxResult,
 };
@@ -19,6 +19,7 @@ pub struct PhysicalNestedLoopJoin {
     pub condition: Option<Expr>,
     pub left_input: Arc<PhysicalPlan>,
     pub right_input: Arc<PhysicalPlan>,
+    pub schema: SchemaRef,
 
     left_tuple: Mutex<Option<Tuple>>,
 }
@@ -28,12 +29,14 @@ impl PhysicalNestedLoopJoin {
         condition: Option<Expr>,
         left_input: Arc<PhysicalPlan>,
         right_input: Arc<PhysicalPlan>,
+        schema: SchemaRef,
     ) -> Self {
         PhysicalNestedLoopJoin {
             join_type,
             condition,
             left_input,
             right_input,
+            schema,
             left_tuple: Mutex::new(None),
         }
     }
@@ -97,13 +100,7 @@ impl VolcanoExecutor for PhysicalNestedLoopJoin {
     }
 
     fn output_schema(&self) -> SchemaRef {
-        Arc::new(
-            Schema::try_merge(vec![
-                self.left_input.output_schema().as_ref().clone(),
-                self.right_input.output_schema().as_ref().clone(),
-            ])
-            .unwrap(),
-        )
+        self.schema.clone()
     }
 }
 

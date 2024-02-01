@@ -2,9 +2,9 @@ use std::sync::{atomic::AtomicU32, Arc, Mutex};
 
 use crate::catalog::SchemaRef;
 use crate::expression::ExprTrait;
+use crate::planner::logical_plan_v2::OrderByExpr;
 use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
-    planner::order_by::BoundOrderBy,
     storage::Tuple,
     BustubxResult,
 };
@@ -13,14 +13,14 @@ use super::PhysicalPlan;
 
 #[derive(Debug)]
 pub struct PhysicalSort {
-    pub order_bys: Vec<BoundOrderBy>,
+    pub order_bys: Vec<OrderByExpr>,
     pub input: Arc<PhysicalPlan>,
 
     all_tuples: Mutex<Vec<Tuple>>,
     cursor: AtomicU32,
 }
 impl PhysicalSort {
-    pub fn new(order_bys: Vec<BoundOrderBy>, input: Arc<PhysicalPlan>) -> Self {
+    pub fn new(order_bys: Vec<OrderByExpr>, input: Arc<PhysicalPlan>) -> Self {
         PhysicalSort {
             order_bys,
             input,
@@ -49,12 +49,12 @@ impl VolcanoExecutor for PhysicalSort {
             let mut ordering = std::cmp::Ordering::Equal;
             let mut index = 0;
             while ordering == std::cmp::Ordering::Equal && index < self.order_bys.len() {
-                let a_value = self.order_bys[index].expression.evaluate(a).unwrap();
-                let b_value = self.order_bys[index].expression.evaluate(b).unwrap();
-                ordering = if self.order_bys[index].desc {
-                    b_value.compare(&a_value)
-                } else {
+                let a_value = self.order_bys[index].expr.evaluate(a).unwrap();
+                let b_value = self.order_bys[index].expr.evaluate(b).unwrap();
+                ordering = if self.order_bys[index].asc {
                     a_value.compare(&b_value)
+                } else {
+                    b_value.compare(&a_value)
                 };
                 index += 1;
             }

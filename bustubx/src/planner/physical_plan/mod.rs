@@ -12,7 +12,7 @@ mod values;
 
 pub use create_index::PhysicalCreateIndex;
 pub use create_table::PhysicalCreateTable;
-pub use empty::Empty;
+pub use empty::PhysicalEmpty;
 pub use filter::PhysicalFilter;
 pub use insert::PhysicalInsert;
 pub use limit::PhysicalLimit;
@@ -31,7 +31,7 @@ use crate::{
 
 #[derive(Debug)]
 pub enum PhysicalPlan {
-    Empty(Empty),
+    Empty(PhysicalEmpty),
     CreateTable(PhysicalCreateTable),
     CreateIndex(PhysicalCreateIndex),
     Project(PhysicalProject),

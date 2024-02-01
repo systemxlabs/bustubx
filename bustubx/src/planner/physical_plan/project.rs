@@ -13,6 +13,7 @@ use super::PhysicalPlan;
 #[derive(derive_new::new, Debug)]
 pub struct PhysicalProject {
     pub exprs: Vec<Expr>,
+    pub schema: SchemaRef,
     pub input: Arc<PhysicalPlan>,
 }
 
@@ -36,8 +37,7 @@ impl VolcanoExecutor for PhysicalProject {
     }
 
     fn output_schema(&self) -> SchemaRef {
-        // TODO consider aggr/alias
-        self.input.output_schema()
+        self.schema.clone()
     }
 }
 

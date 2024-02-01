@@ -4,11 +4,11 @@ use crate::{BustubxResult, Tuple};
 use std::sync::Arc;
 
 #[derive(Debug)]
-pub struct Empty {
+pub struct PhysicalEmpty {
     pub schema: SchemaRef,
 }
 
-impl VolcanoExecutor for Empty {
+impl VolcanoExecutor for PhysicalEmpty {
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         Ok(None)
     }
@@ -18,7 +18,7 @@ impl VolcanoExecutor for Empty {
     }
 }
 
-impl std::fmt::Display for Empty {
+impl std::fmt::Display for PhysicalEmpty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Empty")
     }
