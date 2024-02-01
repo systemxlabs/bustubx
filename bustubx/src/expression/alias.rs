@@ -1,9 +1,10 @@
-use crate::catalog::DataType;
 use crate::catalog::Schema;
+use crate::catalog::{Column, DataType};
 use crate::common::ScalarValue;
 use crate::error::BustubxResult;
 use crate::expression::{Expr, ExprTrait};
 use crate::storage::Tuple;
+use crate::BustubxError;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Alias {
@@ -16,7 +17,18 @@ impl ExprTrait for Alias {
         self.expr.data_type(input_schema)
     }
 
+    fn nullable(&self, input_schema: &Schema) -> BustubxResult<bool> {
+        self.expr.nullable(input_schema)
+    }
+
     fn evaluate(&self, tuple: &Tuple) -> BustubxResult<ScalarValue> {
         self.expr.evaluate(tuple)
+    }
+
+    fn to_column(&self, input_schema: &Schema) -> BustubxResult<Column> {
+        Err(BustubxError::Plan(format!(
+            "expr {:?} as column not supported",
+            self
+        )))
     }
 }

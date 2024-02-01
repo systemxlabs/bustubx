@@ -1,5 +1,5 @@
-use crate::catalog::DataType;
 use crate::catalog::Schema;
+use crate::catalog::{Column, DataType};
 use crate::common::ScalarValue;
 use crate::error::BustubxResult;
 use crate::expression::{Expr, ExprTrait};
@@ -35,6 +35,10 @@ impl ExprTrait for BinaryExpr {
             BinaryOp::Multiply => todo!(),
             BinaryOp::Divide => todo!(),
         }
+    }
+
+    fn nullable(&self, input_schema: &Schema) -> BustubxResult<bool> {
+        Ok(self.left.nullable(input_schema)? || self.right.nullable(input_schema)?)
     }
 
     fn evaluate(&self, tuple: &Tuple) -> BustubxResult<ScalarValue> {
@@ -82,6 +86,13 @@ impl ExprTrait for BinaryExpr {
                 self.op
             ))),
         }
+    }
+
+    fn to_column(&self, input_schema: &Schema) -> BustubxResult<Column> {
+        Err(BustubxError::Plan(format!(
+            "expr {:?} as column not supported",
+            self
+        )))
     }
 }
 

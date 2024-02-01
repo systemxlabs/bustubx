@@ -1,4 +1,4 @@
-use crate::catalog::{DataType, Schema};
+use crate::catalog::{Column, DataType, Schema};
 use crate::common::ScalarValue;
 use crate::expression::{Expr, ExprTrait};
 use crate::{BustubxError, BustubxResult, Tuple};
@@ -15,6 +15,10 @@ pub struct Cast {
 impl ExprTrait for Cast {
     fn data_type(&self, _input_schema: &Schema) -> BustubxResult<DataType> {
         Ok(self.data_type)
+    }
+
+    fn nullable(&self, input_schema: &Schema) -> BustubxResult<bool> {
+        self.expr.nullable(input_schema)
     }
 
     fn evaluate(&self, tuple: &Tuple) -> BustubxResult<ScalarValue> {
@@ -65,5 +69,12 @@ impl ExprTrait for Cast {
                 ))),
             },
         }
+    }
+
+    fn to_column(&self, input_schema: &Schema) -> BustubxResult<Column> {
+        Err(BustubxError::Plan(format!(
+            "expr {:?} as column not supported",
+            self
+        )))
     }
 }
