@@ -1,3 +1,4 @@
+use derive_with::With;
 use sqlparser::ast::ColumnDef;
 use std::sync::Arc;
 
@@ -5,11 +6,11 @@ use crate::catalog::DataType;
 
 pub type ColumnRef = Arc<Column>;
 
-// 列定义
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, With)]
 pub struct Column {
     pub name: String,
     pub data_type: DataType,
+    pub nullable: bool,
 }
 
 impl PartialEq for Column {
@@ -20,7 +21,11 @@ impl PartialEq for Column {
 
 impl Column {
     pub fn new(name: String, data_type: DataType) -> Self {
-        Self { name, data_type }
+        Self {
+            name,
+            data_type,
+            nullable: false,
+        }
     }
 
     pub fn from_sqlparser_column(column_def: &ColumnDef) -> Self {

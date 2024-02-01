@@ -1,7 +1,7 @@
 use crate::catalog::{Column, Schema};
 use crate::expression::{Alias, Expr, ExprTrait};
 use crate::planner::logical_plan_v2::{
-    EmptyRelation, Filter, Join, LogicalPlanV2, Project, TableScan, Values,
+    build_join_schema, EmptyRelation, Filter, Join, LogicalPlanV2, Project, TableScan, Values,
 };
 use crate::planner::table_ref::join::JoinType;
 use crate::planner::LogicalPlanner;
@@ -149,11 +149,13 @@ impl LogicalPlanner<'_> {
         match constraint {
             sqlparser::ast::JoinConstraint::On(expr) => {
                 let expr = self.plan_expr(expr)?;
+                let schema = Arc::new(build_join_schema(left.schema(), right.schema(), join_type)?);
                 Ok(LogicalPlanV2::Join(Join {
-                    left: Arc::new((left)),
-                    right: Arc::new((right)),
+                    left: Arc::new(left),
+                    right: Arc::new(right),
                     join_type,
                     condition: Some(expr),
+                    schema,
                 }))
             }
             _ => Err(BustubxError::Plan(format!(
@@ -168,11 +170,17 @@ impl LogicalPlanner<'_> {
         left: LogicalPlanV2,
         right: LogicalPlanV2,
     ) -> BustubxResult<LogicalPlanV2> {
+        let schema = Arc::new(build_join_schema(
+            left.schema(),
+            right.schema(),
+            JoinType::CrossJoin,
+        )?);
         Ok(LogicalPlanV2::Join(Join {
             left: Arc::new(left),
             right: Arc::new(right),
             join_type: JoinType::CrossJoin,
             condition: None,
+            schema,
         }))
     }
 
@@ -184,8 +192,18 @@ impl LogicalPlanner<'_> {
             sqlparser::ast::TableFactor::Table { name, alias, .. } => {
                 // TODO handle alias
                 let table_ref = self.plan_table_name(name)?;
+                // TODO get schema by full table name
+                let schema = self
+                    .context
+                    .catalog
+                    .get_table_by_name(table_ref.table())
+                    .map_or(
+                        Err(BustubxError::Plan(format!("table {} not found", table_ref))),
+                        |info| Ok(info.schema.clone()),
+                    )?;
                 Ok(LogicalPlanV2::TableScan(TableScan {
                     table_ref,
+                    schema,
                     filters: vec![],
                     limit: None,
                 }))

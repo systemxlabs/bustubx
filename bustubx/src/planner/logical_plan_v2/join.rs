@@ -1,3 +1,4 @@
+use crate::catalog::SchemaRef;
 use crate::expression::Expr;
 use crate::planner::logical_plan_v2::LogicalPlanV2;
 use crate::planner::table_ref::join::JoinType;
@@ -11,4 +12,5 @@ pub struct Join {
     pub right: Arc<LogicalPlanV2>,
     pub join_type: JoinType,
     pub condition: Option<Expr>,
+    pub schema: SchemaRef,
 }

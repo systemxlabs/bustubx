@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum TableReference {
     /// An unqualified table reference, e.g. "table"
@@ -39,6 +37,42 @@ impl TableReference {
             catalog,
             schema,
             table,
+        }
+    }
+
+    pub fn table(&self) -> &str {
+        match self {
+            Self::Full { table, .. } | Self::Partial { table, .. } | Self::Bare { table } => table,
+        }
+    }
+
+    pub fn schema(&self) -> Option<&str> {
+        match self {
+            Self::Full { schema, .. } | Self::Partial { schema, .. } => Some(schema),
+            _ => None,
+        }
+    }
+
+    pub fn catalog(&self) -> Option<&str> {
+        match self {
+            Self::Full { catalog, .. } => Some(catalog),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Display for TableReference {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TableReference::Bare { table } => write!(f, "{table}"),
+            TableReference::Partial { schema, table } => {
+                write!(f, "{schema}.{table}")
+            }
+            TableReference::Full {
+                catalog,
+                schema,
+                table,
+            } => write!(f, "{catalog}.{schema}.{table}"),
         }
     }
 }

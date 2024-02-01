@@ -103,6 +103,7 @@ version = "0.1.0-alpha.1"
 dependencies = [
  "comfy-table",
  "derive-new",
+ "derive-with",
  "itertools 0.11.0",
  "lazy_static",
  "petgraph",
@@ -251,6 +252,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "derive-with"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "841ea25b31404c50f2ddc92e028984a42d0fc818c10afee0b1fbda27c995f028"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.48",
 ]
 
 [[package]]

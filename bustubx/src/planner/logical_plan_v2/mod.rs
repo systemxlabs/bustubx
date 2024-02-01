@@ -8,8 +8,10 @@ mod limit;
 mod project;
 mod sort;
 mod table_scan;
+mod util;
 mod values;
 
+use crate::catalog::SchemaRef;
 pub use create_index::CreateIndex;
 pub use create_table::CreateTable;
 pub use empty_relation::EmptyRelation;
@@ -20,6 +22,7 @@ pub use limit::Limit;
 pub use project::Project;
 pub use sort::{OrderByExpr, Sort};
 pub use table_scan::TableScan;
+pub use util::*;
 pub use values::Values;
 
 #[derive(Debug, Clone)]
@@ -35,4 +38,22 @@ pub enum LogicalPlanV2 {
     Sort(Sort),
     Values(Values),
     EmptyRelation(EmptyRelation),
+}
+
+impl LogicalPlanV2 {
+    pub fn schema(&self) -> &SchemaRef {
+        match self {
+            LogicalPlanV2::CreateTable(_) => todo!(),
+            LogicalPlanV2::CreateIndex(_) => todo!(),
+            LogicalPlanV2::Filter(Filter { input, .. }) => input.schema(),
+            LogicalPlanV2::Insert(_) => todo!(),
+            LogicalPlanV2::Join(Join { schema, .. }) => schema,
+            LogicalPlanV2::Limit(Limit { input, .. }) => input.schema(),
+            LogicalPlanV2::Project(_) => todo!(),
+            LogicalPlanV2::TableScan(TableScan { schema, .. }) => schema,
+            LogicalPlanV2::Sort(Sort { input, .. }) => input.schema(),
+            LogicalPlanV2::Values(Values { schema, .. }) => schema,
+            LogicalPlanV2::EmptyRelation(EmptyRelation { schema, .. }) => schema,
+        }
+    }
 }
