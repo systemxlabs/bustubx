@@ -34,11 +34,11 @@ impl<'a> LogicalPlanner<'a> {
         }
     }
 
-    pub fn plan_order_by_expr(
+    pub fn bind_order_by_expr(
         &self,
         order_by: &sqlparser::ast::OrderByExpr,
     ) -> BustubxResult<OrderByExpr> {
-        let expr = self.plan_expr(&order_by.expr)?;
+        let expr = self.bind_expr(&order_by.expr)?;
         Ok(OrderByExpr {
             expr: Box::new(expr),
             asc: order_by.asc.unwrap_or(true),
@@ -46,7 +46,7 @@ impl<'a> LogicalPlanner<'a> {
         })
     }
 
-    pub fn plan_table_name(
+    pub fn bind_table_name(
         &self,
         table_name: &sqlparser::ast::ObjectName,
     ) -> BustubxResult<TableReference> {

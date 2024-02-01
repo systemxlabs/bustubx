@@ -35,11 +35,11 @@ impl LogicalPlanner<'_> {
         let mut exprs = vec![];
         for select_item in project {
             match select_item {
-                sqlparser::ast::SelectItem::UnnamedExpr(expr) => exprs.push(self.plan_expr(expr)?),
+                sqlparser::ast::SelectItem::UnnamedExpr(expr) => exprs.push(self.bind_expr(expr)?),
                 sqlparser::ast::SelectItem::ExprWithAlias { expr, alias } => {
                     exprs.push(Expr::Alias(Alias {
                         name: alias.value.clone(),
-                        expr: Box::new(self.plan_expr(expr)?),
+                        expr: Box::new(self.bind_expr(expr)?),
                     }))
                 }
                 sqlparser::ast::SelectItem::Wildcard(_) => {
@@ -80,7 +80,7 @@ impl LogicalPlanner<'_> {
         match selection {
             None => Ok(input),
             Some(predicate) => {
-                let predicate = self.plan_expr(predicate)?;
+                let predicate = self.bind_expr(predicate)?;
                 Ok(LogicalPlan::Filter(Filter {
                     input: Arc::new(input),
                     predicate,
@@ -162,7 +162,7 @@ impl LogicalPlanner<'_> {
     ) -> BustubxResult<LogicalPlan> {
         match constraint {
             sqlparser::ast::JoinConstraint::On(expr) => {
-                let expr = self.plan_expr(expr)?;
+                let expr = self.bind_expr(expr)?;
                 let schema = Arc::new(build_join_schema(left.schema(), right.schema(), join_type)?);
                 Ok(LogicalPlan::Join(Join {
                     left: Arc::new(left),
@@ -205,7 +205,7 @@ impl LogicalPlanner<'_> {
         match relation {
             sqlparser::ast::TableFactor::Table { name, alias, .. } => {
                 // TODO handle alias
-                let table_ref = self.plan_table_name(name)?;
+                let table_ref = self.bind_table_name(name)?;
                 // TODO get schema by full table name
                 let schema = self
                     .context
@@ -241,7 +241,7 @@ impl LogicalPlanner<'_> {
         for row in values.rows.iter() {
             let mut record = vec![];
             for item in row {
-                record.push(self.plan_expr(item)?);
+                record.push(self.bind_expr(item)?);
             }
             result.push(record);
         }

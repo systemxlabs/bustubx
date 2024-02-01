@@ -25,7 +25,7 @@ impl<'a> LogicalPlanner<'a> {
 
         let mut order_by_exprs = vec![];
         for order in order_by {
-            order_by_exprs.push(self.plan_order_by_expr(order)?);
+            order_by_exprs.push(self.bind_order_by_expr(order)?);
         }
 
         Ok(LogicalPlan::Sort(Sort {
@@ -48,7 +48,7 @@ impl<'a> LogicalPlanner<'a> {
         let limit = match limit {
             None => None,
             Some(limit_expr) => {
-                let n = match self.plan_expr(&limit_expr)? {
+                let n = match self.bind_expr(&limit_expr)? {
                     Expr::Literal(lit) => match lit.value {
                         ScalarValue::Int64(Some(v)) if v >= 0 => Ok(v as usize),
                         _ => Err(BustubxError::Plan(format!(
@@ -67,7 +67,7 @@ impl<'a> LogicalPlanner<'a> {
 
         let offset = match offset {
             None => 0,
-            Some(offset_expr) => match self.plan_expr(&offset_expr.value)? {
+            Some(offset_expr) => match self.bind_expr(&offset_expr.value)? {
                 Expr::Literal(lit) => match lit.value {
                     ScalarValue::Int64(Some(v)) => {
                         if v < 0 {

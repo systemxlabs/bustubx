@@ -11,7 +11,7 @@ impl<'a> LogicalPlanner<'a> {
         name: &sqlparser::ast::ObjectName,
         column_defs: &Vec<sqlparser::ast::ColumnDef>,
     ) -> BustubxResult<LogicalPlan> {
-        let name = self.plan_table_name(name)?;
+        let name = self.bind_table_name(name)?;
         let mut columns = vec![];
         for col_def in column_defs {
             columns.push(Column::new(

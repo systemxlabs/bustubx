@@ -13,7 +13,7 @@ impl<'a> LogicalPlanner<'a> {
         source: &sqlparser::ast::Query,
     ) -> BustubxResult<LogicalPlan> {
         let values = self.plan_set_expr(source.body.as_ref())?;
-        let table = self.plan_table_name(table_name)?;
+        let table = self.bind_table_name(table_name)?;
         let table_schema = self
             .context
             .catalog

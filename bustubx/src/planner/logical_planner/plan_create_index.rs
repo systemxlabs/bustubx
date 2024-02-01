@@ -16,10 +16,10 @@ impl<'a> LogicalPlanner<'a> {
             .map_or(Err(BustubxError::Plan("".to_string())), |ident| {
                 Ok(ident.value.clone())
             })?;
-        let table = self.plan_table_name(table_name)?;
+        let table = self.bind_table_name(table_name)?;
         let mut columns_expr = vec![];
         for col in columns.iter() {
-            let col_expr = self.plan_order_by_expr(&col)?;
+            let col_expr = self.bind_order_by_expr(&col)?;
             columns_expr.push(col_expr);
         }
         let table_schema = self

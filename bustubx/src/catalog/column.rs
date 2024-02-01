@@ -28,10 +28,4 @@ impl Column {
             nullable: false,
         }
     }
-
-    pub fn from_sqlparser_column(column_def: &ColumnDef) -> Self {
-        let column_name = column_def.name.to_string();
-        let column_type: DataType = (&column_def.data_type).try_into().unwrap();
-        Self::new(column_name, column_type)
-    }
 }

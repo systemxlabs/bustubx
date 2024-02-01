@@ -4,22 +4,22 @@ use crate::planner::LogicalPlanner;
 use crate::{BustubxError, BustubxResult};
 
 impl LogicalPlanner<'_> {
-    pub fn plan_expr(&self, sql: &sqlparser::ast::Expr) -> BustubxResult<Expr> {
+    pub fn bind_expr(&self, sql: &sqlparser::ast::Expr) -> BustubxResult<Expr> {
         match sql {
             sqlparser::ast::Expr::Identifier(ident) => Ok(Expr::Column(ColumnExpr {
                 relation: None,
                 name: ident.value.clone(),
             })),
             sqlparser::ast::Expr::BinaryOp { left, op, right } => {
-                let left = Box::new(self.plan_expr(left)?);
-                let right = Box::new(self.plan_expr(right)?);
+                let left = Box::new(self.bind_expr(left)?);
+                let right = Box::new(self.bind_expr(right)?);
                 Ok(Expr::BinaryExpr(BinaryExpr {
                     left,
                     op: op.try_into()?,
                     right,
                 }))
             }
-            sqlparser::ast::Expr::Value(value) => self.plan_value(value),
+            sqlparser::ast::Expr::Value(value) => self.bind_value(value),
             sqlparser::ast::Expr::CompoundIdentifier(idents) => match idents.as_slice() {
                 [col] => Ok(Expr::Column(ColumnExpr {
                     relation: None,
@@ -56,7 +56,7 @@ impl LogicalPlanner<'_> {
         }
     }
 
-    pub fn plan_value(&self, value: &sqlparser::ast::Value) -> BustubxResult<Expr> {
+    pub fn bind_value(&self, value: &sqlparser::ast::Value) -> BustubxResult<Expr> {
         match value {
             sqlparser::ast::Value::Number(s, _) => {
                 let num: i64 = s.parse::<i64>().map_err(|e| {
