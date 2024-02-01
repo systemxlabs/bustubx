@@ -9,6 +9,10 @@ fn sqllogictest() {
     for file in test_files {
         let db = BustubxDB::new();
         let mut tester = sqllogictest::Runner::new(db);
+        println!(
+            "======== start to run file {} ========",
+            file.to_str().unwrap()
+        );
         tester.run_file(file).unwrap();
     }
 }

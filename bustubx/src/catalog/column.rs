@@ -20,6 +20,7 @@ impl PartialEq for Column {
 }
 
 impl Column {
+    // TODO set nullable
     pub fn new(name: String, data_type: DataType) -> Self {
         Self {
             name,

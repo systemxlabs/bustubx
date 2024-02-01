@@ -1,5 +1,5 @@
 use crate::catalog::{Column, Schema};
-use crate::expression::{Alias, Expr, ExprTrait};
+use crate::expression::{Alias, ColumnExpr, Expr, ExprTrait};
 use crate::planner::logical_plan::JoinType;
 use crate::planner::logical_plan::{
     build_join_schema, project_schema, EmptyRelation, Filter, Join, LogicalPlan, Project,
@@ -41,6 +41,20 @@ impl LogicalPlanner<'_> {
                         name: alias.value.clone(),
                         expr: Box::new(self.plan_expr(expr)?),
                     }))
+                }
+                sqlparser::ast::SelectItem::Wildcard(_) => {
+                    let all_columns = input
+                        .schema()
+                        .columns
+                        .iter()
+                        .map(|col| {
+                            Expr::Column(ColumnExpr {
+                                relation: None,
+                                name: col.name.clone(),
+                            })
+                        })
+                        .collect::<Vec<Expr>>();
+                    exprs.extend(all_columns);
                 }
                 _ => {
                     return Err(BustubxError::Plan(format!(

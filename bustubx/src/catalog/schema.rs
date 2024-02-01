@@ -1,5 +1,6 @@
 use super::column::{Column, ColumnRef};
 use crate::error::BustubxResult;
+use crate::BustubxError;
 use std::sync::Arc;
 
 pub type SchemaRef = Arc<Schema>;
@@ -29,6 +30,24 @@ impl Schema {
         Ok(Self { columns })
     }
 
+    pub fn project(&self, indices: &[usize]) -> BustubxResult<SchemaRef> {
+        let new_columns = indices
+            .iter()
+            .map(|i| {
+                self.get_col_by_index(*i).ok_or_else(|| {
+                    BustubxError::Plan(format!(
+                        "project index {} out of bounds, max column count {}",
+                        i,
+                        self.columns.len(),
+                    ))
+                })
+            })
+            .collect::<BustubxResult<Vec<ColumnRef>>>()?;
+        Ok(Arc::new(Schema {
+            columns: new_columns,
+        }))
+    }
+
     pub fn copy_schema(from: SchemaRef, key_attrs: &[u32]) -> Self {
         let columns = key_attrs
             .iter()
@@ -45,8 +64,22 @@ impl Schema {
         self.columns.get(index).cloned()
     }
 
-    pub fn get_index_by_name(&self, col_name: &String) -> Option<usize> {
-        self.columns.iter().position(|c| &c.name == col_name)
+    pub fn column_with_index(&self, index: usize) -> BustubxResult<ColumnRef> {
+        self.columns
+            .get(index)
+            .cloned()
+            .ok_or_else(|| BustubxError::Plan(format!("Unable to get column with index {index}")))
+    }
+
+    /// Find the index of the column with the given name.
+    pub fn index_of(&self, name: &str) -> BustubxResult<usize> {
+        let (idx, _) = self
+            .columns
+            .iter()
+            .enumerate()
+            .find(|(_, col)| &col.name == name)
+            .ok_or_else(|| BustubxError::Plan(format!("Unable to get column named \"{name}\"")))?;
+        Ok(idx)
     }
 
     pub fn fixed_len(&self) -> usize {

@@ -1,5 +1,5 @@
 use crate::catalog::DataType;
-use crate::BustubxResult;
+use crate::{BustubxError, BustubxResult};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ScalarValue {
@@ -56,21 +56,6 @@ impl ScalarValue {
             Self::Int64(None) => vec![0u8; 8],
             Self::UInt64(None) => vec![0u8; 8],
             _ => unimplemented!(),
-        }
-    }
-
-    pub fn from_sqlparser_value(value: &sqlparser::ast::Value, data_type: DataType) -> Self {
-        match value {
-            sqlparser::ast::Value::Number(v, _) => match data_type {
-                DataType::Int8 => Self::Int8(Some(v.parse::<i8>().unwrap())),
-                DataType::Int16 => Self::Int16(Some(v.parse::<i16>().unwrap())),
-                DataType::Int32 => Self::Int32(Some(v.parse::<i32>().unwrap())),
-                DataType::Int64 => Self::Int64(Some(v.parse::<i64>().unwrap())),
-                DataType::UInt64 => Self::UInt64(Some(v.parse::<u64>().unwrap())),
-                _ => panic!("Not implemented"),
-            },
-            sqlparser::ast::Value::Boolean(b) => ScalarValue::Boolean(Some(*b)),
-            _ => unreachable!(),
         }
     }
 
@@ -134,6 +119,30 @@ impl ScalarValue {
             ScalarValue::Int32(v) => v.is_none(),
             ScalarValue::Int64(v) => v.is_none(),
             ScalarValue::UInt64(v) => v.is_none(),
+        }
+    }
+
+    /// Try to cast this value to a ScalarValue of type `data_type`
+    pub fn cast_to(&self, data_type: &DataType) -> BustubxResult<Self> {
+        match data_type {
+            DataType::Boolean => match self {
+                ScalarValue::Boolean(v) => Ok(ScalarValue::Boolean(v.clone())),
+                _ => Err(BustubxError::NotSupport(format!(
+                    "Failed to cast {} to {} type",
+                    self, data_type
+                ))),
+            },
+            DataType::Int32 => match self {
+                ScalarValue::Int64(v) => Ok(ScalarValue::Int32(v.map(|v| v as i32))),
+                _ => Err(BustubxError::NotSupport(format!(
+                    "Failed to cast {} to {} type",
+                    self, data_type
+                ))),
+            },
+            _ => Err(BustubxError::NotSupport(format!(
+                "Not support cast to {} type",
+                data_type
+            ))),
         }
     }
 }

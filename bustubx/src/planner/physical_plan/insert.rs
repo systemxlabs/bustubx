@@ -1,6 +1,6 @@
 use std::sync::{atomic::AtomicU32, Arc};
 
-use crate::catalog::{ColumnRef, SchemaRef};
+use crate::catalog::SchemaRef;
 use crate::common::table_ref::TableReference;
 use crate::{
     catalog::{Column, DataType, Schema},
@@ -15,16 +15,23 @@ use super::PhysicalPlan;
 #[derive(Debug)]
 pub struct PhysicalInsert {
     pub table: TableReference,
-    pub columns: Vec<String>,
+    pub table_schema: SchemaRef,
+    pub projected_schema: SchemaRef,
     pub input: Arc<PhysicalPlan>,
 
     insert_rows: AtomicU32,
 }
 impl PhysicalInsert {
-    pub fn new(table: TableReference, columns: Vec<String>, input: Arc<PhysicalPlan>) -> Self {
+    pub fn new(
+        table: TableReference,
+        table_schema: SchemaRef,
+        projected_schema: SchemaRef,
+        input: Arc<PhysicalPlan>,
+    ) -> Self {
         Self {
             table,
-            columns,
+            table_schema,
+            projected_schema,
             input,
             insert_rows: AtomicU32::new(0),
         }
@@ -54,8 +61,19 @@ impl VolcanoExecutor for PhysicalInsert {
                     )));
                 }
             }
-
             let tuple = next_tuple.unwrap();
+
+            // cast values
+            let mut casted_data = vec![];
+            for (idx, value) in tuple.data.iter().enumerate() {
+                casted_data
+                    .push(value.cast_to(&self.projected_schema.column_with_index(idx)?.data_type)?);
+            }
+            let tuple = Tuple {
+                schema: self.projected_schema.clone(),
+                data: casted_data,
+            };
+
             // TODO update index if needed
             let table_heap = &mut context
                 .catalog

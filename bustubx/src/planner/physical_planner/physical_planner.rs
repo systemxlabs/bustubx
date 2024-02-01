@@ -49,13 +49,15 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
         )),
         LogicalPlan::Insert(Insert {
             table,
-            columns,
+            table_schema,
+            projected_schema,
             input,
         }) => {
             let input_physical_plan = build_plan(input.clone());
             PhysicalPlan::Insert(PhysicalInsert::new(
                 table.clone(),
-                columns.clone(),
+                table_schema.clone(),
+                projected_schema.clone(),
                 Arc::new(input_physical_plan),
             ))
         }
