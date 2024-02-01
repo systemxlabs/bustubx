@@ -1,6 +1,7 @@
 use std::sync::{atomic::AtomicU32, Arc};
 
 use crate::catalog::{ColumnRef, SchemaRef};
+use crate::common::table_ref::TableReference;
 use crate::{
     catalog::{Column, DataType, Schema},
     common::ScalarValue,
@@ -13,16 +14,16 @@ use super::PhysicalPlan;
 
 #[derive(Debug)]
 pub struct PhysicalInsert {
-    pub table_name: String,
+    pub table: TableReference,
     pub columns: Vec<ColumnRef>,
     pub input: Arc<PhysicalPlan>,
 
     insert_rows: AtomicU32,
 }
 impl PhysicalInsert {
-    pub fn new(table_name: String, columns: Vec<ColumnRef>, input: Arc<PhysicalPlan>) -> Self {
+    pub fn new(table: TableReference, columns: Vec<ColumnRef>, input: Arc<PhysicalPlan>) -> Self {
         Self {
-            table_name,
+            table,
             columns,
             input,
             insert_rows: AtomicU32::new(0),
@@ -58,7 +59,7 @@ impl VolcanoExecutor for PhysicalInsert {
             // TODO update index if needed
             let table_heap = &mut context
                 .catalog
-                .get_mut_table_by_name(self.table_name.as_str())
+                .get_mut_table_by_name(self.table.table())
                 .unwrap()
                 .table;
             let tuple_meta = TupleMeta {

@@ -206,7 +206,7 @@ impl LogicalPlanner<'_> {
                     )?;
                 Ok(LogicalPlanV2::TableScan(TableScan {
                     table_ref,
-                    schema,
+                    table_schema: schema,
                     filters: vec![],
                     limit: None,
                 }))

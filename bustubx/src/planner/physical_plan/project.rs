@@ -12,7 +12,7 @@ use super::PhysicalPlan;
 
 #[derive(derive_new::new, Debug)]
 pub struct PhysicalProject {
-    pub expressions: Vec<Expr>,
+    pub exprs: Vec<Expr>,
     pub input: Arc<PhysicalPlan>,
 }
 
@@ -29,7 +29,7 @@ impl VolcanoExecutor for PhysicalProject {
         }
         let next_tuple = next_tuple.unwrap();
         let mut new_values = Vec::new();
-        for expr in &self.expressions {
+        for expr in &self.exprs {
             new_values.push(expr.evaluate(&next_tuple)?);
         }
         return Ok(Some(Tuple::new(self.output_schema(), new_values)));

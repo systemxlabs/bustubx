@@ -1,4 +1,5 @@
 use crate::catalog::Schema;
+use crate::common::table_ref::TableReference;
 use std::sync::Arc;
 
 use crate::planner::logical_plan::LogicalPlan;
@@ -33,23 +34,23 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
     let plan = match logical_plan.operator {
         LogicalOperator::CreateTable(ref logic_create_table) => {
             PhysicalPlan::CreateTable(PhysicalCreateTable::new(
-                logic_create_table.table_name.clone(),
+                TableReference::bare(logic_create_table.table_name.clone()),
                 logic_create_table.schema.clone(),
             ))
         }
         LogicalOperator::CreateIndex(ref logic_create_index) => {
             PhysicalPlan::CreateIndex(PhysicalCreateIndex::new(
                 logic_create_index.index_name.clone(),
-                logic_create_index.table_name.clone(),
+                TableReference::bare(logic_create_index.table_name.clone()),
                 logic_create_index.table_schema.clone(),
-                logic_create_index.key_attrs.clone(),
+                vec![],
             ))
         }
         LogicalOperator::Insert(ref logic_insert) => {
             let child_logical_node = logical_plan.children[0].clone();
             let child_physical_node = build_plan(child_logical_node.clone());
             PhysicalPlan::Insert(PhysicalInsert::new(
-                logic_insert.table_name.clone(),
+                TableReference::bare(logic_insert.table_name.clone()),
                 logic_insert.columns.clone(),
                 Arc::new(child_physical_node),
             ))
@@ -77,8 +78,10 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
         }
         LogicalOperator::Scan(ref logical_table_scan) => {
             PhysicalPlan::TableScan(PhysicalSeqScan::new(
-                logical_table_scan.table_oid.clone(),
-                logical_table_scan.columns.clone(),
+                TableReference::bare(logical_table_scan.table_name.clone()),
+                Arc::new(Schema {
+                    columns: logical_table_scan.columns.clone(),
+                }),
             ))
         }
         LogicalOperator::Limit(ref logical_limit) => {

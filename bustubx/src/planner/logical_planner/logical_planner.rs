@@ -180,7 +180,7 @@ impl<'a> LogicalPlanner<'a> {
         match table_ref {
             BoundTableRef::BaseTable(table) => LogicalPlan {
                 operator: LogicalOperator::new_scan_operator(
-                    table.oid,
+                    table.table.clone(),
                     table.schema.columns.clone(),
                 ),
                 children: Vec::new(),

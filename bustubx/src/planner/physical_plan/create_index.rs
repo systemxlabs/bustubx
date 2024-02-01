@@ -1,4 +1,6 @@
 use crate::catalog::SchemaRef;
+use crate::common::table_ref::TableReference;
+use crate::planner::logical_plan_v2::OrderByExpr;
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
@@ -9,26 +11,19 @@ use std::sync::Arc;
 
 #[derive(Debug, derive_new::new)]
 pub struct PhysicalCreateIndex {
-    pub index_name: String,
-    pub table_name: String,
+    pub name: String,
+    pub table: TableReference,
     pub table_schema: SchemaRef,
-    pub key_attrs: Vec<u32>,
+    pub columns: Vec<OrderByExpr>,
 }
 
 impl VolcanoExecutor for PhysicalCreateIndex {
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
-        context.catalog.create_index(
-            self.index_name.clone(),
-            self.table_name.clone(),
-            self.key_attrs.clone(),
-        );
+        // TODO implement
         Ok(None)
     }
     fn output_schema(&self) -> SchemaRef {
-        Arc::new(Schema::copy_schema(
-            self.table_schema.clone(),
-            &self.key_attrs,
-        ))
+        Arc::new(Schema::empty())
     }
 }
 

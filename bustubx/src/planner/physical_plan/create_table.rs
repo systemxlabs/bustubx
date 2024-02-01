@@ -1,4 +1,5 @@
 use crate::catalog::SchemaRef;
+use crate::common::table_ref::TableReference;
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
@@ -9,15 +10,16 @@ use std::sync::Arc;
 
 #[derive(derive_new::new, Debug)]
 pub struct PhysicalCreateTable {
-    pub table_name: String,
+    pub table: TableReference,
     pub schema: Schema,
 }
 
 impl VolcanoExecutor for PhysicalCreateTable {
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
-        context
-            .catalog
-            .create_table(self.table_name.clone(), Arc::new(self.schema.clone()));
+        context.catalog.create_table(
+            self.table.table().to_string(),
+            Arc::new(self.schema.clone()),
+        );
         Ok(None)
     }
     fn output_schema(&self) -> SchemaRef {

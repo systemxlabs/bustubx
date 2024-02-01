@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::catalog::{ColumnRef, SchemaRef};
+use crate::common::table_ref::TableReference;
 use crate::{
     catalog::{Schema, TableOid},
     execution::{ExecutionContext, VolcanoExecutor},
@@ -10,17 +11,17 @@ use crate::{
 
 #[derive(Debug)]
 pub struct PhysicalSeqScan {
-    pub table_oid: TableOid,
-    pub columns: Vec<ColumnRef>,
+    pub table: TableReference,
+    pub table_schema: SchemaRef,
 
     iterator: Mutex<TableIterator>,
 }
 
 impl PhysicalSeqScan {
-    pub fn new(table_oid: TableOid, columns: Vec<ColumnRef>) -> Self {
+    pub fn new(table: TableReference, table_schema: SchemaRef) -> Self {
         PhysicalSeqScan {
-            table_oid,
-            columns,
+            table,
+            table_schema,
             iterator: Mutex::new(TableIterator::new(None, None)),
         }
     }
@@ -31,7 +32,7 @@ impl VolcanoExecutor for PhysicalSeqScan {
         println!("init table scan executor");
         let table_info = context
             .catalog
-            .get_mut_table_by_oid(self.table_oid)
+            .get_mut_table_by_name(self.table.table())
             .unwrap();
         let inited_iterator = table_info.table.iter(None, None);
         let mut iterator = self.iterator.lock().unwrap();
@@ -42,7 +43,7 @@ impl VolcanoExecutor for PhysicalSeqScan {
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         let table_info = context
             .catalog
-            .get_mut_table_by_oid(self.table_oid)
+            .get_mut_table_by_name(self.table.table())
             .unwrap();
         let mut iterator = self.iterator.lock().unwrap();
         let full_tuple = iterator.next(&mut table_info.table);
@@ -50,9 +51,7 @@ impl VolcanoExecutor for PhysicalSeqScan {
     }
 
     fn output_schema(&self) -> SchemaRef {
-        Arc::new(Schema {
-            columns: self.columns.clone(),
-        })
+        self.table_schema.clone()
     }
 }
 
