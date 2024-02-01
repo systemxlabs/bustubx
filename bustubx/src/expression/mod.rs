@@ -14,7 +14,7 @@ use crate::catalog::Schema;
 use crate::catalog::{Column, DataType};
 use crate::common::ScalarValue;
 use crate::storage::Tuple;
-use crate::{BustubxError, BustubxResult};
+use crate::{BustubxResult};
 
 pub trait ExprTrait {
     /// Get the data type of this expression, given the schema of the input

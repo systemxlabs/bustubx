@@ -11,7 +11,7 @@ mod table_scan;
 mod util;
 mod values;
 
-use crate::catalog::SchemaRef;
+use crate::catalog::{Column, DataType, Schema, SchemaRef};
 pub use create_index::CreateIndex;
 pub use create_table::CreateTable;
 pub use empty_relation::EmptyRelation;
@@ -21,6 +21,7 @@ pub use join::Join;
 pub use limit::Limit;
 pub use project::Project;
 pub use sort::{OrderByExpr, Sort};
+use std::sync::Arc;
 pub use table_scan::TableScan;
 pub use util::*;
 pub use values::Values;
@@ -43,10 +44,13 @@ pub enum LogicalPlanV2 {
 impl LogicalPlanV2 {
     pub fn schema(&self) -> &SchemaRef {
         match self {
-            LogicalPlanV2::CreateTable(_) => todo!(),
-            LogicalPlanV2::CreateIndex(_) => todo!(),
+            LogicalPlanV2::CreateTable(_) => &Arc::new(Schema::empty()),
+            LogicalPlanV2::CreateIndex(_) => &Arc::new(Schema::empty()),
             LogicalPlanV2::Filter(Filter { input, .. }) => input.schema(),
-            LogicalPlanV2::Insert(_) => todo!(),
+            LogicalPlanV2::Insert(_) => &Arc::new(Schema::new(vec![Column::new(
+                "insert_rows".to_string(),
+                DataType::Int32,
+            )])),
             LogicalPlanV2::Join(Join { schema, .. }) => schema,
             LogicalPlanV2::Limit(Limit { input, .. }) => input.schema(),
             LogicalPlanV2::Project(Project { schema, .. }) => schema,
