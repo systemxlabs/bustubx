@@ -26,7 +26,6 @@ pub mod values;
 
 #[derive(Debug, Clone)]
 pub enum LogicalOperator {
-    Dummy,
     CreateTable(LogicalCreateTableOperator),
     CreateIndex(LogicalCreateIndexOperator),
     // Aggregate(AggregateOperator),

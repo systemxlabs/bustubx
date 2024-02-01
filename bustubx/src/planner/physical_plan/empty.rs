@@ -4,20 +4,22 @@ use crate::{BustubxResult, Tuple};
 use std::sync::Arc;
 
 #[derive(Debug)]
-pub struct Dummy;
+pub struct Empty {
+    pub schema: SchemaRef,
+}
 
-impl VolcanoExecutor for Dummy {
+impl VolcanoExecutor for Empty {
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         Ok(None)
     }
 
     fn output_schema(&self) -> SchemaRef {
-        Arc::new(Schema::empty())
+        self.schema.clone()
     }
 }
 
-impl std::fmt::Display for Dummy {
+impl std::fmt::Display for Empty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Dummy")
+        write!(f, "Empty")
     }
 }

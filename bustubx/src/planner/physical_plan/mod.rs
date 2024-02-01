@@ -1,6 +1,6 @@
 mod create_index;
 mod create_table;
-mod dummy;
+mod empty;
 mod filter;
 mod insert;
 mod limit;
@@ -12,7 +12,7 @@ mod values;
 
 pub use create_index::PhysicalCreateIndex;
 pub use create_table::PhysicalCreateTable;
-pub use dummy::Dummy;
+pub use empty::Empty;
 pub use filter::PhysicalFilter;
 pub use insert::PhysicalInsert;
 pub use limit::PhysicalLimit;
@@ -31,7 +31,7 @@ use crate::{
 
 #[derive(Debug)]
 pub enum PhysicalPlan {
-    Dummy(Dummy),
+    Empty(Empty),
     CreateTable(PhysicalCreateTable),
     CreateIndex(PhysicalCreateIndex),
     Project(PhysicalProject),
@@ -47,7 +47,7 @@ pub enum PhysicalPlan {
 impl VolcanoExecutor for PhysicalPlan {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         match self {
-            PhysicalPlan::Dummy(op) => op.init(context),
+            PhysicalPlan::Empty(op) => op.init(context),
             PhysicalPlan::CreateTable(op) => op.init(context),
             PhysicalPlan::CreateIndex(op) => op.init(context),
             PhysicalPlan::Insert(op) => op.init(context),
@@ -63,7 +63,7 @@ impl VolcanoExecutor for PhysicalPlan {
 
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         match self {
-            PhysicalPlan::Dummy(op) => op.next(context),
+            PhysicalPlan::Empty(op) => op.next(context),
             PhysicalPlan::CreateTable(op) => op.next(context),
             PhysicalPlan::CreateIndex(op) => op.next(context),
             PhysicalPlan::Insert(op) => op.next(context),
@@ -79,7 +79,7 @@ impl VolcanoExecutor for PhysicalPlan {
 
     fn output_schema(&self) -> SchemaRef {
         match self {
-            Self::Dummy(op) => op.output_schema(),
+            Self::Empty(op) => op.output_schema(),
             Self::CreateTable(op) => op.output_schema(),
             Self::CreateIndex(op) => op.output_schema(),
             Self::Insert(op) => op.output_schema(),
@@ -97,7 +97,7 @@ impl VolcanoExecutor for PhysicalPlan {
 impl std::fmt::Display for PhysicalPlan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Dummy(op) => write!(f, "{op}"),
+            Self::Empty(op) => write!(f, "{op}"),
             Self::CreateTable(op) => write!(f, "{op}"),
             Self::CreateIndex(op) => write!(f, "{op}"),
             Self::Insert(op) => write!(f, "{op}"),
