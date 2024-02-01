@@ -1,7 +1,8 @@
 use crate::catalog::{Column, Schema};
 use crate::expression::{Alias, Expr, ExprTrait};
 use crate::planner::logical_plan_v2::{
-    build_join_schema, EmptyRelation, Filter, Join, LogicalPlanV2, Project, TableScan, Values,
+    build_join_schema, project_schema, EmptyRelation, Filter, Join, LogicalPlanV2, Project,
+    TableScan, Values,
 };
 use crate::planner::table_ref::join::JoinType;
 use crate::planner::LogicalPlanner;
@@ -52,9 +53,11 @@ impl LogicalPlanner<'_> {
                 }
             }
         }
+        let schema = Arc::new(project_schema(&input, &exprs)?);
         Ok(LogicalPlanV2::Project(Project {
             exprs,
             input: Arc::new(input),
+            schema,
         }))
     }
 

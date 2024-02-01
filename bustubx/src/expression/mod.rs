@@ -10,11 +10,11 @@ pub use cast::Cast;
 pub use column::ColumnExpr;
 pub use literal::Literal;
 
-use crate::catalog::DataType;
 use crate::catalog::Schema;
+use crate::catalog::{Column, DataType};
 use crate::common::ScalarValue;
 use crate::storage::Tuple;
-use crate::BustubxResult;
+use crate::{BustubxError, BustubxResult};
 
 pub trait ExprTrait {
     /// Get the data type of this expression, given the schema of the input
@@ -57,6 +57,25 @@ impl ExprTrait for Expr {
             Expr::Literal(literal) => literal.evaluate(tuple),
             Expr::BinaryExpr(binary) => binary.evaluate(tuple),
             Expr::Cast(cast) => cast.evaluate(tuple),
+        }
+    }
+}
+
+impl Expr {
+    pub fn to_column(&self, input_schema: &Schema) -> BustubxResult<Column> {
+        match self {
+            Expr::Column(ColumnExpr { relation, name }) => Ok(Column {
+                name: name.clone(),
+                data_type: self.data_type(input_schema)?,
+                // TODO fix
+                nullable: false,
+            }),
+            _ => {
+                return Err(BustubxError::Plan(format!(
+                    "expr {:?} as column not supported",
+                    self
+                )))
+            }
         }
     }
 }

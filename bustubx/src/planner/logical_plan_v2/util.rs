@@ -1,6 +1,8 @@
 use crate::catalog::{ColumnRef, Schema};
+use crate::expression::{ColumnExpr, Expr};
+use crate::planner::logical_plan_v2::LogicalPlanV2;
 use crate::planner::table_ref::join::JoinType;
-use crate::BustubxResult;
+use crate::{BustubxError, BustubxResult};
 use std::sync::Arc;
 
 pub fn build_join_schema(
@@ -39,4 +41,13 @@ pub fn build_join_schema(
             .collect(),
     };
     Ok(Schema { columns })
+}
+
+pub fn project_schema(input: &LogicalPlanV2, exprs: &[Expr]) -> BustubxResult<Schema> {
+    let input_schema = &input.schema();
+    let mut columns = vec![];
+    for expr in exprs {
+        columns.push(expr.to_column(input_schema)?)
+    }
+    Ok(Schema::new(columns))
 }

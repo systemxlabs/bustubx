@@ -49,7 +49,7 @@ impl LogicalPlanV2 {
             LogicalPlanV2::Insert(_) => todo!(),
             LogicalPlanV2::Join(Join { schema, .. }) => schema,
             LogicalPlanV2::Limit(Limit { input, .. }) => input.schema(),
-            LogicalPlanV2::Project(_) => todo!(),
+            LogicalPlanV2::Project(Project { schema, .. }) => schema,
             LogicalPlanV2::TableScan(TableScan { schema, .. }) => schema,
             LogicalPlanV2::Sort(Sort { input, .. }) => input.schema(),
             LogicalPlanV2::Values(Values { schema, .. }) => schema,
