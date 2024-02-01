@@ -4,6 +4,6 @@ use std::sync::Arc;
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct Project {
-    pub expressions: Vec<Expr>,
+    pub exprs: Vec<Expr>,
     pub input: Arc<LogicalPlanV2>,
 }

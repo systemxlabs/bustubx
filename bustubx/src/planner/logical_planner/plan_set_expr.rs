@@ -1,7 +1,7 @@
 use crate::catalog::{Column, Schema};
-use crate::expression::ExprTrait;
+use crate::expression::{Alias, Expr, ExprTrait};
 use crate::planner::logical_plan_v2::{
-    EmptyRelation, Filter, Join, LogicalPlanV2, TableScan, Values,
+    EmptyRelation, Filter, Join, LogicalPlanV2, Project, TableScan, Values,
 };
 use crate::planner::table_ref::join::JoinType;
 use crate::planner::LogicalPlanner;
@@ -14,8 +14,7 @@ impl LogicalPlanner<'_> {
         set_expr: &sqlparser::ast::SetExpr,
     ) -> BustubxResult<LogicalPlanV2> {
         match set_expr {
-            sqlparser::ast::SetExpr::Select(select) => todo!(),
-            sqlparser::ast::SetExpr::Query(_) => todo!(),
+            sqlparser::ast::SetExpr::Select(select) => self.plan_select(select),
             sqlparser::ast::SetExpr::Values(values) => self.plan_values(values),
             _ => Err(BustubxError::Plan(format!(
                 "Failed to plan set expr: {}",
@@ -27,8 +26,36 @@ impl LogicalPlanner<'_> {
     pub fn plan_select(&self, select: &sqlparser::ast::Select) -> BustubxResult<LogicalPlanV2> {
         let table_scan = self.plan_from_tables(&select.from)?;
         let selection = self.plan_selection(table_scan, &select.selection)?;
+        self.plan_project(selection, &select.projection)
+    }
 
-        todo!()
+    pub fn plan_project(
+        &self,
+        input: LogicalPlanV2,
+        project: &Vec<sqlparser::ast::SelectItem>,
+    ) -> BustubxResult<LogicalPlanV2> {
+        let mut exprs = vec![];
+        for select_item in project {
+            match select_item {
+                sqlparser::ast::SelectItem::UnnamedExpr(expr) => exprs.push(self.plan_expr(expr)?),
+                sqlparser::ast::SelectItem::ExprWithAlias { expr, alias } => {
+                    exprs.push(Expr::Alias(Alias {
+                        name: alias.value.clone(),
+                        expr: Box::new(self.plan_expr(expr)?),
+                    }))
+                }
+                _ => {
+                    return Err(BustubxError::Plan(format!(
+                        "sqlparser select item {} not supported",
+                        select_item
+                    )));
+                }
+            }
+        }
+        Ok(LogicalPlanV2::Project(Project {
+            exprs,
+            input: Arc::new(input),
+        }))
     }
 
     pub fn plan_selection(

@@ -198,7 +198,7 @@ impl<'a> LogicalPlanner<'a> {
         }
     }
 
-    pub fn plan_order_by_v2(
+    pub fn plan_order_by_expr(
         &self,
         order_by: &sqlparser::ast::OrderByExpr,
     ) -> BustubxResult<OrderByExpr> {

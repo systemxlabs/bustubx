@@ -54,7 +54,7 @@ impl<'a> LogicalPlanner<'a> {
         let table = self.plan_table_name(table_name)?;
         let mut columns_expr = vec![];
         for col in columns.iter() {
-            let col_expr = self.plan_order_by_v2(&col)?;
+            let col_expr = self.plan_order_by_expr(&col)?;
             columns_expr.push(col_expr);
         }
         Ok(LogicalPlanV2::CreateIndex(CreateIndex {
