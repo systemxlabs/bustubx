@@ -1,7 +1,12 @@
 [package]
 name = "bustubx"
-version = "0.1.0"
+version = "0.1.0-alpha.1"
 edition = "2021"
+authors = ["lewiszlw <lewiszlw520@gmail.com>"]
+description = "A simple relational database written in Rust"
+keywords = ["SQL", "database"]
+license = "MIT"
+repository = "https://github.com/systemxlabs/bustubx"
 
 [lib]
 doctest = false
