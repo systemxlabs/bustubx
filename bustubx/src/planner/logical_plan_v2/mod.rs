@@ -1,5 +1,6 @@
 mod create_index;
 mod create_table;
+mod empty_relation;
 mod filter;
 mod insert;
 mod join;
@@ -11,6 +12,7 @@ mod values;
 
 pub use create_index::CreateIndex;
 pub use create_table::CreateTable;
+pub use empty_relation::EmptyRelation;
 pub use filter::Filter;
 pub use insert::Insert;
 pub use join::Join;
@@ -32,4 +34,5 @@ pub enum LogicalPlanV2 {
     TableScan(TableScan),
     Sort(Sort),
     Values(Values),
+    EmptyRelation(EmptyRelation),
 }

@@ -1,6 +1,9 @@
 use crate::catalog::{Column, Schema};
 use crate::expression::ExprTrait;
-use crate::planner::logical_plan_v2::{LogicalPlanV2, Values};
+use crate::planner::logical_plan_v2::{
+    EmptyRelation, Filter, Join, LogicalPlanV2, TableScan, Values,
+};
+use crate::planner::table_ref::join::JoinType;
 use crate::planner::LogicalPlanner;
 use crate::{BustubxError, BustubxResult};
 use std::sync::Arc;
@@ -17,6 +20,159 @@ impl LogicalPlanner<'_> {
             _ => Err(BustubxError::Plan(format!(
                 "Failed to plan set expr: {}",
                 set_expr
+            ))),
+        }
+    }
+
+    pub fn plan_select(&self, select: &sqlparser::ast::Select) -> BustubxResult<LogicalPlanV2> {
+        let table_scan = self.plan_from_tables(&select.from)?;
+        let selection = self.plan_selection(table_scan, &select.selection)?;
+
+        todo!()
+    }
+
+    pub fn plan_selection(
+        &self,
+        input: LogicalPlanV2,
+        selection: &Option<sqlparser::ast::Expr>,
+    ) -> BustubxResult<LogicalPlanV2> {
+        match selection {
+            None => Ok(input),
+            Some(predicate) => {
+                let predicate = self.plan_expr(predicate)?;
+                Ok(LogicalPlanV2::Filter(Filter {
+                    input: Arc::new(input),
+                    predicate,
+                }))
+            }
+        }
+    }
+
+    pub fn plan_from_tables(
+        &self,
+        from: &Vec<sqlparser::ast::TableWithJoins>,
+    ) -> BustubxResult<LogicalPlanV2> {
+        match from.len() {
+            0 => Ok(LogicalPlanV2::EmptyRelation(EmptyRelation {
+                produce_one_row: true,
+                schema: Arc::new(Schema::empty()),
+            })),
+            1 => self.plan_table_with_joins(&from[0]),
+            _ => {
+                let mut left = self.plan_table_with_joins(&from[0])?;
+                for t in from.iter().skip(1) {
+                    let right = self.plan_table_with_joins(t)?;
+                    left = self.plan_cross_join(left, right)?;
+                }
+                Ok(left)
+            }
+        }
+    }
+
+    pub fn plan_table_with_joins(
+        &self,
+        t: &sqlparser::ast::TableWithJoins,
+    ) -> BustubxResult<LogicalPlanV2> {
+        let mut left = self.plan_relation(&t.relation)?;
+        match t.joins.len() {
+            0 => Ok(left),
+            _ => {
+                for join in t.joins.iter() {
+                    left = self.plan_relation_join(left, join)?;
+                }
+                Ok(left)
+            }
+        }
+    }
+
+    pub fn plan_relation_join(
+        &self,
+        left: LogicalPlanV2,
+        join: &sqlparser::ast::Join,
+    ) -> BustubxResult<LogicalPlanV2> {
+        let right = self.plan_relation(&join.relation)?;
+        match &join.join_operator {
+            sqlparser::ast::JoinOperator::Inner(constraint) => {
+                self.plan_join(left, right, constraint, JoinType::Inner)
+            }
+            sqlparser::ast::JoinOperator::LeftOuter(constraint) => {
+                self.plan_join(left, right, constraint, JoinType::Inner)
+            }
+            sqlparser::ast::JoinOperator::RightOuter(constraint) => {
+                self.plan_join(left, right, constraint, JoinType::Inner)
+            }
+            sqlparser::ast::JoinOperator::FullOuter(constraint) => {
+                self.plan_join(left, right, constraint, JoinType::Inner)
+            }
+            sqlparser::ast::JoinOperator::CrossJoin => self.plan_cross_join(left, right),
+            _ => Err(BustubxError::Plan(format!(
+                "sqlparser join operator {:?} not supported",
+                join.join_operator
+            ))),
+        }
+    }
+
+    pub fn plan_join(
+        &self,
+        left: LogicalPlanV2,
+        right: LogicalPlanV2,
+        constraint: &sqlparser::ast::JoinConstraint,
+        join_type: JoinType,
+    ) -> BustubxResult<LogicalPlanV2> {
+        match constraint {
+            sqlparser::ast::JoinConstraint::On(expr) => {
+                let expr = self.plan_expr(expr)?;
+                Ok(LogicalPlanV2::Join(Join {
+                    left: Arc::new((left)),
+                    right: Arc::new((right)),
+                    join_type,
+                    condition: Some(expr),
+                }))
+            }
+            _ => Err(BustubxError::Plan(format!(
+                "Only support join on constraint, {:?}",
+                constraint
+            ))),
+        }
+    }
+
+    pub fn plan_cross_join(
+        &self,
+        left: LogicalPlanV2,
+        right: LogicalPlanV2,
+    ) -> BustubxResult<LogicalPlanV2> {
+        Ok(LogicalPlanV2::Join(Join {
+            left: Arc::new(left),
+            right: Arc::new(right),
+            join_type: JoinType::CrossJoin,
+            condition: None,
+        }))
+    }
+
+    pub fn plan_relation(
+        &self,
+        relation: &sqlparser::ast::TableFactor,
+    ) -> BustubxResult<LogicalPlanV2> {
+        match relation {
+            sqlparser::ast::TableFactor::Table { name, alias, .. } => {
+                // TODO handle alias
+                let table_ref = self.plan_table_name(name)?;
+                Ok(LogicalPlanV2::TableScan(TableScan {
+                    table_ref,
+                    filters: vec![],
+                    limit: None,
+                }))
+            }
+            sqlparser::ast::TableFactor::NestedJoin {
+                table_with_joins,
+                alias,
+            } => {
+                // TODO handle alias
+                self.plan_table_with_joins(table_with_joins)
+            }
+            _ => Err(BustubxError::Plan(format!(
+                "sqlparser relation {} not supported",
+                relation
             ))),
         }
     }

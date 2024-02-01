@@ -32,7 +32,7 @@ impl<'a> LogicalPlanner<'a> {
                 columns,
                 ..
             } => self.plan_create_index(name, table_name, columns),
-            Statement::Query(query) => self.plan_select(query),
+            Statement::Query(query) => self.plan_query(query),
             Statement::Insert {
                 table_name,
                 columns,

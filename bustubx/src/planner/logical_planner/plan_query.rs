@@ -12,7 +12,7 @@ use crate::planner::order_by::BoundOrderBy;
 use super::LogicalPlanner;
 
 impl<'a> LogicalPlanner<'a> {
-    pub fn plan_select(&mut self, query: &Query) -> LogicalPlan {
+    pub fn plan_query(&mut self, query: &Query) -> LogicalPlan {
         let select = match query.body.as_ref() {
             SetExpr::Select(select) => &**select,
             _ => unimplemented!(),
