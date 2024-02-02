@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tracing::debug;
 
 use crate::catalog::SchemaRef;
 use crate::expression::{Expr, ExprTrait};
@@ -19,7 +20,7 @@ pub struct PhysicalProject {
 
 impl VolcanoExecutor for PhysicalProject {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
-        println!("init project executor");
+        debug!("init project executor");
         self.input.init(context)
     }
 

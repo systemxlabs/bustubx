@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use tracing::debug;
 
 use crate::catalog::SchemaRef;
 use crate::expression::{Expr, ExprTrait};
@@ -19,7 +20,7 @@ pub struct PhysicalFilter {
 
 impl VolcanoExecutor for PhysicalFilter {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
-        println!("init filter executor");
+        debug!("init filter executor");
         self.input.init(context)
     }
 

@@ -1,4 +1,5 @@
 use std::sync::{atomic::AtomicU32, Arc, Mutex};
+use tracing::debug;
 
 use crate::catalog::SchemaRef;
 use crate::expression::ExprTrait;
@@ -31,7 +32,7 @@ impl PhysicalSort {
 }
 impl VolcanoExecutor for PhysicalSort {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
-        println!("init sort executor");
+        debug!("init sort executor");
         self.input.init(context)?;
         // TODO move to next method
         // load all tuples from input

@@ -1,4 +1,5 @@
 use std::sync::Mutex;
+use tracing::debug;
 
 use crate::catalog::SchemaRef;
 use crate::common::TableReference;
@@ -28,7 +29,7 @@ impl PhysicalSeqScan {
 
 impl VolcanoExecutor for PhysicalSeqScan {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
-        println!("init table scan executor");
+        debug!("init table scan executor");
         let table_info = context
             .catalog
             .get_mut_table_by_name(self.table.table())

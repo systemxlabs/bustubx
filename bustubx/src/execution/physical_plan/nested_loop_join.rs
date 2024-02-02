@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use tracing::debug;
 
 use crate::catalog::SchemaRef;
 use crate::expression::{Expr, ExprTrait};
@@ -43,7 +44,7 @@ impl PhysicalNestedLoopJoin {
 }
 impl VolcanoExecutor for PhysicalNestedLoopJoin {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
-        println!("init nested loop join executor");
+        debug!("init nested loop join executor");
         *self.left_tuple.lock().unwrap() = None;
         self.left_input.init(context)?;
         self.right_input.init(context)

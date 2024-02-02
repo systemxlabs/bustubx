@@ -1,8 +1,8 @@
 use std::sync::{atomic::AtomicU32, Arc};
+use tracing::debug;
 
 use crate::catalog::SchemaRef;
 use crate::{
-    catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
     BustubxResult,
@@ -30,7 +30,7 @@ impl PhysicalLimit {
 }
 impl VolcanoExecutor for PhysicalLimit {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
-        println!("init limit executor");
+        debug!("init limit executor");
         self.cursor.store(0, std::sync::atomic::Ordering::SeqCst);
         self.input.init(context)
     }
