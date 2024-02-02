@@ -10,3 +10,8 @@ select a, b from t1
 1 1
 2 3
 5 4
+
+query I
+select 1
+----
+1

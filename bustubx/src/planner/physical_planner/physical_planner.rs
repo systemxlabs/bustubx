@@ -135,9 +135,10 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
         LogicalPlan::EmptyRelation(EmptyRelation {
             produce_one_row,
             schema,
-        }) => PhysicalPlan::Empty(PhysicalEmpty {
-            schema: schema.clone(),
-        }),
+        }) => PhysicalPlan::Empty(PhysicalEmpty::new(
+            if *produce_one_row { 1 } else { 0 },
+            schema.clone(),
+        )),
     };
     plan
 }
