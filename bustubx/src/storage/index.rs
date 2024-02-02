@@ -21,7 +21,7 @@ pub struct IndexMetadata {
     pub index_name: String,
     pub table_name: String,
     // key schema与tuple schema的映射关系
-    pub key_attrs: Vec<u32>,
+    pub key_attrs: Vec<usize>,
     pub key_schema: SchemaRef,
 }
 impl IndexMetadata {
@@ -29,14 +29,14 @@ impl IndexMetadata {
         index_name: String,
         table_name: String,
         tuple_schema: SchemaRef,
-        key_attrs: Vec<u32>,
+        key_attrs: Vec<usize>,
     ) -> Self {
-        let key_schema = Schema::copy_schema(tuple_schema, &key_attrs);
+        let key_schema = tuple_schema.project(&key_attrs).unwrap();
         Self {
             index_name,
             table_name,
             key_attrs,
-            key_schema: Arc::new(key_schema),
+            key_schema,
         }
     }
 }
@@ -804,11 +804,11 @@ mod tests {
         );
         assert_eq!(index_metadata.key_schema.column_count(), 2);
         assert_eq!(
-            index_metadata.key_schema.get_col_by_index(0).unwrap().name,
+            index_metadata.key_schema.column_with_index(0).unwrap().name,
             "b"
         );
         assert_eq!(
-            index_metadata.key_schema.get_col_by_index(1).unwrap().name,
+            index_metadata.key_schema.column_with_index(1).unwrap().name,
             "d"
         );
     }

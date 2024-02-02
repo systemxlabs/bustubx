@@ -110,13 +110,13 @@ impl Catalog {
         &mut self,
         index_name: String,
         table_name: String,
-        key_attrs: Vec<u32>,
+        key_attrs: Vec<usize>,
     ) -> &IndexInfo {
         let table_info = self
             .get_table_by_name(&table_name)
             .expect("table not found");
         let tuple_schema = table_info.schema.clone();
-        let key_schema = Arc::new(Schema::copy_schema(tuple_schema.clone(), &key_attrs));
+        let key_schema = tuple_schema.project(&key_attrs).unwrap();
 
         let index_metadata = IndexMetadata::new(
             index_name.clone(),
@@ -205,35 +205,11 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16),
             Column::new("c".to_string(), DataType::Int32),
         ]));
-        let table_info = catalog.create_table(table_name.clone(), schema);
-        assert!(table_info.is_some());
-        let table_info = table_info.unwrap();
+        let table_info = catalog
+            .create_table(table_name.clone(), schema.clone())
+            .unwrap();
         assert_eq!(table_info.name, table_name);
-        assert_eq!(table_info.schema.column_count(), 3);
-        assert_eq!(
-            table_info.schema.get_col_by_index(0).unwrap().name,
-            "a".to_string()
-        );
-        assert_eq!(
-            table_info.schema.get_col_by_index(0).unwrap().data_type,
-            DataType::Int8
-        );
-        assert_eq!(
-            table_info.schema.get_col_by_index(1).unwrap().name,
-            "b".to_string()
-        );
-        assert_eq!(
-            table_info.schema.get_col_by_index(1).unwrap().data_type,
-            DataType::Int16
-        );
-        assert_eq!(
-            table_info.schema.get_col_by_index(2).unwrap().name,
-            "c".to_string()
-        );
-        assert_eq!(
-            table_info.schema.get_col_by_index(2).unwrap().data_type,
-            DataType::Int32
-        );
+        assert_eq!(table_info.schema, schema);
         assert_eq!(table_info.oid, 0);
 
         let table_name = "test_table2".to_string();
@@ -242,35 +218,11 @@ mod tests {
             Column::new("e".to_string(), DataType::Int16),
             Column::new("f".to_string(), DataType::Int8),
         ]));
-        let table_info = catalog.create_table(table_name.clone(), schema);
-        assert!(table_info.is_some());
-        let table_info = table_info.unwrap();
+        let table_info = catalog
+            .create_table(table_name.clone(), schema.clone())
+            .unwrap();
         assert_eq!(table_info.name, table_name);
-        assert_eq!(table_info.schema.column_count(), 3);
-        assert_eq!(
-            table_info.schema.get_col_by_index(0).unwrap().name,
-            "d".to_string()
-        );
-        assert_eq!(
-            table_info.schema.get_col_by_index(0).unwrap().data_type,
-            DataType::Int32
-        );
-        assert_eq!(
-            table_info.schema.get_col_by_index(1).unwrap().name,
-            "e".to_string()
-        );
-        assert_eq!(
-            table_info.schema.get_col_by_index(1).unwrap().data_type,
-            DataType::Int16
-        );
-        assert_eq!(
-            table_info.schema.get_col_by_index(2).unwrap().name,
-            "f".to_string()
-        );
-        assert_eq!(
-            table_info.schema.get_col_by_index(2).unwrap().data_type,
-            DataType::Int8
-        );
+        assert_eq!(table_info.schema, schema);
         assert_eq!(table_info.oid, 1);
 
         let _ = remove_file(db_path);
@@ -301,30 +253,22 @@ mod tests {
         ]));
         let _ = catalog.create_table(table_name2.clone(), schema);
 
-        let table_info = catalog.get_table_by_name(&table_name1);
-        assert!(table_info.is_some());
-        let table_info = table_info.unwrap();
+        let table_info = catalog.get_table_by_name(&table_name1).unwrap();
         assert_eq!(table_info.name, table_name1);
         assert_eq!(table_info.schema.column_count(), 3);
 
-        let table_info = catalog.get_table_by_name(&table_name2);
-        assert!(table_info.is_some());
-        let table_info = table_info.unwrap();
+        let table_info = catalog.get_table_by_name(&table_name2).unwrap();
         assert_eq!(table_info.name, table_name2);
         assert_eq!(table_info.schema.column_count(), 3);
 
         let table_info = catalog.get_table_by_name("test_table3");
         assert!(table_info.is_none());
 
-        let table_info = catalog.get_table_by_oid(0);
-        assert!(table_info.is_some());
-        let table_info = table_info.unwrap();
+        let table_info = catalog.get_table_by_oid(0).unwrap();
         assert_eq!(table_info.name, table_name1);
         assert_eq!(table_info.schema.column_count(), 3);
 
-        let table_info = catalog.get_table_by_oid(1);
-        assert!(table_info.is_some());
-        let table_info = table_info.unwrap();
+        let table_info = catalog.get_table_by_oid(1).unwrap();
         assert_eq!(table_info.name, table_name2);
         assert_eq!(table_info.schema.column_count(), 3);
 
@@ -358,19 +302,27 @@ mod tests {
         assert_eq!(index_info.table_name, table_name);
         assert_eq!(index_info.key_schema.column_count(), 2);
         assert_eq!(
-            index_info.key_schema.get_col_by_index(0).unwrap().name,
+            index_info.key_schema.column_with_index(0).unwrap().name,
             "a".to_string()
         );
         assert_eq!(
-            index_info.key_schema.get_col_by_index(0).unwrap().data_type,
+            index_info
+                .key_schema
+                .column_with_index(0)
+                .unwrap()
+                .data_type,
             DataType::Int8
         );
         assert_eq!(
-            index_info.key_schema.get_col_by_index(1).unwrap().name,
+            index_info.key_schema.column_with_index(1).unwrap().name,
             "c".to_string()
         );
         assert_eq!(
-            index_info.key_schema.get_col_by_index(1).unwrap().data_type,
+            index_info
+                .key_schema
+                .column_with_index(1)
+                .unwrap()
+                .data_type,
             DataType::Int32
         );
         assert_eq!(index_info.oid, 0);
@@ -382,11 +334,15 @@ mod tests {
         assert_eq!(index_info.table_name, table_name);
         assert_eq!(index_info.key_schema.column_count(), 1);
         assert_eq!(
-            index_info.key_schema.get_col_by_index(0).unwrap().name,
+            index_info.key_schema.column_with_index(0).unwrap().name,
             "b".to_string()
         );
         assert_eq!(
-            index_info.key_schema.get_col_by_index(0).unwrap().data_type,
+            index_info
+                .key_schema
+                .column_with_index(0)
+                .unwrap()
+                .data_type,
             DataType::Int16
         );
         assert_eq!(index_info.oid, 1);

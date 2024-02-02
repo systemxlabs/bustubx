@@ -13,7 +13,7 @@ lazy_static::lazy_static! {
     ));
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Schema {
     pub columns: Vec<ColumnRef>,
 }
@@ -41,35 +41,16 @@ impl Schema {
     pub fn project(&self, indices: &[usize]) -> BustubxResult<SchemaRef> {
         let new_columns = indices
             .iter()
-            .map(|i| {
-                self.get_col_by_index(*i).ok_or_else(|| {
-                    BustubxError::Plan(format!(
-                        "project index {} out of bounds, max column count {}",
-                        i,
-                        self.columns.len(),
-                    ))
-                })
-            })
+            .map(|i| self.column_with_index(*i))
             .collect::<BustubxResult<Vec<ColumnRef>>>()?;
         Ok(Arc::new(Schema {
             columns: new_columns,
         }))
     }
 
-    pub fn copy_schema(from: SchemaRef, key_attrs: &[u32]) -> Self {
-        let columns = key_attrs
-            .iter()
-            .map(|i| from.columns[*i as usize].clone())
-            .collect();
-        Schema { columns }
-    }
-
-    pub fn get_col_by_name(&self, col_name: &String) -> Option<ColumnRef> {
-        self.columns.iter().find(|c| &c.name == col_name).cloned()
-    }
-
-    pub fn get_col_by_index(&self, index: usize) -> Option<ColumnRef> {
-        self.columns.get(index).cloned()
+    pub fn column_with_name(&self, name: &str) -> BustubxResult<ColumnRef> {
+        let index = self.index_of(name)?;
+        Ok(self.columns[index].clone())
     }
 
     pub fn column_with_index(&self, index: usize) -> BustubxResult<ColumnRef> {

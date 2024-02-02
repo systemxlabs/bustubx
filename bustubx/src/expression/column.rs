@@ -17,20 +17,13 @@ pub struct ColumnExpr {
 
 impl ExprTrait for ColumnExpr {
     fn data_type(&self, input_schema: &Schema) -> BustubxResult<DataType> {
-        input_schema.get_col_by_name(&self.name).map_or(
-            Err(BustubxError::Internal("Failed to get column".to_string())),
-            |col| Ok(col.data_type),
-        )
+        let column = input_schema.column_with_name(&self.name)?;
+        Ok(column.data_type)
     }
 
     fn nullable(&self, input_schema: &Schema) -> BustubxResult<bool> {
-        input_schema.get_col_by_name(&self.name).map_or(
-            Err(BustubxError::Plan(format!(
-                "Not found column {} in input schema {:?}",
-                self.name, input_schema
-            ))),
-            |col| Ok(col.nullable),
-        )
+        let column = input_schema.column_with_name(&self.name)?;
+        Ok(column.nullable)
     }
 
     fn evaluate(&self, tuple: &Tuple) -> BustubxResult<ScalarValue> {

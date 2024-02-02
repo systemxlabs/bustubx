@@ -1,5 +1,4 @@
 use derive_with::With;
-use sqlparser::ast::ColumnDef;
 use std::sync::Arc;
 
 use crate::catalog::DataType;
@@ -18,6 +17,8 @@ impl PartialEq for Column {
         self.name == other.name && self.data_type == other.data_type
     }
 }
+
+impl Eq for Column {}
 
 impl Column {
     // TODO set nullable

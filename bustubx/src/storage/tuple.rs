@@ -70,14 +70,14 @@ impl Tuple {
 
     pub fn get_value_by_col_id(&self, schema: &Schema, column_index: usize) -> ScalarValue {
         let column = schema
-            .get_col_by_index(column_index)
+            .column_with_index(column_index)
             .expect("column not found");
 
         self.get_value_by_col(column)
     }
     pub fn get_value_by_col_name(&self, schema: &Schema, column_name: &String) -> ScalarValue {
         let column = schema
-            .get_col_by_name(column_name)
+            .column_with_name(column_name)
             .expect("column not found");
 
         self.get_value_by_col(column)
