@@ -1,9 +1,8 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
-use crate::catalog::{ColumnRef, SchemaRef};
+use crate::catalog::SchemaRef;
 use crate::common::table_ref::TableReference;
 use crate::{
-    catalog::{Schema, TableOid},
     execution::{ExecutionContext, VolcanoExecutor},
     storage::{TableIterator, Tuple},
     BustubxResult,

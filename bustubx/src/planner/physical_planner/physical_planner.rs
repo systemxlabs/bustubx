@@ -6,17 +6,17 @@ use crate::planner::logical_plan::{
     Sort, TableScan, Values,
 };
 
-use crate::planner::physical_plan::PhysicalCreateTable;
-use crate::planner::physical_plan::PhysicalFilter;
-use crate::planner::physical_plan::PhysicalInsert;
-use crate::planner::physical_plan::PhysicalLimit;
-use crate::planner::physical_plan::PhysicalNestedLoopJoin;
-use crate::planner::physical_plan::PhysicalPlan;
-use crate::planner::physical_plan::PhysicalProject;
-use crate::planner::physical_plan::PhysicalSeqScan;
-use crate::planner::physical_plan::PhysicalSort;
-use crate::planner::physical_plan::PhysicalValues;
-use crate::planner::physical_plan::{PhysicalCreateIndex, PhysicalEmpty};
+use crate::execution::physical_plan::PhysicalCreateTable;
+use crate::execution::physical_plan::PhysicalFilter;
+use crate::execution::physical_plan::PhysicalInsert;
+use crate::execution::physical_plan::PhysicalLimit;
+use crate::execution::physical_plan::PhysicalNestedLoopJoin;
+use crate::execution::physical_plan::PhysicalPlan;
+use crate::execution::physical_plan::PhysicalProject;
+use crate::execution::physical_plan::PhysicalSeqScan;
+use crate::execution::physical_plan::PhysicalSort;
+use crate::execution::physical_plan::PhysicalValues;
+use crate::execution::physical_plan::{PhysicalCreateIndex, PhysicalEmpty};
 
 pub struct PhysicalPlanner;
 

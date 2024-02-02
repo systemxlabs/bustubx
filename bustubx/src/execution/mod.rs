@@ -1,11 +1,10 @@
+pub mod physical_plan;
+
 use std::sync::Arc;
 
-use tracing::span;
-
 use crate::catalog::SchemaRef;
-use crate::{
-    catalog::Catalog, planner::physical_plan::PhysicalPlan, storage::Tuple, BustubxResult,
-};
+use crate::execution::physical_plan::PhysicalPlan;
+use crate::{catalog::Catalog, storage::Tuple, BustubxResult};
 
 pub trait VolcanoExecutor {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
