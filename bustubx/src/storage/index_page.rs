@@ -1,12 +1,9 @@
 use std::mem::size_of;
 
 use super::Tuple;
-use crate::buffer::{PageId, INVALID_PAGE_ID};
+use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
-use crate::{
-    catalog::Schema,
-    common::{config::BUSTUBX_PAGE_SIZE, rid::Rid},
-};
+use crate::{catalog::Schema, common::rid::Rid};
 
 pub const INTERNAL_PAGE_HEADER_SIZE: usize = 4 + 4 + 4;
 pub const LEAF_PAGE_HEADER_SIZE: usize = 4 + 4 + 4 + 4;
@@ -167,7 +164,7 @@ impl BPlusTreeInternalPage {
 
     // TODO 可以通过二分查找来插入
     pub fn insert(&mut self, key: Tuple, page_id: PageId, key_schema: &Schema) {
-        if self.current_size == 0 && !key.is_zero() {
+        if self.current_size == 0 && !key.is_null() {
             panic!("First key must be zero");
         }
         self.array.push((key, page_id));

@@ -1,10 +1,10 @@
 use std::sync::Arc;
 use std::{collections::HashMap, sync::atomic::AtomicU32};
 
+use crate::buffer::TABLE_HEAP_BUFFER_POOL_SIZE;
 use crate::catalog::SchemaRef;
 use crate::{
     buffer::BufferPoolManager,
-    common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     storage::{
         index::{BPlusTreeIndex, IndexMetadata},
         TableHeap,

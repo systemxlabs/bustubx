@@ -1,5 +1,6 @@
 use crate::catalog::{ColumnRef, SchemaRef};
-use crate::{catalog::Schema, common::config::TransactionId, common::ScalarValue, BustubxResult};
+use crate::common::TransactionId;
+use crate::{catalog::Schema, common::ScalarValue, BustubxResult};
 use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,7 +56,7 @@ impl Tuple {
         })
     }
 
-    pub fn is_zero(&self) -> bool {
+    pub fn is_null(&self) -> bool {
         self.data.iter().all(|x| x.is_null())
     }
 
@@ -65,14 +66,6 @@ impl Tuple {
             bytes.extend(v.to_bytes());
         }
         bytes
-    }
-
-    pub fn all_values(&self, schema: &Schema) -> Vec<ScalarValue> {
-        let mut values = vec![];
-        for column in &schema.columns {
-            values.push(self.get_value_by_col(column.clone()));
-        }
-        values
     }
 
     pub fn get_value_by_col_id(&self, schema: &Schema, column_index: usize) -> ScalarValue {

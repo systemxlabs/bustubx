@@ -1,6 +1,6 @@
-use crate::buffer::PageId;
+use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE};
 use crate::catalog::SchemaRef;
-use crate::common::{config::BUSTUBX_PAGE_SIZE, rid::Rid};
+use crate::common::rid::Rid;
 
 use super::tuple::{Tuple, TupleMeta};
 
@@ -219,11 +219,9 @@ impl TablePage {
 
 #[cfg(test)]
 mod tests {
+    use crate::buffer::BUSTUBX_PAGE_SIZE;
     use crate::catalog::{Column, DataType, Schema};
-    use crate::{
-        common::{config::BUSTUBX_PAGE_SIZE, rid::Rid},
-        storage::Tuple,
-    };
+    use crate::{common::rid::Rid, storage::Tuple};
     use std::sync::Arc;
 
     #[test]

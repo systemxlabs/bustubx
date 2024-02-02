@@ -1,7 +1,7 @@
-use crate::common::config::BUSTUBX_PAGE_SIZE;
-
 pub type PageId = u32;
+
 pub const INVALID_PAGE_ID: PageId = u32::MAX;
+pub const BUSTUBX_PAGE_SIZE: usize = 4096;
 
 #[derive(Debug, Clone)]
 pub struct Page {

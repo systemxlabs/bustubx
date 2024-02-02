@@ -1,14 +1,11 @@
-use crate::catalog::SchemaRef;
-use crate::common::config::EMPTY_SCHEMA_REF;
+use crate::catalog::{SchemaRef, EMPTY_SCHEMA_REF};
 use crate::common::TableReference;
 use crate::planner::logical_plan::OrderByExpr;
 use crate::{
-    catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
     BustubxResult,
 };
-use std::sync::Arc;
 
 #[derive(Debug, derive_new::new)]
 pub struct PhysicalCreateIndex {

@@ -4,11 +4,14 @@ use std::{
 };
 
 use crate::buffer::page::{Page, PageId};
-use crate::{common::config::BUSTUBX_PAGE_SIZE, storage::DiskManager};
+use crate::buffer::BUSTUBX_PAGE_SIZE;
+use crate::storage::DiskManager;
 
 use super::replacer::LRUKReplacer;
 
 pub type FrameId = u32;
+
+pub const TABLE_HEAP_BUFFER_POOL_SIZE: usize = 100;
 
 #[derive(Debug)]
 pub struct BufferPoolManager {

@@ -1,7 +1,8 @@
 # BustubX - a relational database for educational purpose (CMU 15-445)
-- [ ] DML
 - [ ] DDL
+- [ ] DML
 - [ ] Rule-based Optimizer
+- [ ] Volcano Executor
 - [ ] Parallel Execution
 - [ ] B+ Tree Index
 - [ ] Multi-Version Concurrency Control

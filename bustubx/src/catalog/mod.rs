@@ -8,4 +8,4 @@ pub use catalog::{
 };
 pub use column::{Column, ColumnRef};
 pub use data_type::DataType;
-pub use schema::{Schema, SchemaRef};
+pub use schema::{Schema, SchemaRef, EMPTY_SCHEMA_REF, INSERT_OUTPUT_SCHEMA_REF};

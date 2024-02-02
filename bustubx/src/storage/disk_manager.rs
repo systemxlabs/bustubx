@@ -6,10 +6,9 @@ use std::{
 };
 use tracing::info;
 
-use crate::common::config::BUSTUBX_PAGE_SIZE;
 use crate::error::{BustubxError, BustubxResult};
 
-use crate::buffer::PageId;
+use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE};
 
 static EMPTY_PAGE: [u8; BUSTUBX_PAGE_SIZE] = [0; BUSTUBX_PAGE_SIZE];
 
@@ -120,7 +119,7 @@ impl DiskManager {
 
 #[cfg(test)]
 mod tests {
-    use crate::common::config::BUSTUBX_PAGE_SIZE;
+    use crate::buffer::BUSTUBX_PAGE_SIZE;
     use tempfile::TempDir;
 
     #[test]

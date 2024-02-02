@@ -28,8 +28,8 @@ impl ExecutionEngine<'_> {
         let mut result = Vec::new();
         loop {
             let next_tuple = plan.next(&mut self.context)?;
-            if next_tuple.is_some() {
-                result.push(next_tuple.unwrap());
+            if let Some(tuple) = next_tuple {
+                result.push(tuple);
             } else {
                 break;
             }

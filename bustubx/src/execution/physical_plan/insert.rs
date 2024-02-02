@@ -1,11 +1,9 @@
 use std::sync::{atomic::AtomicU32, Arc};
 use tracing::debug;
 
-use crate::catalog::SchemaRef;
-use crate::common::config::INSERT_OUTPUT_SCHEMA_REF;
+use crate::catalog::{SchemaRef, INSERT_OUTPUT_SCHEMA_REF};
 use crate::common::TableReference;
 use crate::{
-    catalog::{Column, DataType, Schema},
     common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::{Tuple, TupleMeta},

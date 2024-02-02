@@ -1,13 +1,13 @@
 use std::sync::Arc;
 use tempfile::TempDir;
 
+use crate::buffer::TABLE_HEAP_BUFFER_POOL_SIZE;
 use crate::error::{BustubxError, BustubxResult};
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::PhysicalPlanner;
 use crate::{
     buffer::BufferPoolManager,
     catalog::Catalog,
-    common::config::TABLE_HEAP_BUFFER_POOL_SIZE,
     execution::{ExecutionContext, ExecutionEngine},
     planner::{LogicalPlanner, PlannerContext},
     storage::{DiskManager, Tuple},

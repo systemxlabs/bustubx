@@ -11,8 +11,7 @@ mod table_scan;
 mod util;
 mod values;
 
-use crate::catalog::SchemaRef;
-use crate::common::config::{EMPTY_SCHEMA_REF, INSERT_OUTPUT_SCHEMA_REF};
+use crate::catalog::{SchemaRef, EMPTY_SCHEMA_REF, INSERT_OUTPUT_SCHEMA_REF};
 pub use create_index::CreateIndex;
 pub use create_table::CreateTable;
 pub use empty_relation::EmptyRelation;

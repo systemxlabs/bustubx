@@ -1,9 +1,17 @@
 use super::column::{Column, ColumnRef};
+use crate::catalog::DataType;
 use crate::error::BustubxResult;
 use crate::BustubxError;
 use std::sync::Arc;
 
 pub type SchemaRef = Arc<Schema>;
+
+lazy_static::lazy_static! {
+    pub static ref EMPTY_SCHEMA_REF: SchemaRef = Arc::new(Schema::empty());
+    pub static ref INSERT_OUTPUT_SCHEMA_REF: SchemaRef = Arc::new(Schema::new(
+        vec![Column::new("insert_rows".to_string(), DataType::Int32)]
+    ));
+}
 
 #[derive(Debug, Clone)]
 pub struct Schema {
