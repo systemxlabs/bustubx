@@ -38,3 +38,12 @@ impl ExprTrait for ColumnExpr {
         })
     }
 }
+
+impl std::fmt::Display for ColumnExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(relation) = self.relation.as_ref() {
+            write!(f, "{}.", relation)?;
+        }
+        write!(f, "{}", self.name)
+    }
+}

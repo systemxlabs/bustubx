@@ -18,3 +18,33 @@ pub struct OrderByExpr {
     /// Whether to put Nulls before all other data values
     pub nulls_first: bool,
 }
+
+impl std::fmt::Display for OrderByExpr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {} {}",
+            self.expr,
+            if self.asc { "ASC" } else { "DESC" },
+            if self.nulls_first {
+                "NULLS FIRST"
+            } else {
+                "NULLS LAST"
+            }
+        )
+    }
+}
+
+impl std::fmt::Display for Sort {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Sort: {}",
+            self.expr
+                .iter()
+                .map(|e| format!("{e}"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}

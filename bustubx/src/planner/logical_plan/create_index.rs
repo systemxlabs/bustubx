@@ -9,3 +9,9 @@ pub struct CreateIndex {
     pub table_schema: SchemaRef,
     pub columns: Vec<OrderByExpr>,
 }
+
+impl std::fmt::Display for CreateIndex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "CreateIndex: {}", self.index_name)
+    }
+}

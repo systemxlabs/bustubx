@@ -51,7 +51,7 @@ impl Database {
 
     pub fn run(&mut self, sql: &str) -> BustubxResult<Vec<Tuple>> {
         let logical_plan = self.build_logical_plan(sql)?;
-        // println!("{:?}", logical_plan);
+        println!("logical plan: \n{}", logical_plan);
 
         // logical plan -> physical plan
         let physical_plan = PhysicalPlanner::new().create_physical_plan(logical_plan);

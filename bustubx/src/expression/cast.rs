@@ -78,3 +78,9 @@ impl ExprTrait for Cast {
         )))
     }
 }
+
+impl std::fmt::Display for Cast {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "CAST {} AS {}", self.expr, self.data_type)
+    }
+}

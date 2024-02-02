@@ -7,3 +7,9 @@ pub struct EmptyRelation {
     /// The schema description of the output
     pub schema: SchemaRef,
 }
+
+impl std::fmt::Display for EmptyRelation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EmptyRelation")
+    }
+}

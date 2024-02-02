@@ -26,5 +26,21 @@ pub enum JoinType {
     FullOuter,
     // select * from x, y
     // select * from x cross join y
-    CrossJoin,
+    Cross,
+}
+
+impl std::fmt::Display for Join {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} Join", self.join_type)?;
+        if let Some(condition) = self.condition.as_ref() {
+            write!(f, ": On {condition}")?;
+        }
+        Ok(())
+    }
+}
+
+impl std::fmt::Display for JoinType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
 }

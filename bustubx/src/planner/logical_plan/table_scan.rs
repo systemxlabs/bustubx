@@ -9,3 +9,9 @@ pub struct TableScan {
     pub filters: Vec<Expr>,
     pub limit: Option<usize>,
 }
+
+impl std::fmt::Display for TableScan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "TableScan: {}", self.table_ref)
+    }
+}

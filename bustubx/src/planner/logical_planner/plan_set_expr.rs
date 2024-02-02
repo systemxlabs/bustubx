@@ -187,12 +187,12 @@ impl LogicalPlanner<'_> {
         let schema = Arc::new(build_join_schema(
             left.schema(),
             right.schema(),
-            JoinType::CrossJoin,
+            JoinType::Cross,
         )?);
         Ok(LogicalPlan::Join(Join {
             left: Arc::new(left),
             right: Arc::new(right),
-            join_type: JoinType::CrossJoin,
+            join_type: JoinType::Cross,
             condition: None,
             schema,
         }))

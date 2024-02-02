@@ -9,3 +9,9 @@ pub struct Filter {
     /// The incoming logical plan
     pub input: Arc<LogicalPlan>,
 }
+
+impl std::fmt::Display for Filter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Filter: {}", self.predicate)
+    }
+}

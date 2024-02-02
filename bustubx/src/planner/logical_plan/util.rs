@@ -21,7 +21,7 @@ pub fn build_join_schema(
     let right_cols = &right.columns;
 
     let columns: Vec<ColumnRef> = match join_type {
-        JoinType::Inner | JoinType::CrossJoin => {
+        JoinType::Inner | JoinType::Cross => {
             left_cols.iter().chain(right_cols.iter()).cloned().collect()
         }
         JoinType::LeftOuter => left_cols

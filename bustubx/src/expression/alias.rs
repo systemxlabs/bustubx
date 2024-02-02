@@ -32,3 +32,9 @@ impl ExprTrait for Alias {
         )))
     }
 }
+
+impl std::fmt::Display for Alias {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} AS {}", self.expr, self.name)
+    }
+}

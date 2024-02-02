@@ -60,3 +60,21 @@ impl LogicalPlan {
         }
     }
 }
+
+impl std::fmt::Display for LogicalPlan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LogicalPlan::CreateTable(v) => write!(f, "{v}"),
+            LogicalPlan::CreateIndex(v) => write!(f, "{v}"),
+            LogicalPlan::Filter(v) => write!(f, "{v}"),
+            LogicalPlan::Insert(v) => write!(f, "{v}"),
+            LogicalPlan::Join(v) => write!(f, "{v}"),
+            LogicalPlan::Limit(v) => write!(f, "{v}"),
+            LogicalPlan::Project(v) => write!(f, "{v}"),
+            LogicalPlan::TableScan(v) => write!(f, "{v}"),
+            LogicalPlan::Sort(v) => write!(f, "{v}"),
+            LogicalPlan::Values(v) => write!(f, "{v}"),
+            LogicalPlan::EmptyRelation(v) => write!(f, "{v}"),
+        }
+    }
+}

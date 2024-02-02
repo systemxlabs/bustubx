@@ -86,3 +86,15 @@ impl ExprTrait for Expr {
         }
     }
 }
+
+impl std::fmt::Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Expr::Alias(e) => write!(f, "{e}"),
+            Expr::Column(e) => write!(f, "{e}"),
+            Expr::Literal(e) => write!(f, "{e}"),
+            Expr::BinaryExpr(e) => write!(f, "{e}"),
+            Expr::Cast(e) => write!(f, "{e}"),
+        }
+    }
+}

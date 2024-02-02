@@ -10,3 +10,19 @@ pub struct Insert {
     pub projected_schema: SchemaRef,
     pub input: Arc<LogicalPlan>,
 }
+
+impl std::fmt::Display for Insert {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Insert: {} ({})",
+            self.table,
+            self.projected_schema
+                .columns
+                .iter()
+                .map(|c| c.name.clone())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
