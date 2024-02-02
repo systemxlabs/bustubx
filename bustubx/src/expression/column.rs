@@ -1,7 +1,7 @@
 use crate::catalog::Schema;
 use crate::catalog::{Column, DataType};
-use crate::common::table_ref::TableReference;
 use crate::common::ScalarValue;
+use crate::common::TableReference;
 use crate::error::{BustubxError, BustubxResult};
 use crate::expression::ExprTrait;
 use crate::storage::Tuple;

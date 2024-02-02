@@ -1,4 +1,4 @@
-use bustubx::Database;
+use bustubx::{pretty_format_tuples, BustubxResult, Database};
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 use std::io::Write;
@@ -35,7 +35,15 @@ fn main() -> Result<()> {
                     println!("bye!");
                     break;
                 }
-                let _ = db.run(&line);
+                let result = db.run(&line);
+                match result {
+                    Ok(tuples) => {
+                        if !tuples.is_empty() {
+                            println!("{}", pretty_format_tuples(&tuples))
+                        }
+                    }
+                    Err(e) => println!("{}", e),
+                }
             }
             Err(ReadlineError::Interrupted) => {
                 println!("CTRL-C");

@@ -1,4 +1,4 @@
-use crate::common::table_ref::TableReference;
+use crate::common::TableReference;
 use crate::expression::{BinaryExpr, ColumnExpr, Expr, Literal};
 use crate::planner::LogicalPlanner;
 use crate::{BustubxError, BustubxResult};

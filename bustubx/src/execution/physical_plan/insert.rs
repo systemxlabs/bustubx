@@ -1,7 +1,9 @@
 use std::sync::{atomic::AtomicU32, Arc};
+use tracing::debug;
 
 use crate::catalog::SchemaRef;
-use crate::common::table_ref::TableReference;
+use crate::common::config::INSERT_OUTPUT_SCHEMA_REF;
+use crate::common::TableReference;
 use crate::{
     catalog::{Column, DataType, Schema},
     common::ScalarValue,
@@ -39,27 +41,28 @@ impl PhysicalInsert {
 }
 impl VolcanoExecutor for PhysicalInsert {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
-        println!("init insert executor");
+        debug!("init insert executor");
+        self.input.init(context)?;
         self.insert_rows
             .store(0, std::sync::atomic::Ordering::SeqCst);
-        self.input.init(context)
+        Ok(())
     }
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         loop {
             let next_tuple = self.input.next(context)?;
             if next_tuple.is_none() {
                 // only return insert_rows when input exhausted
-                if self.insert_rows.load(std::sync::atomic::Ordering::SeqCst) == 0 {
-                    return Ok(None);
+                return if self.insert_rows.load(std::sync::atomic::Ordering::SeqCst) == 0 {
+                    Ok(None)
                 } else {
                     let insert_rows = self.insert_rows.load(std::sync::atomic::Ordering::SeqCst);
                     self.insert_rows
                         .store(0, std::sync::atomic::Ordering::SeqCst);
-                    return Ok(Some(Tuple::new(
+                    Ok(Some(Tuple::new(
                         self.output_schema(),
                         vec![ScalarValue::Int32(Some(insert_rows as i32))],
-                    )));
-                }
+                    )))
+                };
             }
             let tuple = next_tuple.unwrap();
 
@@ -93,10 +96,7 @@ impl VolcanoExecutor for PhysicalInsert {
     }
 
     fn output_schema(&self) -> SchemaRef {
-        Arc::new(Schema::new(vec![Column::new(
-            "insert_rows".to_string(),
-            DataType::Int32,
-        )]))
+        INSERT_OUTPUT_SCHEMA_REF.clone()
     }
 }
 

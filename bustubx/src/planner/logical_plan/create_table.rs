@@ -1,5 +1,5 @@
 use crate::catalog::Column;
-use crate::common::table_ref::TableReference;
+use crate::common::TableReference;
 
 #[derive(Debug, Clone)]
 pub struct CreateTable {

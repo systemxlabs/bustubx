@@ -1,9 +1,6 @@
-use crate::buffer::PageId;
+use crate::buffer::{PageId, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
-use crate::{
-    buffer::BufferPoolManager,
-    common::{config::INVALID_PAGE_ID, rid::Rid},
-};
+use crate::{buffer::BufferPoolManager, common::rid::Rid};
 
 use super::{
     table_page::TablePage,

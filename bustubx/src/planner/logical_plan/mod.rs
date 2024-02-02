@@ -12,6 +12,7 @@ mod util;
 mod values;
 
 use crate::catalog::SchemaRef;
+use crate::common::config::{EMPTY_SCHEMA_REF, INSERT_OUTPUT_SCHEMA_REF};
 pub use create_index::CreateIndex;
 pub use create_table::CreateTable;
 pub use empty_relation::EmptyRelation;
@@ -43,10 +44,10 @@ pub enum LogicalPlan {
 impl LogicalPlan {
     pub fn schema(&self) -> &SchemaRef {
         match self {
-            LogicalPlan::CreateTable(_) => todo!(),
-            LogicalPlan::CreateIndex(_) => todo!(),
+            LogicalPlan::CreateTable(_) => &EMPTY_SCHEMA_REF,
+            LogicalPlan::CreateIndex(_) => &EMPTY_SCHEMA_REF,
             LogicalPlan::Filter(Filter { input, .. }) => input.schema(),
-            LogicalPlan::Insert(_) => todo!(),
+            LogicalPlan::Insert(_) => &INSERT_OUTPUT_SCHEMA_REF,
             LogicalPlan::Join(Join { schema, .. }) => schema,
             LogicalPlan::Limit(Limit { input, .. }) => input.schema(),
             LogicalPlan::Project(Project { schema, .. }) => schema,

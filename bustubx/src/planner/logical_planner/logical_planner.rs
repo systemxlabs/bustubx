@@ -1,7 +1,7 @@
 use crate::{BustubxError, BustubxResult};
 
 use crate::catalog::Catalog;
-use crate::common::table_ref::TableReference;
+use crate::common::TableReference;
 use crate::planner::logical_plan::{LogicalPlan, OrderByExpr};
 
 pub struct PlannerContext<'a> {

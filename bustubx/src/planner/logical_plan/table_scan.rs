@@ -1,5 +1,5 @@
 use crate::catalog::SchemaRef;
-use crate::common::table_ref::TableReference;
+use crate::common::TableReference;
 use crate::expression::Expr;
 
 #[derive(derive_new::new, Debug, Clone)]

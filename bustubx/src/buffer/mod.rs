@@ -3,4 +3,4 @@ mod page;
 mod replacer;
 
 pub use buffer_pool::BufferPoolManager;
-pub use page::{Page, PageId};
+pub use page::{Page, PageId, INVALID_PAGE_ID};

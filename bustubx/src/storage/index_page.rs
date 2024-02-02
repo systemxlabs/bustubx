@@ -1,14 +1,11 @@
 use std::mem::size_of;
 
 use super::Tuple;
-use crate::buffer::PageId;
+use crate::buffer::{PageId, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
 use crate::{
     catalog::Schema,
-    common::{
-        config::{BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID},
-        rid::Rid,
-    },
+    common::{config::BUSTUBX_PAGE_SIZE, rid::Rid},
 };
 
 pub const INTERNAL_PAGE_HEADER_SIZE: usize = 4 + 4 + 4;

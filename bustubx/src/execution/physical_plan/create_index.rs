@@ -1,5 +1,6 @@
 use crate::catalog::SchemaRef;
-use crate::common::table_ref::TableReference;
+use crate::common::config::EMPTY_SCHEMA_REF;
+use crate::common::TableReference;
 use crate::planner::logical_plan::OrderByExpr;
 use crate::{
     catalog::Schema,
@@ -23,7 +24,7 @@ impl VolcanoExecutor for PhysicalCreateIndex {
         Ok(None)
     }
     fn output_schema(&self) -> SchemaRef {
-        Arc::new(Schema::empty())
+        EMPTY_SCHEMA_REF.clone()
     }
 }
 

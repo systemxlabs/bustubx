@@ -1,5 +1,5 @@
 use crate::catalog::SchemaRef;
-use crate::common::table_ref::TableReference;
+use crate::common::TableReference;
 use crate::planner::logical_plan::OrderByExpr;
 
 #[derive(derive_new::new, Debug, Clone)]

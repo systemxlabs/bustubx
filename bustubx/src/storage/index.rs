@@ -1,12 +1,12 @@
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-use crate::buffer::PageId;
+use crate::buffer::{PageId, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
 use crate::{
     buffer::BufferPoolManager,
     catalog::Schema,
-    common::{config::INVALID_PAGE_ID, rid::Rid},
+    common::rid::Rid,
     storage::index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePage},
 };
 

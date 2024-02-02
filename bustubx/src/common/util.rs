@@ -1,25 +1,30 @@
 use comfy_table::Cell;
 
-use crate::{catalog::Schema, storage::Tuple};
+use crate::storage::Tuple;
 
-pub fn print_tuples(tuples: &Vec<Tuple>, schema: &Schema) {
-    if tuples.is_empty() {
-        return;
-    }
-    let mut headers = Vec::new();
-    for column in &schema.columns {
-        headers.push(Cell::new(column.name.clone()));
-    }
+pub fn pretty_format_tuples(tuples: &Vec<Tuple>) -> comfy_table::Table {
     let mut table = comfy_table::Table::new();
-    table.set_header(headers);
+    table.load_preset("||--+-++|    ++++++");
+
+    if tuples.is_empty() {
+        return table;
+    }
+
+    let schema = &tuples[0].schema;
+
+    let mut header = Vec::new();
+    for column in schema.columns.iter() {
+        header.push(Cell::new(column.name.clone()));
+    }
+    table.set_header(header);
 
     for tuple in tuples {
-        let mut row = Vec::new();
-        tuple.all_values(schema).iter().for_each(|v| {
-            row.push(Cell::new(format!("{v:?}")));
-        });
-        table.add_row(row);
+        let mut cells = Vec::new();
+        for value in tuple.data.iter() {
+            cells.push(Cell::new(format!("{value}")));
+        }
+        table.add_row(cells);
     }
 
-    println!("{}", table);
+    table
 }

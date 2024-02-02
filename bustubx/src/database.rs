@@ -51,18 +51,18 @@ impl Database {
 
     pub fn run(&mut self, sql: &str) -> BustubxResult<Vec<Tuple>> {
         let logical_plan = self.build_logical_plan(sql)?;
-        println!("{:?}", logical_plan);
+        // println!("{:?}", logical_plan);
 
         // logical plan -> physical plan
         let physical_plan = PhysicalPlanner::new().create_physical_plan(logical_plan);
-        println!("{:?}", physical_plan);
+        // println!("{:?}", physical_plan);
 
         let execution_ctx = ExecutionContext::new(&mut self.catalog);
         let mut execution_engine = ExecutionEngine {
             context: execution_ctx,
         };
         let tuples = execution_engine.execute(Arc::new(physical_plan))?;
-        println!("execution result: {:?}", tuples);
+        // println!("execution result: {:?}", tuples);
         Ok(tuples)
     }
 

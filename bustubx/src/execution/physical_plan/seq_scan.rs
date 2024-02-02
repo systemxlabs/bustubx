@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use crate::catalog::SchemaRef;
-use crate::common::table_ref::TableReference;
+use crate::common::TableReference;
 use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
     storage::{TableIterator, Tuple},

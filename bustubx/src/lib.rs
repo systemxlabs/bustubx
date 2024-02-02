@@ -10,6 +10,7 @@ mod parser;
 mod planner;
 mod storage;
 
+pub use common::util::pretty_format_tuples;
 pub use database::Database;
 pub use error::{BustubxError, BustubxResult};
 pub use storage::Tuple;
