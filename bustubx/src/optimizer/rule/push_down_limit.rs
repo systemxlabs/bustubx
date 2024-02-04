@@ -1,4 +1,5 @@
 use crate::error::BustubxResult;
+use crate::optimizer::logical_optimizer::ApplyOrder;
 use crate::optimizer::LogicalOptimizerRule;
 use crate::planner::logical_plan::LogicalPlan;
 
@@ -11,5 +12,9 @@ impl LogicalOptimizerRule for PushDownLimit {
 
     fn name(&self) -> &str {
         "PushDownLimit"
+    }
+
+    fn apply_order(&self) -> Option<ApplyOrder> {
+        Some(ApplyOrder::TopDown)
     }
 }
