@@ -1,9 +1,12 @@
 [package]
 name = "bustubx-cli"
-version = "0.1.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 bustubx = { path = "../bustubx" }

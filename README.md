@@ -1,4 +1,7 @@
 # BustubX - a relational database for educational purpose (CMU 15-445)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+[![Crates.io](https://img.shields.io/crates/v/bustubx.svg)](https://crates.io/crates/bustubx)
+
 - [ ] DDL
 - [ ] DML
 - [x] Rule-based Optimizer

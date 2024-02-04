@@ -1,4 +1,5 @@
-use std::sync::{atomic::AtomicU32, Arc};
+use std::sync::atomic::AtomicUsize;
+use std::sync::Arc;
 use tracing::debug;
 
 use crate::catalog::SchemaRef;
@@ -16,7 +17,7 @@ pub struct PhysicalLimit {
     pub offset: usize,
     pub input: Arc<PhysicalPlan>,
 
-    cursor: AtomicU32,
+    cursor: AtomicUsize,
 }
 impl PhysicalLimit {
     pub fn new(limit: Option<usize>, offset: usize, input: Arc<PhysicalPlan>) -> Self {
@@ -24,15 +25,16 @@ impl PhysicalLimit {
             limit,
             offset,
             input,
-            cursor: AtomicU32::new(0),
+            cursor: AtomicUsize::new(0),
         }
     }
 }
 impl VolcanoExecutor for PhysicalLimit {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         debug!("init limit executor");
+        self.input.init(context)?;
         self.cursor.store(0, std::sync::atomic::Ordering::SeqCst);
-        self.input.init(context)
+        Ok(())
     }
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         loop {
@@ -44,19 +46,19 @@ impl VolcanoExecutor for PhysicalLimit {
                 .cursor
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             let offset = self.offset;
-            if (cursor as usize) < offset {
+            if cursor < offset {
                 continue;
             }
-            if self.limit.is_some() {
+            return if self.limit.is_some() {
                 let limit = self.limit.unwrap();
                 if (cursor as usize) < offset + limit {
-                    return Ok(next_tuple);
+                    Ok(next_tuple)
                 } else {
-                    return Ok(None);
+                    Ok(None)
                 }
             } else {
-                return Ok(next_tuple);
-            }
+                Ok(next_tuple)
+            };
         }
     }
 

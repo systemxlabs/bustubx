@@ -45,9 +45,10 @@ impl PhysicalNestedLoopJoin {
 impl VolcanoExecutor for PhysicalNestedLoopJoin {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         debug!("init nested loop join executor");
-        *self.left_tuple.lock().unwrap() = None;
         self.left_input.init(context)?;
-        self.right_input.init(context)
+        self.right_input.init(context)?;
+        *self.left_tuple.lock().unwrap() = None;
+        Ok(())
     }
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         let left_tuple = self.left_tuple.lock().unwrap();
