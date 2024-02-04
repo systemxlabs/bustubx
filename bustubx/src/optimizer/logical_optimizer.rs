@@ -37,8 +37,11 @@ pub struct LogicalOptimizer {
 
 impl LogicalOptimizer {
     pub fn new() -> Self {
-        let rules: Vec<Arc<dyn LogicalOptimizerRule + Sync + Send>> =
-            vec![Arc::new(EliminateLimit {}), Arc::new(MergeLimit {})];
+        let rules: Vec<Arc<dyn LogicalOptimizerRule + Sync + Send>> = vec![
+            Arc::new(EliminateLimit {}),
+            Arc::new(MergeLimit {}),
+            Arc::new(PushDownLimit {}),
+        ];
 
         Self {
             rules,
