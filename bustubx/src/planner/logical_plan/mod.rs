@@ -11,8 +11,6 @@ mod table_scan;
 mod util;
 mod values;
 
-use crate::catalog::{SchemaRef, EMPTY_SCHEMA_REF, INSERT_OUTPUT_SCHEMA_REF};
-use crate::{BustubxError, BustubxResult};
 pub use create_index::CreateIndex;
 pub use create_table::CreateTable;
 pub use empty_relation::EmptyRelation;
@@ -22,10 +20,13 @@ pub use join::{Join, JoinType};
 pub use limit::Limit;
 pub use project::Project;
 pub use sort::{OrderByExpr, Sort};
-use std::sync::Arc;
 pub use table_scan::TableScan;
 pub use util::*;
 pub use values::Values;
+
+use crate::catalog::{SchemaRef, EMPTY_SCHEMA_REF, INSERT_OUTPUT_SCHEMA_REF};
+use crate::{BustubxError, BustubxResult};
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum LogicalPlan {

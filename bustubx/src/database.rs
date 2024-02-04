@@ -12,6 +12,7 @@ use crate::{
     planner::{LogicalPlanner, PlannerContext},
     storage::{DiskManager, Tuple},
 };
+use crate::optimizer::LogicalOptimizer;
 
 pub struct Database {
     disk_manager: Arc<DiskManager>,
@@ -50,11 +51,13 @@ impl Database {
     }
 
     pub fn run(&mut self, sql: &str) -> BustubxResult<Vec<Tuple>> {
-        let logical_plan = self.build_logical_plan(sql)?;
-        println!("logical plan: \n{}", logical_plan);
+        let logical_plan = self.create_logical_plan(sql)?;
+        // println!("logical plan: \n{}", logical_plan);
+
+        let optimized_logical_plan = LogicalOptimizer::new().optimize(&logical_plan)?;
 
         // logical plan -> physical plan
-        let physical_plan = PhysicalPlanner::new().create_physical_plan(logical_plan);
+        let physical_plan = PhysicalPlanner::new().create_physical_plan(optimized_logical_plan);
         // println!("{:?}", physical_plan);
 
         let execution_ctx = ExecutionContext::new(&mut self.catalog);
@@ -66,7 +69,7 @@ impl Database {
         Ok(tuples)
     }
 
-    pub fn build_logical_plan(&mut self, sql: &str) -> BustubxResult<LogicalPlan> {
+    pub fn create_logical_plan(&mut self, sql: &str) -> BustubxResult<LogicalPlan> {
         // sql -> ast
         let stmts = crate::parser::parse_sql(sql)?;
         if stmts.len() != 1 {
