@@ -122,7 +122,7 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
             ))
         }
         LogicalPlan::Sort(Sort {
-            expr,
+            order_by: expr,
             ref input,
             limit,
         }) => {

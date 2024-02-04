@@ -29,7 +29,7 @@ impl<'a> LogicalPlanner<'a> {
         }
 
         Ok(LogicalPlan::Sort(Sort {
-            expr: order_by_exprs,
+            order_by: order_by_exprs,
             input: Arc::new(input),
             limit: None,
         }))

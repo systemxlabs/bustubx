@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct Sort {
-    pub expr: Vec<OrderByExpr>,
+    pub order_by: Vec<OrderByExpr>,
     pub input: Arc<LogicalPlan>,
     pub limit: Option<usize>,
 }
@@ -40,7 +40,7 @@ impl std::fmt::Display for Sort {
         write!(
             f,
             "Sort: {}",
-            self.expr
+            self.order_by
                 .iter()
                 .map(|e| format!("{e}"))
                 .collect::<Vec<_>>()

@@ -5,9 +5,7 @@ use std::sync::Arc;
 
 #[derive(derive_new::new, Debug, Clone)]
 pub struct Join {
-    /// Left input
     pub left: Arc<LogicalPlan>,
-    /// Right input
     pub right: Arc<LogicalPlan>,
     pub join_type: JoinType,
     pub condition: Option<Expr>,

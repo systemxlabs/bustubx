@@ -12,6 +12,7 @@ mod util;
 mod values;
 
 use crate::catalog::{SchemaRef, EMPTY_SCHEMA_REF, INSERT_OUTPUT_SCHEMA_REF};
+use crate::{BustubxError, BustubxResult};
 pub use create_index::CreateIndex;
 pub use create_table::CreateTable;
 pub use empty_relation::EmptyRelation;
@@ -21,6 +22,7 @@ pub use join::{Join, JoinType};
 pub use limit::Limit;
 pub use project::Project;
 pub use sort::{OrderByExpr, Sort};
+use std::sync::Arc;
 pub use table_scan::TableScan;
 pub use util::*;
 pub use values::Values;
@@ -50,13 +52,152 @@ impl LogicalPlan {
             LogicalPlan::Join(Join { schema, .. }) => schema,
             LogicalPlan::Limit(Limit { input, .. }) => input.schema(),
             LogicalPlan::Project(Project { schema, .. }) => schema,
-            LogicalPlan::TableScan(TableScan {
-                table_schema: schema,
-                ..
-            }) => schema,
+            LogicalPlan::TableScan(TableScan { table_schema, .. }) => table_schema,
             LogicalPlan::Sort(Sort { input, .. }) => input.schema(),
             LogicalPlan::Values(Values { schema, .. }) => schema,
             LogicalPlan::EmptyRelation(EmptyRelation { schema, .. }) => schema,
+        }
+    }
+
+    pub fn inputs(&self) -> Vec<&LogicalPlan> {
+        match self {
+            LogicalPlan::Filter(Filter { input, .. }) => vec![input],
+            LogicalPlan::Insert(Insert { input, .. }) => vec![input],
+            LogicalPlan::Join(Join { left, right, .. }) => vec![left, right],
+            LogicalPlan::Limit(Limit { input, .. }) => vec![input],
+            LogicalPlan::Project(Project { input, .. }) => vec![input],
+            LogicalPlan::Sort(Sort { input, .. }) => vec![input],
+            LogicalPlan::CreateTable(_)
+            | LogicalPlan::CreateIndex(_)
+            | LogicalPlan::TableScan(_)
+            | LogicalPlan::Values(_)
+            | LogicalPlan::EmptyRelation(_) => vec![],
+        }
+    }
+
+    pub fn with_new_inputs(&self, inputs: &[LogicalPlan]) -> BustubxResult<LogicalPlan> {
+        match self {
+            LogicalPlan::Filter(Filter { predicate, .. }) => Ok(LogicalPlan::Filter(Filter {
+                predicate: predicate.clone(),
+                input: Arc::new(
+                    inputs
+                        .get(0)
+                        .ok_or_else(|| {
+                            BustubxError::Internal(format!(
+                                "inputs {:?} should have at least one",
+                                inputs
+                            ))
+                        })?
+                        .clone(),
+                ),
+            })),
+            LogicalPlan::Insert(Insert {
+                table,
+                table_schema,
+                projected_schema,
+                ..
+            }) => Ok(LogicalPlan::Insert(Insert {
+                table: table.clone(),
+                table_schema: table_schema.clone(),
+                projected_schema: projected_schema.clone(),
+                input: Arc::new(
+                    inputs
+                        .get(0)
+                        .ok_or_else(|| {
+                            BustubxError::Internal(format!(
+                                "inputs {:?} should have at least one",
+                                inputs
+                            ))
+                        })?
+                        .clone(),
+                ),
+            })),
+            LogicalPlan::Join(Join {
+                join_type,
+                condition,
+                schema,
+                ..
+            }) => Ok(LogicalPlan::Join(Join {
+                left: Arc::new(
+                    inputs
+                        .get(0)
+                        .ok_or_else(|| {
+                            BustubxError::Internal(format!(
+                                "inputs {:?} should have at least two",
+                                inputs
+                            ))
+                        })?
+                        .clone(),
+                ),
+                right: Arc::new(
+                    inputs
+                        .get(0)
+                        .ok_or_else(|| {
+                            BustubxError::Internal(format!(
+                                "inputs {:?} should have at least two",
+                                inputs
+                            ))
+                        })?
+                        .clone(),
+                ),
+                join_type: join_type.clone(),
+                condition: condition.clone(),
+                schema: schema.clone(),
+            })),
+            LogicalPlan::Limit(Limit { limit, offset, .. }) => Ok(LogicalPlan::Limit(Limit {
+                limit: limit.clone(),
+                offset: offset.clone(),
+                input: Arc::new(
+                    inputs
+                        .get(0)
+                        .ok_or_else(|| {
+                            BustubxError::Internal(format!(
+                                "inputs {:?} should have at least one",
+                                inputs
+                            ))
+                        })?
+                        .clone(),
+                ),
+            })),
+            LogicalPlan::Project(Project { exprs, schema, .. }) => {
+                Ok(LogicalPlan::Project(Project {
+                    exprs: exprs.clone(),
+                    schema: schema.clone(),
+                    input: Arc::new(
+                        inputs
+                            .get(0)
+                            .ok_or_else(|| {
+                                BustubxError::Internal(format!(
+                                    "inputs {:?} should have at least one",
+                                    inputs
+                                ))
+                            })?
+                            .clone(),
+                    ),
+                }))
+            }
+            LogicalPlan::Sort(Sort {
+                order_by, limit, ..
+            }) => Ok(LogicalPlan::Sort(Sort {
+                order_by: order_by.clone(),
+                limit: limit.clone(),
+                input: Arc::new(
+                    inputs
+                        .get(0)
+                        .ok_or_else(|| {
+                            BustubxError::Internal(format!(
+                                "inputs {:?} should have at least one",
+                                inputs
+                            ))
+                        })?
+                        .clone(),
+                ),
+            })),
+            LogicalPlan::CreateTable(_)
+            | LogicalPlan::CreateIndex(_)
+            | LogicalPlan::TableScan(_)
+            | LogicalPlan::Values(_)
+            | LogicalPlan::EmptyRelation(_) => Ok(self.clone()),
         }
     }
 }
