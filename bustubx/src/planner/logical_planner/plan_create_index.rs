@@ -10,12 +10,12 @@ impl<'a> LogicalPlanner<'a> {
         table_name: &sqlparser::ast::ObjectName,
         columns: &Vec<sqlparser::ast::OrderByExpr>,
     ) -> BustubxResult<LogicalPlan> {
-        let index_name = index_name
-            .0
-            .get(0)
-            .map_or(Err(BustubxError::Plan("".to_string())), |ident| {
-                Ok(ident.value.clone())
-            })?;
+        let index_name = index_name.0.get(0).map_or(
+            Err(BustubxError::Plan(format!(
+                "Index name {index_name} is not expected"
+            ))),
+            |ident| Ok(ident.value.clone()),
+        )?;
         let table = self.bind_table_name(table_name)?;
         let mut columns_expr = vec![];
         for col in columns.iter() {

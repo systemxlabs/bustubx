@@ -51,6 +51,7 @@ mod tests {
     fn build_optimizer() -> LogicalOptimizer {
         LogicalOptimizer::with_rules(vec![Arc::new(EliminateLimit)])
     }
+
     #[test]
     fn eliminate_limit() {
         let mut db = Database::new_temp().unwrap();

@@ -3,6 +3,7 @@ use tempfile::TempDir;
 
 use crate::buffer::TABLE_HEAP_BUFFER_POOL_SIZE;
 use crate::error::{BustubxError, BustubxResult};
+use crate::optimizer::LogicalOptimizer;
 use crate::planner::logical_plan::LogicalPlan;
 use crate::planner::PhysicalPlanner;
 use crate::{
@@ -12,7 +13,6 @@ use crate::{
     planner::{LogicalPlanner, PlannerContext},
     storage::{DiskManager, Tuple},
 };
-use crate::optimizer::LogicalOptimizer;
 
 pub struct Database {
     disk_manager: Arc<DiskManager>,
