@@ -1,3 +1,5 @@
+use crate::execution::physical_plan::PhysicalPlan;
+use crate::planner::logical_plan::LogicalPlan;
 use comfy_table::Cell;
 
 use crate::storage::Tuple;
@@ -27,4 +29,32 @@ pub fn pretty_format_tuples(tuples: &Vec<Tuple>) -> comfy_table::Table {
     }
 
     table
+}
+
+pub fn pretty_format_logical_plan(plan: &LogicalPlan) -> String {
+    pretty_format_logical_plan_recursively(plan, 0)
+}
+
+fn pretty_format_logical_plan_recursively(plan: &LogicalPlan, indent: usize) -> String {
+    let mut result = format!("{:indent$}{}", "", plan);
+
+    for input in plan.inputs() {
+        result.push('\n');
+        result.push_str(&pretty_format_logical_plan_recursively(input, indent + 2));
+    }
+    result
+}
+
+pub fn pretty_format_physical_plan(plan: &PhysicalPlan) -> String {
+    pretty_format_physical_plan_recursively(plan, 0)
+}
+
+fn pretty_format_physical_plan_recursively(plan: &PhysicalPlan, indent: usize) -> String {
+    let mut result = format!("{:indent$}{}", "", plan);
+
+    for input in plan.inputs() {
+        result.push('\n');
+        result.push_str(&pretty_format_physical_plan_recursively(input, indent + 2));
+    }
+    result
 }

@@ -57,6 +57,6 @@ impl VolcanoExecutor for PhysicalSeqScan {
 
 impl std::fmt::Display for PhysicalSeqScan {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "SeqScan")
     }
 }

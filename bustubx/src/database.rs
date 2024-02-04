@@ -2,6 +2,7 @@ use std::sync::Arc;
 use tempfile::TempDir;
 
 use crate::buffer::TABLE_HEAP_BUFFER_POOL_SIZE;
+use crate::common::util::{pretty_format_logical_plan, pretty_format_physical_plan};
 use crate::error::{BustubxError, BustubxResult};
 use crate::optimizer::LogicalOptimizer;
 use crate::planner::logical_plan::LogicalPlan;
@@ -52,13 +53,19 @@ impl Database {
 
     pub fn run(&mut self, sql: &str) -> BustubxResult<Vec<Tuple>> {
         let logical_plan = self.create_logical_plan(sql)?;
-        // println!("logical plan: \n{}", logical_plan);
+        println!(
+            "Logical Plan: \n{}",
+            pretty_format_logical_plan(&logical_plan)
+        );
 
         let optimized_logical_plan = LogicalOptimizer::new().optimize(&logical_plan)?;
 
         // logical plan -> physical plan
         let physical_plan = PhysicalPlanner::new().create_physical_plan(optimized_logical_plan);
-        // println!("{:?}", physical_plan);
+        println!(
+            "Physical Plan: \n{}",
+            pretty_format_physical_plan(&physical_plan)
+        );
 
         let execution_ctx = ExecutionContext::new(&mut self.catalog);
         let mut execution_engine = ExecutionEngine {

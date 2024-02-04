@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::{collections::HashMap, sync::atomic::AtomicU32};
 
 use crate::buffer::TABLE_HEAP_BUFFER_POOL_SIZE;
@@ -10,8 +9,6 @@ use crate::{
         TableHeap,
     },
 };
-
-use super::schema::Schema;
 
 pub type TableOid = u32;
 pub type IndexOid = u32;

@@ -88,6 +88,6 @@ impl VolcanoExecutor for PhysicalSort {
 
 impl std::fmt::Display for PhysicalSort {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "Sort")
     }
 }

@@ -44,6 +44,28 @@ pub enum PhysicalPlan {
     Sort(PhysicalSort),
 }
 
+impl PhysicalPlan {
+    pub fn inputs(&self) -> Vec<&PhysicalPlan> {
+        match self {
+            PhysicalPlan::Project(PhysicalProject { input, .. }) => vec![input],
+            PhysicalPlan::Filter(PhysicalFilter { input, .. }) => vec![input],
+            PhysicalPlan::Limit(PhysicalLimit { input, .. }) => vec![input],
+            PhysicalPlan::Insert(PhysicalInsert { input, .. }) => vec![input],
+            PhysicalPlan::NestedLoopJoin(PhysicalNestedLoopJoin {
+                left_input,
+                right_input,
+                ..
+            }) => vec![left_input, right_input],
+            PhysicalPlan::Sort(PhysicalSort { input, .. }) => vec![input],
+            PhysicalPlan::Empty(_)
+            | PhysicalPlan::CreateTable(_)
+            | PhysicalPlan::CreateIndex(_)
+            | PhysicalPlan::TableScan(_)
+            | PhysicalPlan::Values(_) => vec![],
+        }
+    }
+}
+
 impl VolcanoExecutor for PhysicalPlan {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         match self {
