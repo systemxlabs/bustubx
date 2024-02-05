@@ -1,4 +1,4 @@
-use crate::catalog::{Column, Schema};
+use crate::catalog::{Column, Schema, EMPTY_SCHEMA_REF};
 use crate::expression::{Alias, ColumnExpr, Expr, ExprTrait};
 use crate::planner::logical_plan::JoinType;
 use crate::planner::logical_plan::{
@@ -258,7 +258,8 @@ impl LogicalPlanner<'_> {
         for (idx, item) in first_row.iter().enumerate() {
             columns.push(Column::new(
                 idx.to_string(),
-                item.data_type(&Schema::empty())?,
+                item.data_type(&EMPTY_SCHEMA_REF)?,
+                item.nullable(&EMPTY_SCHEMA_REF)?,
             ))
         }
 

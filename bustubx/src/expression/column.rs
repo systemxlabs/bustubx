@@ -31,11 +31,11 @@ impl ExprTrait for ColumnExpr {
     }
 
     fn to_column(&self, input_schema: &Schema) -> BustubxResult<Column> {
-        Ok(Column {
-            name: self.name.clone(),
-            data_type: self.data_type(input_schema)?,
-            nullable: self.nullable(input_schema)?,
-        })
+        Ok(Column::new(
+            self.name.clone(),
+            self.data_type(input_schema)?,
+            self.nullable(input_schema)?,
+        ))
     }
 }
 

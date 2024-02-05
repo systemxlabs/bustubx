@@ -235,8 +235,8 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
@@ -275,8 +275,8 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
@@ -324,8 +324,8 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
@@ -384,8 +384,8 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();

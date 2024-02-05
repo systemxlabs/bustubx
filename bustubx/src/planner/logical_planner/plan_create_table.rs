@@ -17,6 +17,7 @@ impl<'a> LogicalPlanner<'a> {
             columns.push(Column::new(
                 col_def.name.value.clone(),
                 (&col_def.data_type).try_into()?,
+                false,
             ))
         }
         Ok(LogicalPlan::CreateTable(CreateTable { name, columns }))

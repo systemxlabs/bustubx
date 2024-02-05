@@ -21,12 +21,11 @@ impl PartialEq for Column {
 impl Eq for Column {}
 
 impl Column {
-    // TODO set nullable
-    pub fn new(name: String, data_type: DataType) -> Self {
+    pub fn new(name: String, data_type: DataType, nullable: bool) -> Self {
         Self {
             name,
             data_type,
-            nullable: false,
+            nullable,
         }
     }
 }

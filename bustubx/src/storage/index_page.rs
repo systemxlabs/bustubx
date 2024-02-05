@@ -597,8 +597,8 @@ mod tests {
     #[test]
     pub fn test_internal_page_from_to_bytes() {
         let key_schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("a".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("a".to_string(), DataType::Int16, false),
         ]));
         let mut ori_page = BPlusTreeInternalPage::new(key_schema.clone(), 5);
         ori_page.insert(Tuple::empty(key_schema.clone()), 0, &key_schema);
@@ -634,8 +634,8 @@ mod tests {
     #[test]
     pub fn test_leaf_page_from_to_bytes() {
         let key_schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("a".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("a".to_string(), DataType::Int16, false),
         ]));
         let mut ori_page = BPlusTreeLeafPage::new(key_schema.clone(), 5);
         ori_page.insert(
@@ -665,8 +665,8 @@ mod tests {
     #[test]
     pub fn test_internal_page_insert() {
         let key_schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 3);
         internal_page.insert(Tuple::empty(key_schema.clone()), 0, &key_schema);
@@ -695,8 +695,8 @@ mod tests {
     #[test]
     pub fn test_leaf_page_insert() {
         let key_schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 3);
         leaf_page.insert(
@@ -726,8 +726,8 @@ mod tests {
     #[test]
     pub fn test_internal_page_look_up() {
         let key_schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 5);
         internal_page.insert(Tuple::empty(key_schema.clone()), 0, &key_schema);
@@ -808,8 +808,8 @@ mod tests {
     #[test]
     pub fn test_leaf_page_look_up() {
         let key_schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 5);
         leaf_page.insert(
@@ -913,8 +913,8 @@ mod tests {
     #[test]
     pub fn test_internal_page_delete() {
         let key_schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 5);
         internal_page.insert(Tuple::empty(key_schema.clone()), 0, &key_schema);
@@ -980,8 +980,8 @@ mod tests {
     #[test]
     pub fn test_leaf_page_delete() {
         let key_schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 5);
         leaf_page.insert(

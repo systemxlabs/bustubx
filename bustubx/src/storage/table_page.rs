@@ -227,8 +227,8 @@ mod tests {
     #[test]
     pub fn test_table_page_insert() {
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut table_page = super::TablePage::new(schema.clone(), 0);
         let meta = super::TupleMeta {
@@ -270,8 +270,8 @@ mod tests {
     #[test]
     pub fn test_table_page_get_tuple() {
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut table_page = super::TablePage::new(schema.clone(), 0);
         let meta = super::TupleMeta {
@@ -307,8 +307,8 @@ mod tests {
     #[test]
     pub fn test_table_page_update_tuple_meta() {
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut table_page = super::TablePage::new(schema.clone(), 0);
         let meta = super::TupleMeta {
@@ -344,8 +344,8 @@ mod tests {
     #[test]
     pub fn test_table_page_from_to_bytes() {
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
+            Column::new("a".to_string(), DataType::Int8, false),
+            Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut table_page = super::TablePage::new(schema.clone(), 1);
         let meta = super::TupleMeta {

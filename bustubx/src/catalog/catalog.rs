@@ -198,9 +198,9 @@ mod tests {
 
         let table_name = "test_table1".to_string();
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
-            Column::new("c".to_string(), DataType::Int32),
+            Column::new("a".to_string(), DataType::Int8, true),
+            Column::new("b".to_string(), DataType::Int16, true),
+            Column::new("c".to_string(), DataType::Int32, true),
         ]));
         let table_info = catalog
             .create_table(table_name.clone(), schema.clone())
@@ -211,9 +211,9 @@ mod tests {
 
         let table_name = "test_table2".to_string();
         let schema = Arc::new(Schema::new(vec![
-            Column::new("d".to_string(), DataType::Int32),
-            Column::new("e".to_string(), DataType::Int16),
-            Column::new("f".to_string(), DataType::Int8),
+            Column::new("d".to_string(), DataType::Int32, true),
+            Column::new("e".to_string(), DataType::Int16, true),
+            Column::new("f".to_string(), DataType::Int8, true),
         ]));
         let table_info = catalog
             .create_table(table_name.clone(), schema.clone())
@@ -236,17 +236,17 @@ mod tests {
 
         let table_name1 = "test_table1".to_string();
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
-            Column::new("c".to_string(), DataType::Int32),
+            Column::new("a".to_string(), DataType::Int8, true),
+            Column::new("b".to_string(), DataType::Int16, true),
+            Column::new("c".to_string(), DataType::Int32, true),
         ]));
         let _ = catalog.create_table(table_name1.clone(), schema);
 
         let table_name2 = "test_table2".to_string();
         let schema = Arc::new(Schema::new(vec![
-            Column::new("d".to_string(), DataType::Int32),
-            Column::new("e".to_string(), DataType::Int16),
-            Column::new("f".to_string(), DataType::Int8),
+            Column::new("d".to_string(), DataType::Int32, true),
+            Column::new("e".to_string(), DataType::Int16, true),
+            Column::new("f".to_string(), DataType::Int8, true),
         ]));
         let _ = catalog.create_table(table_name2.clone(), schema);
 
@@ -286,9 +286,9 @@ mod tests {
 
         let table_name = "test_table1".to_string();
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8),
-            Column::new("b".to_string(), DataType::Int16),
-            Column::new("c".to_string(), DataType::Int32),
+            Column::new("a".to_string(), DataType::Int8, true),
+            Column::new("b".to_string(), DataType::Int16, true),
+            Column::new("c".to_string(), DataType::Int32, true),
         ]));
         let _ = catalog.create_table(table_name.clone(), schema);
 

@@ -27,6 +27,7 @@ impl ExprTrait for Literal {
         Ok(Column::new(
             format!("{}", self.value),
             self.data_type(input_schema)?,
+            self.nullable(input_schema)?,
         ))
     }
 }
