@@ -32,7 +32,7 @@ impl<'a> LogicalPlanner<'a> {
                 .collect();
             let indices = columns
                 .iter()
-                .map(|name| table_schema.index_of(name.as_str()))
+                .map(|name| table_schema.index_of(Some(&table), name.as_str()))
                 .collect::<BustubxResult<Vec<usize>>>()?;
             let projected_schema = table_schema.project(&indices)?;
             projected_schema

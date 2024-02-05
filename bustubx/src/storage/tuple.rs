@@ -1,5 +1,5 @@
 use crate::catalog::{ColumnRef, SchemaRef};
-use crate::common::TransactionId;
+use crate::common::{TableReference, TransactionId};
 use crate::{catalog::Schema, common::ScalarValue, BustubxError, BustubxResult};
 use std::sync::Arc;
 
@@ -74,8 +74,12 @@ impl Tuple {
             index, self
         )))
     }
-    pub fn value_by_name(&self, name: &str) -> BustubxResult<&ScalarValue> {
-        let idx = self.schema.index_of(name)?;
+    pub fn value_by_name(
+        &self,
+        relation: Option<&TableReference>,
+        name: &str,
+    ) -> BustubxResult<&ScalarValue> {
+        let idx = self.schema.index_of(relation, name)?;
         self.value(idx)
     }
 

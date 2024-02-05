@@ -1,5 +1,6 @@
 use super::column::{Column, ColumnRef};
 use crate::catalog::DataType;
+use crate::common::TableReference;
 use crate::error::BustubxResult;
 use crate::BustubxError;
 use std::sync::Arc;
@@ -48,8 +49,12 @@ impl Schema {
         }))
     }
 
-    pub fn column_with_name(&self, name: &str) -> BustubxResult<ColumnRef> {
-        let index = self.index_of(name)?;
+    pub fn column_with_name(
+        &self,
+        relation: Option<&TableReference>,
+        name: &str,
+    ) -> BustubxResult<ColumnRef> {
+        let index = self.index_of(relation, name)?;
         Ok(self.columns[index].clone())
     }
 
@@ -61,12 +66,16 @@ impl Schema {
     }
 
     /// Find the index of the column with the given name.
-    pub fn index_of(&self, name: &str) -> BustubxResult<usize> {
+    pub fn index_of(&self, relation: Option<&TableReference>, name: &str) -> BustubxResult<usize> {
         let (idx, _) = self
             .columns
             .iter()
             .enumerate()
-            .find(|(_, col)| &col.name == name)
+            .find(|(_, col)| match (relation, &col.relation) {
+                (Some(rel), Some(col_rel)) => rel.resolved_eq(col_rel) && name == &col.name,
+                (Some(rel), None) => false,
+                (None, Some(_)) | (None, None) => name == &col.name,
+            })
             .ok_or_else(|| BustubxError::Plan(format!("Unable to get column named \"{name}\"")))?;
         Ok(idx)
     }

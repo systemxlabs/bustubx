@@ -14,11 +14,14 @@ impl<'a> LogicalPlanner<'a> {
         let name = self.bind_table_name(name)?;
         let mut columns = vec![];
         for col_def in column_defs {
-            columns.push(Column::new(
-                col_def.name.value.clone(),
-                (&col_def.data_type).try_into()?,
-                false,
-            ))
+            columns.push(
+                Column::new(
+                    col_def.name.value.clone(),
+                    (&col_def.data_type).try_into()?,
+                    false,
+                )
+                .with_relation(Some(name.clone())),
+            )
         }
         Ok(LogicalPlan::CreateTable(CreateTable { name, columns }))
     }

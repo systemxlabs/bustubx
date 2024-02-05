@@ -49,7 +49,7 @@ impl LogicalPlanner<'_> {
                         .iter()
                         .map(|col| {
                             Expr::Column(ColumnExpr {
-                                relation: None,
+                                relation: col.relation.clone(),
                                 name: col.name.clone(),
                             })
                         })

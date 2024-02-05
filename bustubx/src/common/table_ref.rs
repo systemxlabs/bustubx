@@ -59,6 +59,24 @@ impl TableReference {
             _ => None,
         }
     }
+
+    pub fn resolved_eq(&self, other: &Self) -> bool {
+        match self {
+            TableReference::Bare { table } => table == other.table(),
+            TableReference::Partial { schema, table } => {
+                table == other.table() && other.schema().map_or(true, |s| s == schema)
+            }
+            TableReference::Full {
+                catalog,
+                schema,
+                table,
+            } => {
+                table == other.table()
+                    && other.schema().map_or(true, |s| s == schema)
+                    && other.catalog().map_or(true, |c| c == catalog)
+            }
+        }
+    }
 }
 
 impl std::fmt::Display for TableReference {
