@@ -1,17 +1,18 @@
 use crate::error::BustubxResult;
 use sqlparser::{ast::Statement, dialect::PostgreSqlDialect, parser::Parser};
-use tracing::span;
 
 pub fn parse_sql(sql: &str) -> BustubxResult<Vec<Statement>> {
     let stmts = Parser::parse_sql(&PostgreSqlDialect {}, sql)?;
     Ok(stmts)
 }
 
+#[cfg(test)]
 mod tests {
+
     #[test]
-    pub fn test_sql() {
-        let sql = "select * from t1, t2, t3 inner join t4 on t3.id = t4.id";
+    pub fn test_parser() {
+        let sql = "select * from (select * from t1)";
         let stmts = super::parse_sql(sql).unwrap();
-        println!("{:?}", stmts);
+        println!("{:#?}", stmts[0]);
     }
 }

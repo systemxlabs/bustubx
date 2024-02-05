@@ -229,6 +229,9 @@ impl LogicalPlanner<'_> {
                 // TODO handle alias
                 self.plan_table_with_joins(table_with_joins)
             }
+            sqlparser::ast::TableFactor::Derived {
+                subquery, alias, ..
+            } => self.plan_query(subquery),
             _ => Err(BustubxError::Plan(format!(
                 "sqlparser relation {} not supported",
                 relation
