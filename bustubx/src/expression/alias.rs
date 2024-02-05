@@ -4,7 +4,6 @@ use crate::common::ScalarValue;
 use crate::error::BustubxResult;
 use crate::expression::{Expr, ExprTrait};
 use crate::storage::Tuple;
-use crate::BustubxError;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Alias {
@@ -26,10 +25,11 @@ impl ExprTrait for Alias {
     }
 
     fn to_column(&self, input_schema: &Schema) -> BustubxResult<Column> {
-        Err(BustubxError::Plan(format!(
-            "expr {:?} as column not supported",
-            self
-        )))
+        Ok(Column::new(
+            self.name.clone(),
+            self.data_type(input_schema)?,
+            self.nullable(input_schema)?,
+        ))
     }
 }
 
