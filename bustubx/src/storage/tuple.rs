@@ -1,6 +1,6 @@
 use crate::catalog::{ColumnRef, SchemaRef};
 use crate::common::TransactionId;
-use crate::{catalog::Schema, common::ScalarValue, BustubxResult};
+use crate::{catalog::Schema, common::ScalarValue, BustubxError, BustubxResult};
 use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -68,30 +68,15 @@ impl Tuple {
         bytes
     }
 
-    pub fn get_value_by_col_id(&self, schema: &Schema, column_index: usize) -> ScalarValue {
-        let column = schema
-            .column_with_index(column_index)
-            .expect("column not found");
-
-        self.get_value_by_col(column)
+    pub fn value(&self, index: usize) -> BustubxResult<&ScalarValue> {
+        self.data.get(index).ok_or(BustubxError::Internal(format!(
+            "Not found column data at {} in tuple: {:?}",
+            index, self
+        )))
     }
-    pub fn get_value_by_col_name(&self, schema: &Schema, column_name: &String) -> ScalarValue {
-        let column = schema
-            .column_with_name(column_name)
-            .expect("column not found");
-
-        self.get_value_by_col(column)
-    }
-
-    pub fn get_value_by_col(&self, column: ColumnRef) -> ScalarValue {
-        let (idx, col) = self
-            .schema
-            .columns
-            .iter()
-            .enumerate()
-            .find(|c| c.1 == &column)
-            .unwrap();
-        self.data.get(idx).unwrap().clone()
+    pub fn value_by_name(&self, name: &str) -> BustubxResult<&ScalarValue> {
+        let idx = self.schema.index_of(name)?;
+        self.value(idx)
     }
 
     // TODO 比较索引key大小
@@ -99,8 +84,9 @@ impl Tuple {
         let column_count = schema.column_count();
         for column_index in 0..column_count {
             let compare_res = self
-                .get_value_by_col_id(schema, column_index)
-                .compare(&other.get_value_by_col_id(schema, column_index));
+                .value(column_index)
+                .unwrap()
+                .compare(&other.value(column_index).unwrap());
             if compare_res == std::cmp::Ordering::Equal {
                 continue;
             }

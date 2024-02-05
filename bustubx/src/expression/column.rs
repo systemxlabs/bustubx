@@ -27,7 +27,7 @@ impl ExprTrait for ColumnExpr {
     }
 
     fn evaluate(&self, tuple: &Tuple) -> BustubxResult<ScalarValue> {
-        Ok(tuple.get_value_by_col_name(&tuple.schema, &self.name))
+        tuple.value_by_name(&self.name).cloned()
     }
 
     fn to_column(&self, input_schema: &Schema) -> BustubxResult<Column> {
