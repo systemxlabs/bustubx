@@ -25,12 +25,10 @@ pub const TABLE_PAGE_TUPLE_INFO_SIZE: usize = 2 + 2 + (4 + 4 + 4);
  *  ----------------------------------------------------------------
  *
  */
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TablePage {
     pub schema: SchemaRef,
-    pub next_page_id: PageId,
-    pub num_tuples: u16,
-    pub num_deleted_tuples: u16,
-    pub tuple_infos: Vec<TupleInfo>,
+    pub header: TablePageHeader,
     // 整个页原始数据
     // TODO 可以通过memmove、memcpy优化，参考bustub
     pub data: [u8; BUSTUBX_PAGE_SIZE],
@@ -40,10 +38,12 @@ impl TablePage {
     pub fn new(schema: SchemaRef, next_page_id: PageId) -> Self {
         Self {
             schema,
-            next_page_id,
-            num_tuples: 0,
-            num_deleted_tuples: 0,
-            tuple_infos: Vec::with_capacity(BUSTUBX_PAGE_SIZE / TABLE_PAGE_TUPLE_INFO_SIZE),
+            header: TablePageHeader {
+                next_page_id,
+                num_tuples: 0,
+                num_deleted_tuples: 0,
+                tuple_infos: Vec::with_capacity(BUSTUBX_PAGE_SIZE / TABLE_PAGE_TUPLE_INFO_SIZE),
+            },
             data: [0; BUSTUBX_PAGE_SIZE],
         }
     }
@@ -52,8 +52,8 @@ impl TablePage {
     pub fn get_next_tuple_offset(&self, meta: &TupleMeta, tuple: &Tuple) -> Option<u16> {
         // Get the ending offset of the current slot. If there are inserted tuples,
         // get the offset of the previous inserted tuple; otherwise, set it to the size of the page.
-        let slot_end_offset = if self.num_tuples > 0 {
-            self.tuple_infos[self.num_tuples as usize - 1].offset
+        let slot_end_offset = if self.header.num_tuples > 0 {
+            self.header.tuple_infos[self.header.num_tuples as usize - 1].offset
         } else {
             BUSTUBX_PAGE_SIZE as u16
         };
@@ -70,7 +70,7 @@ impl TablePage {
         // Calculate the minimum valid tuple insertion offset, including the table page header size,
         // the total size of each tuple info (existing tuple infos and newly added tuple info).
         let min_tuple_offset = TABLE_PAGE_HEADER_SIZE as u16
-            + (self.num_tuples as u16 + 1) * TABLE_PAGE_TUPLE_INFO_SIZE as u16;
+            + (self.header.num_tuples as u16 + 1) * TABLE_PAGE_TUPLE_INFO_SIZE as u16;
         if tuple_offset < min_tuple_offset {
             return None;
         }
@@ -82,21 +82,21 @@ impl TablePage {
     pub fn insert_tuple(&mut self, meta: &TupleMeta, tuple: &Tuple) -> Option<u16> {
         // Get the offset for the next tuple insertion.
         let tuple_offset = self.get_next_tuple_offset(meta, tuple)?;
-        let tuple_id = self.num_tuples;
+        let tuple_id = self.header.num_tuples;
 
         // Store tuple information including offset, length, and metadata.
-        self.tuple_infos.push(TupleInfo {
+        self.header.tuple_infos.push(TupleInfo {
             offset: tuple_offset,
             size: TupleCodec::encode(tuple).len() as u16,
             meta: meta.clone(),
         });
 
         // only check
-        assert_eq!(tuple_id, self.tuple_infos.len() as u16 - 1);
+        assert_eq!(tuple_id, self.header.tuple_infos.len() as u16 - 1);
 
-        self.num_tuples += 1;
+        self.header.num_tuples += 1;
         if meta.is_deleted {
-            self.num_deleted_tuples += 1;
+            self.header.num_deleted_tuples += 1;
         }
 
         // Copy the tuple's data into the appropriate position within the page's data buffer.
@@ -108,25 +108,25 @@ impl TablePage {
 
     pub fn update_tuple_meta(&mut self, meta: &TupleMeta, rid: &Rid) {
         let tuple_id = rid.slot_num;
-        if tuple_id >= self.num_tuples as u32 {
+        if tuple_id >= self.header.num_tuples as u32 {
             panic!("tuple_id {} out of range", tuple_id);
         }
-        if meta.is_deleted && !self.tuple_infos[tuple_id as usize].meta.is_deleted {
-            self.num_deleted_tuples += 1;
+        if meta.is_deleted && !self.header.tuple_infos[tuple_id as usize].meta.is_deleted {
+            self.header.num_deleted_tuples += 1;
         }
 
-        self.tuple_infos[tuple_id as usize].meta = meta.clone();
+        self.header.tuple_infos[tuple_id as usize].meta = meta.clone();
     }
 
     pub fn get_tuple(&self, rid: &Rid) -> (TupleMeta, Tuple) {
         let tuple_id = rid.slot_num;
-        if tuple_id >= self.num_tuples as u32 {
+        if tuple_id >= self.header.num_tuples as u32 {
             panic!("tuple_id {} out of range", tuple_id);
         }
 
-        let offset = self.tuple_infos[tuple_id as usize].offset;
-        let size = self.tuple_infos[tuple_id as usize].size;
-        let meta = self.tuple_infos[tuple_id as usize].meta;
+        let offset = self.header.tuple_infos[tuple_id as usize].offset;
+        let size = self.header.tuple_infos[tuple_id as usize].size;
+        let meta = self.header.tuple_infos[tuple_id as usize].meta;
         let (tuple, _) = TupleCodec::decode(
             &self.data[offset as usize..(offset + size) as usize],
             self.schema.clone(),
@@ -138,17 +138,17 @@ impl TablePage {
 
     pub fn get_tuple_meta(&self, rid: &Rid) -> TupleMeta {
         let tuple_id = rid.slot_num;
-        if tuple_id >= self.num_tuples as u32 {
+        if tuple_id >= self.header.num_tuples as u32 {
             panic!("tuple_id {} out of range", tuple_id);
         }
 
-        return self.tuple_infos[tuple_id as usize].meta.clone();
+        return self.header.tuple_infos[tuple_id as usize].meta.clone();
     }
 
     pub fn get_next_rid(&self, rid: &Rid) -> Option<Rid> {
         // TODO 忽略删除的tuple
         let tuple_id = rid.slot_num;
-        if tuple_id + 1 >= self.num_tuples as u32 {
+        if tuple_id + 1 >= self.header.num_tuples as u32 {
             return None;
         }
 
@@ -159,10 +159,10 @@ impl TablePage {
     pub fn from_bytes(schema: SchemaRef, data: &[u8]) -> Self {
         let (next_page_id, _) = CommonCodec::decode_u32(data).unwrap();
         let mut table_page = Self::new(schema, next_page_id);
-        table_page.num_tuples = u16::from_be_bytes([data[4], data[5]]);
-        table_page.num_deleted_tuples = u16::from_be_bytes([data[6], data[7]]);
+        table_page.header.num_tuples = u16::from_be_bytes([data[4], data[5]]);
+        table_page.header.num_deleted_tuples = u16::from_be_bytes([data[6], data[7]]);
 
-        for i in 0..table_page.num_tuples as usize {
+        for i in 0..table_page.header.num_tuples as usize {
             let offset = 8 + i * TABLE_PAGE_TUPLE_INFO_SIZE;
             let tuple_offset = u16::from_be_bytes([data[offset], data[offset + 1]]);
             let tuple_size = u16::from_be_bytes([data[offset + 2], data[offset + 3]]);
@@ -184,7 +184,7 @@ impl TablePage {
                 data[offset + 14],
                 data[offset + 15],
             ]) == 1;
-            table_page.tuple_infos.push(TupleInfo {
+            table_page.header.tuple_infos.push(TupleInfo {
                 offset: tuple_offset,
                 size: tuple_size,
                 meta: TupleMeta {
@@ -202,14 +202,15 @@ impl TablePage {
 
     pub fn to_bytes(&self) -> [u8; BUSTUBX_PAGE_SIZE] {
         let mut bytes = [0; BUSTUBX_PAGE_SIZE];
-        bytes[0..4].copy_from_slice(CommonCodec::encode_u32(self.next_page_id).as_slice());
-        bytes[4..6].copy_from_slice(CommonCodec::encode_u16(self.num_tuples).as_slice());
-        bytes[6..8].copy_from_slice(CommonCodec::encode_u16(self.num_deleted_tuples).as_slice());
-        for i in 0..self.num_tuples as usize {
+        bytes[0..4].copy_from_slice(CommonCodec::encode_u32(self.header.next_page_id).as_slice());
+        bytes[4..6].copy_from_slice(CommonCodec::encode_u16(self.header.num_tuples).as_slice());
+        bytes[6..8]
+            .copy_from_slice(CommonCodec::encode_u16(self.header.num_deleted_tuples).as_slice());
+        for i in 0..self.header.num_tuples as usize {
             let offset = 8 + i * TABLE_PAGE_TUPLE_INFO_SIZE;
-            let tuple_offset = self.tuple_infos[i].offset;
-            let tuple_size = self.tuple_infos[i].size;
-            let meta = self.tuple_infos[i].meta;
+            let tuple_offset = self.header.tuple_infos[i].offset;
+            let tuple_size = self.header.tuple_infos[i].size;
+            let meta = self.header.tuple_infos[i].meta;
             bytes[offset..offset + 2].copy_from_slice(&tuple_offset.to_be_bytes());
             bytes[offset + 2..offset + 4].copy_from_slice(&tuple_size.to_be_bytes());
             bytes[offset + 4..offset + 8].copy_from_slice(&meta.insert_txn_id.to_be_bytes());
@@ -217,22 +218,25 @@ impl TablePage {
             let is_deleted = if meta.is_deleted { 1u32 } else { 0u32 };
             bytes[offset + 12..offset + 16].copy_from_slice(&is_deleted.to_be_bytes());
         }
-        bytes[TABLE_PAGE_HEADER_SIZE + self.num_tuples as usize * TABLE_PAGE_TUPLE_INFO_SIZE..]
+        bytes[TABLE_PAGE_HEADER_SIZE
+            + self.header.num_tuples as usize * TABLE_PAGE_TUPLE_INFO_SIZE..]
             .copy_from_slice(
                 &self.data[TABLE_PAGE_HEADER_SIZE
-                    + self.num_tuples as usize * TABLE_PAGE_TUPLE_INFO_SIZE..],
+                    + self.header.num_tuples as usize * TABLE_PAGE_TUPLE_INFO_SIZE..],
             );
         bytes
     }
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TablePageHeader {
     pub next_page_id: PageId,
     pub num_tuples: u16,
     pub num_deleted_tuples: u16,
-    pub slots: Vec<TupleInfo>,
+    pub tuple_infos: Vec<TupleInfo>,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TupleInfo {
     pub offset: u16,
     pub size: u16,
@@ -245,6 +249,7 @@ mod tests {
     use crate::catalog::{Column, DataType, Schema};
     use crate::storage::codec::TupleCodec;
     use crate::storage::Tuple;
+    use std::alloc::handle_alloc_error;
     use std::sync::Arc;
 
     #[test]
@@ -348,33 +353,33 @@ mod tests {
 
         let bytes = table_page.to_bytes();
         let table_page2 = super::TablePage::from_bytes(schema.clone(), &bytes);
-        assert_eq!(table_page2.next_page_id, 1);
-        assert_eq!(table_page2.num_tuples, 3);
-        assert_eq!(table_page2.num_deleted_tuples, 0);
-        assert_eq!(table_page2.tuple_infos.len(), 3);
+        assert_eq!(table_page2.header.next_page_id, 1);
+        assert_eq!(table_page2.header.num_tuples, 3);
+        assert_eq!(table_page2.header.num_deleted_tuples, 0);
+        assert_eq!(table_page2.header.tuple_infos.len(), 3);
 
         assert_eq!(
-            table_page2.tuple_infos[0].offset,
+            table_page2.header.tuple_infos[0].offset,
             BUSTUBX_PAGE_SIZE as u16 - tuple1_size
         );
         assert_eq!(
-            table_page2.tuple_infos[0].size,
+            table_page2.header.tuple_infos[0].size,
             TupleCodec::encode(&tuple1).len() as u16
         );
-        assert_eq!(table_page2.tuple_infos[0].meta, meta);
+        assert_eq!(table_page2.header.tuple_infos[0].meta, meta);
 
         assert_eq!(
-            table_page2.tuple_infos[1].offset,
+            table_page2.header.tuple_infos[1].offset,
             BUSTUBX_PAGE_SIZE as u16 - tuple1_size - tuple2_size
         );
-        assert_eq!(table_page2.tuple_infos[1].size, tuple2_size);
-        assert_eq!(table_page2.tuple_infos[1].meta, meta);
+        assert_eq!(table_page2.header.tuple_infos[1].size, tuple2_size);
+        assert_eq!(table_page2.header.tuple_infos[1].meta, meta);
 
         assert_eq!(
-            table_page2.tuple_infos[2].offset,
+            table_page2.header.tuple_infos[2].offset,
             BUSTUBX_PAGE_SIZE as u16 - tuple1_size - tuple2_size - tuple3_size
         );
-        assert_eq!(table_page2.tuple_infos[2].size, tuple3_size);
-        assert_eq!(table_page2.tuple_infos[2].meta, meta);
+        assert_eq!(table_page2.header.tuple_infos[2].size, tuple3_size);
+        assert_eq!(table_page2.header.tuple_infos[2].meta, meta);
     }
 }

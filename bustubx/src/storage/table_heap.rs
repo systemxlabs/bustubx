@@ -63,7 +63,7 @@ impl TableHeap {
             // if there's no tuple in the page, and we can't insert the tuple,
             // then this tuple is too large.
             assert!(
-                last_table_page.num_tuples > 0,
+                last_table_page.header.num_tuples > 0,
                 "tuple is too large, cannot insert"
             );
 
@@ -77,7 +77,7 @@ impl TableHeap {
             next_page.data = next_table_page.to_bytes();
 
             // Update and release the previous page
-            last_table_page.next_page_id = next_page_id;
+            last_table_page.header.next_page_id = next_page_id;
             self.buffer_pool_manager
                 .write_page(last_page_id, last_table_page.to_bytes());
             self.buffer_pool_manager.unpin_page(last_page_id, true);
@@ -139,7 +139,7 @@ impl TableHeap {
         let table_page = TablePage::from_bytes(self.schema.clone(), &page.data);
         self.buffer_pool_manager
             .unpin_page(self.first_page_id, false);
-        if table_page.num_tuples == 0 {
+        if table_page.header.num_tuples == 0 {
             // TODO 忽略删除的tuple
             return None;
         } else {
@@ -159,21 +159,21 @@ impl TableHeap {
             return next_rid;
         }
 
-        if table_page.next_page_id == INVALID_PAGE_ID {
+        if table_page.header.next_page_id == INVALID_PAGE_ID {
             return None;
         }
         let next_page = self
             .buffer_pool_manager
-            .fetch_page_mut(table_page.next_page_id)
+            .fetch_page_mut(table_page.header.next_page_id)
             .expect("Can not fetch page");
         let next_table_page = TablePage::from_bytes(self.schema.clone(), &next_page.data);
         self.buffer_pool_manager
-            .unpin_page(table_page.next_page_id, false);
-        if next_table_page.num_tuples == 0 {
+            .unpin_page(table_page.header.next_page_id, false);
+        if next_table_page.header.num_tuples == 0 {
             // TODO 忽略删除的tuple
             return None;
         } else {
-            return Some(Rid::new(table_page.next_page_id, 0));
+            return Some(Rid::new(table_page.header.next_page_id, 0));
         }
     }
 
