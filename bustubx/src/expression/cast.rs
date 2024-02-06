@@ -23,52 +23,7 @@ impl ExprTrait for Cast {
 
     fn evaluate(&self, tuple: &Tuple) -> BustubxResult<ScalarValue> {
         let value = self.expr.evaluate(tuple)?;
-        match value {
-            ScalarValue::Boolean(v) => match self.data_type {
-                DataType::Boolean => Ok(value),
-                _ => Err(BustubxError::Internal(format!(
-                    "Failed to cast {} as {}",
-                    value, self.data_type
-                ))),
-            },
-            ScalarValue::Int8(v) => match self.data_type {
-                DataType::Int8 => Ok(value),
-                _ => Err(BustubxError::Internal(format!(
-                    "Failed to cast {} as {}",
-                    value, self.data_type
-                ))),
-            },
-            ScalarValue::Int16(v) => match self.data_type {
-                DataType::Int16 => Ok(value),
-                _ => Err(BustubxError::Internal(format!(
-                    "Failed to cast {} as {}",
-                    value, self.data_type
-                ))),
-            },
-            ScalarValue::Int32(v) => match self.data_type {
-                DataType::Int32 => Ok(value),
-                _ => Err(BustubxError::Internal(format!(
-                    "Failed to cast {} as {}",
-                    value, self.data_type
-                ))),
-            },
-            ScalarValue::Int64(v) => match self.data_type {
-                DataType::Int32 => Ok(v.map(|v| v as i32).into()),
-                DataType::Int64 => Ok(value),
-                _ => Err(BustubxError::Internal(format!(
-                    "Failed to cast {} as {}",
-                    value, self.data_type
-                ))),
-            },
-            ScalarValue::UInt64(v) => match self.data_type {
-                DataType::Int32 => Ok(v.map(|v| v as i32).into()),
-                DataType::UInt64 => Ok(value),
-                _ => Err(BustubxError::Internal(format!(
-                    "Failed to cast {} as {}",
-                    value, self.data_type
-                ))),
-            },
-        }
+        value.cast_to(&self.data_type)
     }
 
     fn to_column(&self, input_schema: &Schema) -> BustubxResult<Column> {

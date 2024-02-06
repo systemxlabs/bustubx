@@ -14,11 +14,16 @@ impl<'a> LogicalPlanner<'a> {
         let name = self.bind_table_name(name)?;
         let mut columns = vec![];
         for col_def in column_defs {
+            let not_null: bool = col_def
+                .options
+                .iter()
+                .find(|opt| matches!(opt.option, sqlparser::ast::ColumnOption::NotNull))
+                .is_some();
             columns.push(
                 Column::new(
                     col_def.name.value.clone(),
                     (&col_def.data_type).try_into()?,
-                    false,
+                    !not_null,
                 )
                 .with_relation(Some(name.clone())),
             )

@@ -1,4 +1,4 @@
-use crate::common::TableReference;
+use crate::common::{ScalarValue, TableReference};
 use crate::expression::{BinaryExpr, ColumnExpr, Expr, Literal};
 use crate::planner::LogicalPlanner;
 use crate::{BustubxError, BustubxResult};
@@ -65,6 +65,9 @@ impl LogicalPlanner<'_> {
                 Ok(Expr::Literal(Literal { value: num.into() }))
             }
             sqlparser::ast::Value::Boolean(b) => Ok(Expr::Literal(Literal { value: (*b).into() })),
+            sqlparser::ast::Value::Null => Ok(Expr::Literal(Literal {
+                value: ScalarValue::Int8(None),
+            })),
             _ => Err(BustubxError::NotSupport(format!(
                 "sqlparser value {} not supported",
                 value

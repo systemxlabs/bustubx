@@ -1,9 +1,11 @@
 mod common;
 mod scalar;
+mod table_page;
 mod tuple;
 
 pub use common::CommonCodec;
 pub use scalar::ScalarValueCodec;
+pub use table_page::TablePageCodec;
 pub use tuple::TupleCodec;
 
 // data + consumed offset

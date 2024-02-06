@@ -1,7 +1,7 @@
 use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
 use crate::common::rid::Rid;
-use crate::storage::codec::CommonCodec;
+use crate::storage::codec::{CommonCodec, TupleCodec};
 
 use super::tuple::{Tuple, TupleMeta};
 
@@ -60,13 +60,13 @@ impl TablePage {
         };
 
         // Check if the current slot has enough space for the new tuple. Return None if not.
-        if slot_end_offset < tuple.to_bytes().len() as u16 {
+        if slot_end_offset < TupleCodec::encode(tuple).len() as u16 {
             return None;
         }
 
         // Calculate the insertion offset for the new tuple by subtracting its data length
         // from the ending offset of the current slot.
-        let tuple_offset = slot_end_offset - tuple.to_bytes().len() as u16;
+        let tuple_offset = slot_end_offset - TupleCodec::encode(tuple).len() as u16;
 
         // Calculate the minimum valid tuple insertion offset, including the table page header size,
         // the total size of each tuple info (existing tuple infos and newly added tuple info).
@@ -86,8 +86,11 @@ impl TablePage {
         let tuple_id = self.num_tuples;
 
         // Store tuple information including offset, length, and metadata.
-        self.tuple_info
-            .push((tuple_offset, tuple.to_bytes().len() as u16, meta.clone()));
+        self.tuple_info.push((
+            tuple_offset,
+            TupleCodec::encode(tuple).len() as u16,
+            meta.clone(),
+        ));
 
         // only check
         assert_eq!(tuple_id, self.tuple_info.len() as u16 - 1);
@@ -98,8 +101,9 @@ impl TablePage {
         }
 
         // Copy the tuple's data into the appropriate position within the page's data buffer.
-        self.data[tuple_offset as usize..(tuple_offset + tuple.to_bytes().len() as u16) as usize]
-            .copy_from_slice(&tuple.to_bytes());
+        self.data[tuple_offset as usize
+            ..(tuple_offset + TupleCodec::encode(tuple).len() as u16) as usize]
+            .copy_from_slice(&TupleCodec::encode(tuple));
         return Some(tuple_id);
     }
 
@@ -122,10 +126,11 @@ impl TablePage {
         }
 
         let (offset, size, meta) = self.tuple_info[tuple_id as usize];
-        let tuple = Tuple::from_bytes(
+        let (tuple, _) = TupleCodec::decode(
+            &self.data[offset as usize..(offset + size) as usize],
             self.schema.clone(),
-            &self.data[offset as usize..(offset + size) as usize].to_vec(),
-        );
+        )
+        .unwrap();
 
         return (meta, tuple);
     }
@@ -256,51 +261,9 @@ impl TablePageV2 {
 mod tests {
     use crate::buffer::BUSTUBX_PAGE_SIZE;
     use crate::catalog::{Column, DataType, Schema};
-    use crate::{common::rid::Rid, storage::Tuple};
+    use crate::storage::codec::TupleCodec;
+    use crate::storage::Tuple;
     use std::sync::Arc;
-
-    #[test]
-    pub fn test_table_page_insert() {
-        let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, false),
-            Column::new("b".to_string(), DataType::Int16, false),
-        ]));
-        let mut table_page = super::TablePage::new(schema.clone(), 0);
-        let meta = super::TupleMeta {
-            insert_txn_id: 0,
-            delete_txn_id: 0,
-            is_deleted: false,
-        };
-        let tuple_id = table_page.insert_tuple(
-            &meta,
-            &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
-        );
-        assert_eq!(tuple_id, Some(0));
-        assert_eq!(table_page.num_tuples, 1);
-        assert_eq!(table_page.num_deleted_tuples, 0);
-        assert_eq!(table_page.tuple_info.len(), 1);
-        assert_eq!(
-            table_page.tuple_info[tuple_id.unwrap() as usize].0,
-            BUSTUBX_PAGE_SIZE as u16 - 3
-        );
-        assert_eq!(table_page.tuple_info[tuple_id.unwrap() as usize].1, 3);
-        assert_eq!(table_page.tuple_info[tuple_id.unwrap() as usize].2, meta);
-
-        let tuple_id = table_page.insert_tuple(
-            &meta,
-            &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
-        );
-        assert_eq!(tuple_id, Some(1));
-        assert_eq!(table_page.num_tuples, 2);
-        assert_eq!(table_page.num_deleted_tuples, 0);
-        assert_eq!(table_page.tuple_info.len(), 2);
-        assert_eq!(
-            table_page.tuple_info[tuple_id.unwrap() as usize].0,
-            BUSTUBX_PAGE_SIZE as u16 - 3 - 3
-        );
-        assert_eq!(table_page.tuple_info[tuple_id.unwrap() as usize].1, 3);
-        assert_eq!(table_page.tuple_info[tuple_id.unwrap() as usize].2, meta);
-    }
 
     #[test]
     pub fn test_table_page_get_tuple() {
@@ -388,18 +351,18 @@ mod tests {
             delete_txn_id: 0,
             is_deleted: false,
         };
-        let tuple_id1 = table_page.insert_tuple(
-            &meta,
-            &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
-        );
-        let tuple_id2 = table_page.insert_tuple(
-            &meta,
-            &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
-        );
-        let tuple_id3 = table_page.insert_tuple(
-            &meta,
-            &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
-        );
+
+        let tuple1 = Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]);
+        let tuple1_size = TupleCodec::encode(&tuple1).len() as u16;
+        let tuple_id1 = table_page.insert_tuple(&meta, &tuple1);
+
+        let tuple2 = Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]);
+        let tuple2_size = TupleCodec::encode(&tuple2).len() as u16;
+        let tuple_id2 = table_page.insert_tuple(&meta, &tuple2);
+
+        let tuple3 = Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]);
+        let tuple3_size = TupleCodec::encode(&tuple3).len() as u16;
+        let tuple_id3 = table_page.insert_tuple(&meta, &tuple3);
 
         let bytes = table_page.to_bytes();
         let table_page2 = super::TablePage::from_bytes(schema.clone(), &bytes);
@@ -407,24 +370,29 @@ mod tests {
         assert_eq!(table_page2.num_tuples, 3);
         assert_eq!(table_page2.num_deleted_tuples, 0);
         assert_eq!(table_page2.tuple_info.len(), 3);
-        assert_eq!(table_page2.tuple_info[0].0, BUSTUBX_PAGE_SIZE as u16 - 3);
-        assert_eq!(table_page2.tuple_info[0].1, 3);
+
+        assert_eq!(
+            table_page2.tuple_info[0].0,
+            BUSTUBX_PAGE_SIZE as u16 - tuple1_size
+        );
+        assert_eq!(
+            table_page2.tuple_info[0].1,
+            TupleCodec::encode(&tuple1).len() as u16
+        );
         assert_eq!(table_page2.tuple_info[0].2, meta);
+
         assert_eq!(
             table_page2.tuple_info[1].0,
-            BUSTUBX_PAGE_SIZE as u16 - 3 - 3
+            BUSTUBX_PAGE_SIZE as u16 - tuple1_size - tuple2_size
         );
-        assert_eq!(table_page2.tuple_info[1].1, 3);
+        assert_eq!(table_page2.tuple_info[1].1, tuple2_size);
         assert_eq!(table_page2.tuple_info[1].2, meta);
+
         assert_eq!(
             table_page2.tuple_info[2].0,
-            BUSTUBX_PAGE_SIZE as u16 - 3 - 3 - 3
+            BUSTUBX_PAGE_SIZE as u16 - tuple1_size - tuple2_size - tuple3_size
         );
-        assert_eq!(table_page2.tuple_info[2].1, 3);
+        assert_eq!(table_page2.tuple_info[2].1, tuple3_size);
         assert_eq!(table_page2.tuple_info[2].2, meta);
-
-        let (tuple_meta, tuple) = table_page2.get_tuple(&Rid::new(0, tuple_id2.unwrap() as u32));
-        assert_eq!(tuple_meta, meta);
-        assert_eq!(tuple.data, vec![2i8.into(), 2i16.into()]);
     }
 }

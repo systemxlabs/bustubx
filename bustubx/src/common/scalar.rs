@@ -104,6 +104,7 @@ impl ScalarValue {
                 ))),
             },
             DataType::Int32 => match self {
+                ScalarValue::Int8(v) => Ok(ScalarValue::Int32(v.map(|v| v as i32))),
                 ScalarValue::Int64(v) => Ok(ScalarValue::Int32(v.map(|v| v as i32))),
                 _ => Err(BustubxError::NotSupport(format!(
                     "Failed to cast {} to {} type",
