@@ -88,7 +88,6 @@ impl DiskManager {
 
     pub fn deallocate_page(&self, page_id: PageId) -> BustubxResult<()> {
         // TODO 利用pageId或者释放的空间
-        // TODO 添加单测
         let mut guard = self.db_file.lock().unwrap();
 
         // Write an empty page (all zeros) to the deallocated page.

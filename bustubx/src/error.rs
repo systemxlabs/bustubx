@@ -21,4 +21,7 @@ pub enum BustubxError {
 
     #[error("Execution error: {0}")]
     Execution(String),
+
+    #[error("Storage error: {0}")]
+    Storage(String),
 }

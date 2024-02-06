@@ -67,7 +67,7 @@ impl Catalog {
             TABLE_HEAP_BUFFER_POOL_SIZE,
             self.buffer_pool_manager.disk_manager.clone(),
         );
-        let table_heap = TableHeap::new(schema.clone(), buffer_pool_manager);
+        let table_heap = TableHeap::try_new(schema.clone(), buffer_pool_manager);
         let table_oid = self
             .next_table_oid
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);

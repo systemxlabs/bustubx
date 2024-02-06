@@ -1,6 +1,8 @@
 use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE};
 use crate::catalog::SchemaRef;
 use crate::common::rid::Rid;
+use crate::storage::Serializable;
+use crate::BustubxResult;
 
 use super::tuple::{Tuple, TupleMeta};
 
@@ -34,6 +36,10 @@ pub struct TablePage {
     // 整个页原始数据
     // TODO 可以通过memmove、memcpy优化，参考bustub
     pub data: [u8; BUSTUBX_PAGE_SIZE],
+}
+
+pub struct TablePageHeader {
+    pub next_page_id: PageId,
 }
 
 impl TablePage {
@@ -150,7 +156,7 @@ impl TablePage {
 
     // Parse real data from disk pages into memory pages.
     pub fn from_bytes(schema: SchemaRef, data: &[u8]) -> Self {
-        let next_page_id = u32::from_be_bytes([data[0], data[1], data[2], data[3]]);
+        let (next_page_id, _) = PageId::deserialize(data).unwrap();
         let mut table_page = Self::new(schema, next_page_id);
         table_page.num_tuples = u16::from_be_bytes([data[4], data[5]]);
         table_page.num_deleted_tuples = u16::from_be_bytes([data[6], data[7]]);
@@ -195,9 +201,9 @@ impl TablePage {
 
     pub fn to_bytes(&self) -> [u8; BUSTUBX_PAGE_SIZE] {
         let mut bytes = [0; BUSTUBX_PAGE_SIZE];
-        bytes[0..4].copy_from_slice(&self.next_page_id.to_be_bytes());
-        bytes[4..6].copy_from_slice(&self.num_tuples.to_be_bytes());
-        bytes[6..8].copy_from_slice(&self.num_deleted_tuples.to_be_bytes());
+        bytes[0..4].copy_from_slice(self.next_page_id.serialize().unwrap().as_slice());
+        bytes[4..6].copy_from_slice(self.num_tuples.serialize().unwrap().as_slice());
+        bytes[6..8].copy_from_slice(self.num_deleted_tuples.serialize().unwrap().as_slice());
         for i in 0..self.num_tuples as usize {
             let offset = 8 + i * TABLE_PAGE_TUPLE_INFO_SIZE;
             let (tuple_offset, tuple_size, meta) = self.tuple_info[i];
