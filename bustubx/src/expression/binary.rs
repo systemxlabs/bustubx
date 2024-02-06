@@ -5,6 +5,7 @@ use crate::error::BustubxResult;
 use crate::expression::{Expr, ExprTrait};
 use crate::storage::Tuple;
 use crate::BustubxError;
+use std::cmp::Ordering;
 
 /// Binary expression
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -45,42 +46,12 @@ impl ExprTrait for BinaryExpr {
         let l = self.left.evaluate(tuple)?;
         let r = self.right.evaluate(tuple)?;
         match self.op {
-            BinaryOp::Gt => {
-                let order = l.compare(&r);
-                Ok(ScalarValue::Boolean(Some(
-                    order == std::cmp::Ordering::Greater,
-                )))
-            }
-            BinaryOp::Lt => {
-                let order = l.compare(&r);
-                Ok(ScalarValue::Boolean(Some(
-                    order == std::cmp::Ordering::Less,
-                )))
-            }
-            BinaryOp::GtEq => {
-                let order = l.compare(&r);
-                Ok(ScalarValue::Boolean(Some(
-                    order == std::cmp::Ordering::Greater || order == std::cmp::Ordering::Equal,
-                )))
-            }
-            BinaryOp::LtEq => {
-                let order = l.compare(&r);
-                Ok(ScalarValue::Boolean(Some(
-                    order == std::cmp::Ordering::Less || order == std::cmp::Ordering::Equal,
-                )))
-            }
-            BinaryOp::Eq => {
-                let order = l.compare(&r);
-                Ok(ScalarValue::Boolean(Some(
-                    order == std::cmp::Ordering::Equal,
-                )))
-            }
-            BinaryOp::NotEq => {
-                let order = l.compare(&r);
-                Ok(ScalarValue::Boolean(Some(
-                    order != std::cmp::Ordering::Equal,
-                )))
-            }
+            BinaryOp::Gt => evaluate_comparison(l, r, &vec![Ordering::Greater]),
+            BinaryOp::Lt => evaluate_comparison(l, r, &vec![Ordering::Less]),
+            BinaryOp::GtEq => evaluate_comparison(l, r, &vec![Ordering::Greater, Ordering::Equal]),
+            BinaryOp::LtEq => evaluate_comparison(l, r, &vec![Ordering::Less, Ordering::Equal]),
+            BinaryOp::Eq => evaluate_comparison(l, r, &vec![Ordering::Equal]),
+            BinaryOp::NotEq => evaluate_comparison(l, r, &vec![Ordering::Greater, Ordering::Less]),
             _ => Err(BustubxError::NotSupport(format!(
                 "binary operator {:?} not support evaluating yet",
                 self.op
@@ -94,6 +65,22 @@ impl ExprTrait for BinaryExpr {
             self
         )))
     }
+}
+
+fn evaluate_comparison(
+    left: ScalarValue,
+    right: ScalarValue,
+    accepted_orderings: &[Ordering],
+) -> BustubxResult<ScalarValue> {
+    let order = left
+        .partial_cmp(&right)
+        .ok_or(BustubxError::Execution(format!(
+            "Can not compare {} and {}",
+            left, right
+        )))?;
+    Ok(ScalarValue::Boolean(Some(
+        accepted_orderings.contains(&order),
+    )))
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Hash)]

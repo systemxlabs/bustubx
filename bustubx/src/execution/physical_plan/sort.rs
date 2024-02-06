@@ -7,7 +7,7 @@ use crate::planner::logical_plan::OrderByExpr;
 use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
-    BustubxResult,
+    BustubxError, BustubxResult,
 };
 
 use super::PhysicalPlan;
@@ -45,6 +45,7 @@ impl VolcanoExecutor for PhysicalSort {
             all_tuples.push(next_tuple.unwrap());
         }
 
+        // TODO handle error during sorting
         // sort all tuples
         all_tuples.sort_by(|a, b| {
             let mut ordering = std::cmp::Ordering::Equal;
@@ -53,10 +54,15 @@ impl VolcanoExecutor for PhysicalSort {
                 let a_value = self.order_bys[index].expr.evaluate(a).unwrap();
                 let b_value = self.order_bys[index].expr.evaluate(b).unwrap();
                 ordering = if self.order_bys[index].asc {
-                    a_value.compare(&b_value)
+                    a_value.partial_cmp(&b_value)
                 } else {
-                    b_value.compare(&a_value)
-                };
+                    b_value.partial_cmp(&a_value)
+                }
+                .ok_or(BustubxError::Execution(format!(
+                    "Can not compare {} and {}",
+                    a_value, b_value
+                )))
+                .unwrap();
                 index += 1;
             }
             ordering

@@ -10,12 +10,15 @@ pub enum BustubxError {
     #[error("Internal error: {0}")]
     Internal(String),
 
-    #[error("Plan error: {0}")]
-    Plan(String),
-
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
     #[error("Parser error: {0}")]
     Parser(#[from] sqlparser::parser::ParserError),
+
+    #[error("Plan error: {0}")]
+    Plan(String),
+
+    #[error("Execution error: {0}")]
+    Execution(String),
 }

@@ -1,7 +1,8 @@
 use crate::catalog::DataType;
 use crate::{BustubxError, BustubxResult};
+use std::cmp::Ordering;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum ScalarValue {
     Boolean(Option<bool>),
     Int8(Option<i8>),
@@ -59,36 +60,6 @@ impl ScalarValue {
         }
     }
 
-    // TODO compare value with different data type
-    pub fn compare(&self, other: &Self) -> std::cmp::Ordering {
-        match self {
-            Self::Boolean(v1) => match other {
-                Self::Boolean(v2) => v1.cmp(v2),
-                _ => panic!("Not implemented"),
-            },
-            Self::Int8(v1) => match other {
-                Self::Int8(v2) => v1.cmp(v2),
-                _ => panic!("Not implemented"),
-            },
-            Self::Int16(v1) => match other {
-                Self::Int16(v2) => v1.cmp(v2),
-                _ => panic!("Not implemented"),
-            },
-            Self::Int32(v1) => match other {
-                Self::Int32(v2) => v1.cmp(v2),
-                _ => panic!("Not implemented"),
-            },
-            Self::Int64(v1) => match other {
-                Self::Int64(v2) => v1.cmp(v2),
-                _ => panic!("Not implemented"),
-            },
-            Self::UInt64(v1) => match other {
-                Self::UInt64(v2) => v1.cmp(v2),
-                _ => panic!("Not implemented"),
-            },
-        }
-    }
-
     pub fn boolean_from_bytes(bytes: &[u8]) -> bool {
         bytes[0] != 0
     }
@@ -143,6 +114,56 @@ impl ScalarValue {
                 "Not support cast to {} type",
                 data_type
             ))),
+        }
+    }
+
+    pub fn wrapping_add(&self, other: Self) -> BustubxResult<Self> {
+        todo!()
+    }
+
+    pub fn wrapping_sub(&self, other: Self) -> BustubxResult<Self> {
+        todo!()
+    }
+}
+
+impl PartialEq for ScalarValue {
+    fn eq(&self, other: &Self) -> bool {
+        use ScalarValue::*;
+        match (self, other) {
+            (Boolean(v1), Boolean(v2)) => v1.eq(v2),
+            (Boolean(_), _) => false,
+            (Int8(v1), Int8(v2)) => v1.eq(v2),
+            (Int8(_), _) => false,
+            (Int16(v1), Int16(v2)) => v1.eq(v2),
+            (Int16(_), _) => false,
+            (Int32(v1), Int32(v2)) => v1.eq(v2),
+            (Int32(_), _) => false,
+            (Int64(v1), Int64(v2)) => v1.eq(v2),
+            (Int64(_), _) => false,
+            (UInt64(v1), UInt64(v2)) => v1.eq(v2),
+            (UInt64(_), _) => false,
+        }
+    }
+}
+
+impl Eq for ScalarValue {}
+
+impl PartialOrd for ScalarValue {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        use ScalarValue::*;
+        match (self, other) {
+            (Boolean(v1), Boolean(v2)) => v1.partial_cmp(v2),
+            (Boolean(_), _) => None,
+            (Int8(v1), Int8(v2)) => v1.partial_cmp(v2),
+            (Int8(_), _) => None,
+            (Int16(v1), Int16(v2)) => v1.partial_cmp(v2),
+            (Int16(_), _) => None,
+            (Int32(v1), Int32(v2)) => v1.partial_cmp(v2),
+            (Int32(_), _) => None,
+            (Int64(v1), Int64(v2)) => v1.partial_cmp(v2),
+            (Int64(_), _) => None,
+            (UInt64(v1), UInt64(v2)) => v1.partial_cmp(v2),
+            (UInt64(_), _) => None,
         }
     }
 }

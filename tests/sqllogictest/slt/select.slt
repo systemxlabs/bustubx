@@ -19,6 +19,6 @@ select b from t1
 4
 
 query I
-select 1
+select 1 as a
 ----
 1

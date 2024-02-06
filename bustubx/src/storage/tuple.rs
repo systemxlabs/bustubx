@@ -90,7 +90,8 @@ impl Tuple {
             let compare_res = self
                 .value(column_index)
                 .unwrap()
-                .compare(&other.value(column_index).unwrap());
+                .partial_cmp(&other.value(column_index).unwrap())
+                .unwrap();
             if compare_res == std::cmp::Ordering::Equal {
                 continue;
             }
