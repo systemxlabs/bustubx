@@ -10,7 +10,7 @@ pub struct TupleMeta {
     pub is_deleted: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Tuple {
     pub schema: SchemaRef,
     pub data: Vec<ScalarValue>,

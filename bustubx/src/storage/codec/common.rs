@@ -4,6 +4,25 @@ use crate::{BustubxError, BustubxResult};
 pub struct CommonCodec;
 
 impl CommonCodec {
+    pub fn encode_bool(data: bool) -> Vec<u8> {
+        if data {
+            vec![1]
+        } else {
+            vec![0]
+        }
+    }
+
+    pub fn decode_bool(bytes: &[u8]) -> BustubxResult<DecodedData<bool>> {
+        if bytes.len() < 1 {
+            return Err(BustubxError::Storage(format!(
+                "bytes length {} is less than {}",
+                bytes.len(),
+                1
+            )));
+        }
+        Ok((if bytes[0] == 0 { false } else { true }, 1))
+    }
+
     pub fn encode_u8(data: u8) -> Vec<u8> {
         data.to_be_bytes().to_vec()
     }
@@ -141,6 +160,18 @@ mod tests {
 
     #[test]
     fn common_codec() {
+        assert_eq!(
+            true,
+            CommonCodec::decode_bool(&CommonCodec::encode_bool(true))
+                .unwrap()
+                .0
+        );
+        assert_eq!(
+            false,
+            CommonCodec::decode_bool(&CommonCodec::encode_bool(false))
+                .unwrap()
+                .0
+        );
         assert_eq!(
             5u8,
             CommonCodec::decode_u8(&CommonCodec::encode_u8(5u8))
