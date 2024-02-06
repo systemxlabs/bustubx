@@ -1,8 +1,7 @@
-use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE};
+use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
 use crate::common::rid::Rid;
-use crate::storage::Serializable;
-use crate::BustubxResult;
+use crate::storage::codec::CommonCodec;
 
 use super::tuple::{Tuple, TupleMeta};
 
@@ -36,10 +35,6 @@ pub struct TablePage {
     // 整个页原始数据
     // TODO 可以通过memmove、memcpy优化，参考bustub
     pub data: [u8; BUSTUBX_PAGE_SIZE],
-}
-
-pub struct TablePageHeader {
-    pub next_page_id: PageId,
 }
 
 impl TablePage {
@@ -156,7 +151,7 @@ impl TablePage {
 
     // Parse real data from disk pages into memory pages.
     pub fn from_bytes(schema: SchemaRef, data: &[u8]) -> Self {
-        let (next_page_id, _) = PageId::deserialize(data).unwrap();
+        let (next_page_id, _) = CommonCodec::decode_u32(data).unwrap();
         let mut table_page = Self::new(schema, next_page_id);
         table_page.num_tuples = u16::from_be_bytes([data[4], data[5]]);
         table_page.num_deleted_tuples = u16::from_be_bytes([data[6], data[7]]);
@@ -201,9 +196,9 @@ impl TablePage {
 
     pub fn to_bytes(&self) -> [u8; BUSTUBX_PAGE_SIZE] {
         let mut bytes = [0; BUSTUBX_PAGE_SIZE];
-        bytes[0..4].copy_from_slice(self.next_page_id.serialize().unwrap().as_slice());
-        bytes[4..6].copy_from_slice(self.num_tuples.serialize().unwrap().as_slice());
-        bytes[6..8].copy_from_slice(self.num_deleted_tuples.serialize().unwrap().as_slice());
+        bytes[0..4].copy_from_slice(CommonCodec::encode_u32(self.next_page_id).as_slice());
+        bytes[4..6].copy_from_slice(CommonCodec::encode_u16(self.num_tuples).as_slice());
+        bytes[6..8].copy_from_slice(CommonCodec::encode_u16(self.num_deleted_tuples).as_slice());
         for i in 0..self.num_tuples as usize {
             let offset = 8 + i * TABLE_PAGE_TUPLE_INFO_SIZE;
             let (tuple_offset, tuple_size, meta) = self.tuple_info[i];
@@ -220,6 +215,40 @@ impl TablePage {
                     + self.num_tuples as usize * TABLE_PAGE_TUPLE_INFO_SIZE..],
             );
         bytes
+    }
+}
+
+pub struct TablePageV2 {
+    pub schema: SchemaRef,
+    pub header: TablePageHeader,
+    pub tuples: Vec<Tuple>,
+}
+
+pub struct TablePageHeader {
+    pub next_page_id: PageId,
+    pub num_tuples: u16,
+    pub num_deleted_tuples: u16,
+    pub tuple_infos: Vec<TupleInfo>,
+}
+
+pub struct TupleInfo {
+    pub offset: u16,
+    pub size: u16,
+    pub meta: TupleMeta,
+}
+
+impl TablePageV2 {
+    pub fn new(schema: SchemaRef, next_page_id: PageId) -> Self {
+        Self {
+            schema,
+            header: TablePageHeader {
+                next_page_id,
+                num_tuples: 0,
+                num_deleted_tuples: 0,
+                tuple_infos: vec![],
+            },
+            tuples: vec![],
+        }
     }
 }
 
