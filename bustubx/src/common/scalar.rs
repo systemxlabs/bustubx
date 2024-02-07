@@ -23,53 +23,6 @@ impl ScalarValue {
             DataType::UInt64 => Self::UInt64(None),
         }
     }
-    pub fn from_bytes(bytes: &[u8], data_type: DataType) -> Self {
-        match data_type {
-            DataType::Boolean => Self::Boolean(Some(Self::boolean_from_bytes(bytes))),
-            DataType::Int8 => Self::Int8(Some(i8::from_be_bytes([bytes[0]]))),
-            DataType::Int16 => Self::Int16(Some(i16::from_be_bytes([bytes[0], bytes[1]]))),
-            DataType::Int32 => Self::Int32(Some(i32::from_be_bytes([
-                bytes[0], bytes[1], bytes[2], bytes[3],
-            ]))),
-            DataType::Int64 => Self::Int64(Some(i64::from_be_bytes([
-                bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-            ]))),
-            DataType::UInt64 => Self::UInt64(Some(u64::from_be_bytes([
-                bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-            ]))),
-        }
-    }
-
-    pub fn to_bytes(&self) -> Vec<u8> {
-        match self {
-            Self::Boolean(Some(v)) => Self::boolean_to_bytes(*v),
-            Self::Int8(Some(v)) => v.to_be_bytes().to_vec(),
-            Self::Int16(Some(v)) => v.to_be_bytes().to_vec(),
-            Self::Int32(Some(v)) => v.to_be_bytes().to_vec(),
-            Self::Int64(Some(v)) => v.to_be_bytes().to_vec(),
-            Self::UInt64(Some(v)) => v.to_be_bytes().to_vec(),
-
-            // TODO fixme
-            Self::Boolean(None) => vec![0u8; 1],
-            Self::Int8(None) => vec![0u8; 1],
-            Self::Int16(None) => vec![0u8; 2],
-            Self::Int32(None) => vec![0u8; 4],
-            Self::Int64(None) => vec![0u8; 8],
-            Self::UInt64(None) => vec![0u8; 8],
-            _ => unimplemented!(),
-        }
-    }
-
-    pub fn boolean_from_bytes(bytes: &[u8]) -> bool {
-        bytes[0] != 0
-    }
-    pub fn boolean_to_bytes(value: bool) -> Vec<u8> {
-        if value {
-            vec![1]
-        } else {
-            vec![0]
-        }
-    }
 
     pub fn data_type(&self) -> DataType {
         match self {

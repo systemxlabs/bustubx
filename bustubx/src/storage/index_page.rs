@@ -1,9 +1,6 @@
-use std::mem::size_of;
-
 use super::Tuple;
-use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
+use crate::buffer::{PageId, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
-use crate::storage::codec::BPlusTreePageTypeCodec;
 use crate::{catalog::Schema, common::rid::Rid};
 
 pub const INTERNAL_PAGE_HEADER_SIZE: usize = 4 + 4 + 4;
@@ -17,23 +14,6 @@ pub enum BPlusTreePage {
     Leaf(BPlusTreeLeafPage),
 }
 impl BPlusTreePage {
-    pub fn from_bytes(raw: &[u8; BUSTUBX_PAGE_SIZE], key_schema: SchemaRef) -> Self {
-        let page_type = BPlusTreePageType::from_bytes(&raw[0..4].try_into().unwrap());
-        return match page_type {
-            BPlusTreePageType::InternalPage => {
-                Self::Internal(BPlusTreeInternalPage::from_bytes(raw, key_schema.clone()))
-            }
-            BPlusTreePageType::LeafPage => {
-                Self::Leaf(BPlusTreeLeafPage::from_bytes(raw, key_schema.clone()))
-            }
-        };
-    }
-    pub fn to_bytes(&self) -> [u8; BUSTUBX_PAGE_SIZE] {
-        match self {
-            Self::Internal(page) => page.to_bytes(),
-            Self::Leaf(page) => page.to_bytes(),
-        }
-    }
     pub fn is_leaf(&self) -> bool {
         match self {
             Self::Internal(_) => false,
@@ -73,21 +53,6 @@ impl BPlusTreePage {
 pub enum BPlusTreePageType {
     LeafPage,
     InternalPage,
-}
-impl BPlusTreePageType {
-    pub fn from_bytes(raw: &[u8; 4]) -> Self {
-        match u32::from_be_bytes(*raw) {
-            1 => Self::LeafPage,
-            2 => Self::InternalPage,
-            _ => panic!("Invalid page type"),
-        }
-    }
-    pub fn to_bytes(&self) -> [u8; 4] {
-        match self {
-            Self::LeafPage => 1u32.to_be_bytes(),
-            Self::InternalPage => 2u32.to_be_bytes(),
-        }
-    }
 }
 
 pub type InternalKV = (Tuple, PageId);
@@ -323,53 +288,6 @@ impl BPlusTreeInternalPage {
         }
     }
 
-    pub fn from_bytes(raw: &[u8; BUSTUBX_PAGE_SIZE], key_schema: SchemaRef) -> Self {
-        let (page_type, _) = BPlusTreePageTypeCodec::decode(raw).unwrap();
-        let current_size = u32::from_be_bytes(raw[4..8].try_into().unwrap());
-        let max_size = u32::from_be_bytes(raw[8..12].try_into().unwrap());
-        let mut array = Vec::with_capacity(max_size as usize);
-        let key_size = key_schema.fixed_len();
-        let value_size = size_of::<PageId>();
-        let kv_size = key_size + value_size;
-        for i in 0..current_size {
-            let start = 12 + i as usize * kv_size;
-            let end = 12 + (i + 1) as usize * kv_size;
-            let key = Tuple::from_bytes(key_schema.clone(), &raw[start..start + key_size]);
-            let page_id = u32::from_be_bytes(raw[start + key_size..end].try_into().unwrap());
-            array.push((key, page_id));
-        }
-        Self {
-            schema: key_schema,
-            header: BPlusTreeInternalPageHeader {
-                page_type,
-                current_size,
-                max_size,
-            },
-            array,
-        }
-    }
-
-    pub fn to_bytes(&self) -> [u8; BUSTUBX_PAGE_SIZE] {
-        let mut buf = [0; BUSTUBX_PAGE_SIZE];
-        buf[0..4].copy_from_slice(&BPlusTreePageTypeCodec::encode(&self.header.page_type));
-        buf[4..8].copy_from_slice(&self.header.current_size.to_be_bytes());
-        buf[8..12].copy_from_slice(&self.header.max_size.to_be_bytes());
-        if self.header.current_size == 0 {
-            buf[12..BUSTUBX_PAGE_SIZE].fill(0);
-        } else {
-            let key_size = self.array[0].0.to_bytes().len();
-            let value_size = size_of::<PageId>();
-            let kv_size = key_size + value_size;
-            for i in 0..self.header.current_size {
-                let start = 12 + i as usize * kv_size;
-                let end = 12 + (i + 1) as usize * kv_size;
-                buf[start..start + key_size].copy_from_slice(&self.array[i as usize].0.to_bytes());
-                buf[start + key_size..end].copy_from_slice(&self.array[i as usize].1.to_be_bytes());
-            }
-        }
-        buf
-    }
-
     pub fn print_page(&self, page_id: PageId, key_schema: &Schema) {
         println!(
             "{:?}, page_id: {}, size: {}/{}",
@@ -435,55 +353,6 @@ impl BPlusTreeLeafPage {
             },
             array: Vec::with_capacity(max_size as usize),
         }
-    }
-    pub fn from_bytes(raw: &[u8; BUSTUBX_PAGE_SIZE], key_schema: SchemaRef) -> Self {
-        let page_type = BPlusTreePageType::from_bytes(&raw[0..4].try_into().unwrap());
-        let current_size = u32::from_be_bytes(raw[4..8].try_into().unwrap());
-        let max_size = u32::from_be_bytes(raw[8..12].try_into().unwrap());
-        let next_page_id = u32::from_be_bytes(raw[12..16].try_into().unwrap());
-        let mut array = Vec::with_capacity(max_size as usize);
-        let key_size = key_schema.fixed_len();
-        let value_size = size_of::<Rid>();
-        let kv_size = key_size + value_size;
-        for i in 0..current_size {
-            let start = 16 + i as usize * kv_size;
-            let end = 16 + (i + 1) as usize * kv_size;
-            let key = Tuple::from_bytes(key_schema.clone(), &raw[start..start + key_size]);
-            let rid = Rid::from_bytes(raw[start + key_size..end].try_into().unwrap());
-            array.push((key, rid));
-        }
-        Self {
-            schema: key_schema,
-            header: BPlusTreeLeafPageHeader {
-                page_type,
-                current_size,
-                max_size,
-                next_page_id,
-            },
-            array,
-        }
-    }
-
-    pub fn to_bytes(&self) -> [u8; BUSTUBX_PAGE_SIZE] {
-        let mut buf = [0; BUSTUBX_PAGE_SIZE];
-        buf[0..4].copy_from_slice(&self.header.page_type.to_bytes());
-        buf[4..8].copy_from_slice(&self.header.current_size.to_be_bytes());
-        buf[8..12].copy_from_slice(&self.header.max_size.to_be_bytes());
-        buf[12..16].copy_from_slice(&self.header.next_page_id.to_be_bytes());
-        if self.header.current_size == 0 {
-            buf[16..BUSTUBX_PAGE_SIZE].fill(0);
-        } else {
-            let key_size = self.array[0].0.to_bytes().len();
-            let value_size = size_of::<Rid>();
-            let kv_size = key_size + value_size;
-            for i in 0..self.header.current_size {
-                let start = 16 + i as usize * kv_size;
-                let end = 16 + (i + 1) as usize * kv_size;
-                buf[start..start + key_size].copy_from_slice(&self.array[i as usize].0.to_bytes());
-                buf[start + key_size..end].copy_from_slice(&self.array[i as usize].1.to_bytes());
-            }
-        }
-        buf
     }
 
     pub fn min_size(&self) -> u32 {
@@ -602,79 +471,11 @@ mod tests {
         catalog::{Column, DataType, Schema},
         common::rid::Rid,
         storage::{
-            index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePageType},
+            index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage},
             Tuple,
         },
     };
     use std::sync::Arc;
-
-    #[test]
-    pub fn test_internal_page_from_to_bytes() {
-        let key_schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, false),
-            Column::new("a".to_string(), DataType::Int16, false),
-        ]));
-        let mut ori_page = BPlusTreeInternalPage::new(key_schema.clone(), 5);
-        ori_page.insert(Tuple::empty(key_schema.clone()), 0, &key_schema);
-        ori_page.insert(
-            Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
-            1,
-            &key_schema,
-        );
-        ori_page.insert(
-            Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
-            2,
-            &key_schema,
-        );
-        assert_eq!(ori_page.header.current_size, 3);
-
-        let bytes = ori_page.to_bytes();
-
-        let new_page = BPlusTreeInternalPage::from_bytes(&bytes, key_schema.clone());
-        assert_eq!(new_page.header.page_type, BPlusTreePageType::InternalPage);
-        assert_eq!(new_page.header.current_size, 3);
-        assert_eq!(new_page.header.max_size, 5);
-        assert_eq!(
-            new_page.array[0].0.data,
-            vec![ScalarValue::Int8(Some(0)), ScalarValue::Int16(Some(0))]
-        );
-        assert_eq!(new_page.array[0].1, 0);
-        assert_eq!(new_page.array[1].0.data, vec![1i8.into(), 1i16.into()]);
-        assert_eq!(new_page.array[1].1, 1);
-        assert_eq!(new_page.array[2].0.data, vec![2i8.into(), 2i16.into()]);
-        assert_eq!(new_page.array[2].1, 2);
-    }
-
-    #[test]
-    pub fn test_leaf_page_from_to_bytes() {
-        let key_schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, false),
-            Column::new("a".to_string(), DataType::Int16, false),
-        ]));
-        let mut ori_page = BPlusTreeLeafPage::new(key_schema.clone(), 5);
-        ori_page.insert(
-            Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
-            Rid::new(1, 1),
-            &key_schema,
-        );
-        ori_page.insert(
-            Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
-            Rid::new(2, 2),
-            &key_schema,
-        );
-        assert_eq!(ori_page.header.current_size, 2);
-
-        let bytes = ori_page.to_bytes();
-
-        let new_page = BPlusTreeLeafPage::from_bytes(&bytes, key_schema.clone());
-        assert_eq!(new_page.header.page_type, BPlusTreePageType::LeafPage);
-        assert_eq!(new_page.header.current_size, 2);
-        assert_eq!(new_page.header.max_size, 5);
-        assert_eq!(new_page.array[0].0.data, vec![1i8.into(), 1i16.into()]);
-        assert_eq!(new_page.array[0].1, Rid::new(1, 1));
-        assert_eq!(new_page.array[1].0.data, vec![2i8.into(), 2i16.into()]);
-        assert_eq!(new_page.array[1].1, Rid::new(2, 2));
-    }
 
     #[test]
     pub fn test_internal_page_insert() {

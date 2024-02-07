@@ -29,20 +29,6 @@ impl Tuple {
         Self { schema, data }
     }
 
-    pub fn from_bytes(schema: SchemaRef, raw: &[u8]) -> Self {
-        let mut data = vec![];
-        let mut raw_data = raw.to_vec();
-        for col in schema.columns.iter() {
-            data.push(ScalarValue::from_bytes(raw_data.as_ref(), col.data_type));
-            raw_data = raw_data
-                .into_iter()
-                .skip(col.data_type.type_size())
-                .into_iter()
-                .collect::<Vec<u8>>();
-        }
-        Self { schema, data }
-    }
-
     pub fn try_merge(tuples: impl IntoIterator<Item = Self>) -> BustubxResult<Self> {
         let mut data = vec![];
         let mut merged_schema = Schema::empty();
@@ -58,14 +44,6 @@ impl Tuple {
 
     pub fn is_null(&self) -> bool {
         self.data.iter().all(|x| x.is_null())
-    }
-
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = vec![];
-        for v in self.data.iter() {
-            bytes.extend(v.to_bytes());
-        }
-        bytes
     }
 
     pub fn value(&self, index: usize) -> BustubxResult<&ScalarValue> {
