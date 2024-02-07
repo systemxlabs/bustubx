@@ -9,7 +9,7 @@ use crate::{catalog::Schema, common::rid::Rid};
 pub const INTERNAL_PAGE_HEADER_SIZE: usize = 4 + 4 + 4;
 pub const LEAF_PAGE_HEADER_SIZE: usize = 4 + 4 + 4 + 4;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum BPlusTreePage {
     // B+树内部节点页
     Internal(BPlusTreeInternalPage),
@@ -104,7 +104,7 @@ pub type LeafKV = (Tuple, Rid);
  * | PageType (4) | CurrentSize (4) | MaxSize (4) |
  * ----------------------------------------------------------------------------
  */
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BPlusTreeInternalPage {
     pub schema: SchemaRef,
     pub header: BPlusTreeInternalPageHeader,
@@ -112,7 +112,7 @@ pub struct BPlusTreeInternalPage {
     pub array: Vec<InternalKV>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BPlusTreeInternalPageHeader {
     pub page_type: BPlusTreePageType,
     pub current_size: u32,
@@ -407,14 +407,14 @@ impl BPlusTreeInternalPage {
  * | PageType (4) | CurrentSize (4) | MaxSize (4) | NextPageId (4)
  *  ---------------------------------------------------------------------
  */
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BPlusTreeLeafPage {
     pub schema: SchemaRef,
     pub header: BPlusTreeLeafPageHeader,
     pub array: Vec<LeafKV>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BPlusTreeLeafPageHeader {
     pub page_type: BPlusTreePageType,
     pub current_size: u32,

@@ -7,7 +7,9 @@ mod tuple;
 pub use common::CommonCodec;
 pub use index_page::BPlusTreePageTypeCodec;
 pub use scalar::ScalarValueCodec;
-pub use table_page::{TablePageCodec, TablePageHeaderCodec, TablePageHeaderTupleInfoCodec};
+pub use table_page::{
+    RidCodec, TablePageCodec, TablePageHeaderCodec, TablePageHeaderTupleInfoCodec,
+};
 pub use tuple::TupleCodec;
 
 // data + consumed offset
