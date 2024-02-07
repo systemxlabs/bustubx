@@ -17,7 +17,7 @@ impl BPlusTreePageTypeCodec {
         match flag {
             1 => Ok((BPlusTreePageType::LeafPage, offset)),
             2 => Ok((BPlusTreePageType::InternalPage, offset)),
-            _ => Err(BustubxError::Storage("Invalid page type".to_string())),
+            _ => Err(BustubxError::Storage(format!("Invalid page type {}", flag))),
         }
     }
 }

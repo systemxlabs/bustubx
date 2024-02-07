@@ -205,7 +205,9 @@ impl BPlusTreeIndex {
                         let (old_internal_key, new_internal_key) = match left_sibling_tree_page {
                             BPlusTreePage::Internal(ref mut left_sibling_internal_page) => {
                                 let kv = left_sibling_internal_page
-                                    .split_off(left_sibling_internal_page.current_size as usize - 1)
+                                    .split_off(
+                                        left_sibling_internal_page.header.current_size as usize - 1,
+                                    )
                                     .remove(0);
                                 if let BPlusTreePage::Internal(ref mut curr_internal_page) =
                                     curr_page
@@ -217,7 +219,8 @@ impl BPlusTreeIndex {
                                     );
                                     let max_leaf_kv =
                                         self.find_max_leafkv(left_sibling_internal_page.value_at(
-                                            left_sibling_internal_page.current_size as usize - 1,
+                                            left_sibling_internal_page.header.current_size as usize
+                                                - 1,
                                         ));
                                     (kv.0, max_leaf_kv.0)
                                 } else {
@@ -226,7 +229,9 @@ impl BPlusTreeIndex {
                             }
                             BPlusTreePage::Leaf(ref mut left_sibling_leaf_page) => {
                                 let kv = left_sibling_leaf_page
-                                    .split_off(left_sibling_leaf_page.current_size as usize - 1)
+                                    .split_off(
+                                        left_sibling_leaf_page.header.current_size as usize - 1,
+                                    )
                                     .remove(0);
                                 if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_page {
                                     curr_leaf_page.insert(
@@ -238,7 +243,8 @@ impl BPlusTreeIndex {
                                         kv.0,
                                         left_sibling_leaf_page
                                             .key_at(
-                                                left_sibling_leaf_page.current_size as usize - 1,
+                                                left_sibling_leaf_page.header.current_size as usize
+                                                    - 1,
                                             )
                                             .clone(),
                                     )
@@ -381,7 +387,8 @@ impl BPlusTreeIndex {
                                     &self.index_metadata.key_schema,
                                 );
                                 // 更新next page id
-                                left_sibling_leaf_page.next_page_id = curr_leaf_page.next_page_id;
+                                left_sibling_leaf_page.header.next_page_id =
+                                    curr_leaf_page.header.next_page_id;
                             } else {
                                 panic!("Internal page can not merge from leaf page");
                             }
@@ -410,7 +417,8 @@ impl BPlusTreeIndex {
                     );
                     parent_internal_page.delete_page_id(deleted_page_id);
                     // 根节点只有一个子节点（叶子）时，则叶子节点成为新的根节点
-                    if parent_page_id == self.root_page_id && parent_internal_page.current_size == 0
+                    if parent_page_id == self.root_page_id
+                        && parent_internal_page.header.current_size == 0
                     {
                         self.root_page_id = curr_page_id;
                         // 删除旧的根节点
@@ -457,7 +465,8 @@ impl BPlusTreeIndex {
                                     &self.index_metadata.key_schema,
                                 );
                                 // 更新next page id
-                                curr_leaf_page.next_page_id = right_sibling_leaf_page.next_page_id;
+                                curr_leaf_page.header.next_page_id =
+                                    right_sibling_leaf_page.header.next_page_id;
                             } else {
                                 panic!("Internal page can not merge from leaf page");
                             }
@@ -482,7 +491,8 @@ impl BPlusTreeIndex {
                     );
                     parent_internal_page.delete_page_id(deleted_page_id);
                     // 根节点只有一个子节点（叶子）时，则叶子节点成为新的根节点
-                    if parent_page_id == self.root_page_id && parent_internal_page.current_size == 0
+                    if parent_page_id == self.root_page_id
+                        && parent_internal_page.header.current_size == 0
                     {
                         self.root_page_id = curr_page_id;
                         // 删除旧的根节点
@@ -607,13 +617,13 @@ impl BPlusTreeIndex {
                     self.leaf_max_size,
                 );
                 new_leaf_page.batch_insert(
-                    leaf_page.split_off(leaf_page.current_size as usize / 2),
+                    leaf_page.split_off(leaf_page.header.current_size as usize / 2),
                     &self.index_metadata.key_schema,
                 );
 
                 // 更新next page id
-                new_leaf_page.next_page_id = leaf_page.next_page_id;
-                leaf_page.next_page_id = new_page.page_id;
+                new_leaf_page.header.next_page_id = leaf_page.header.next_page_id;
+                leaf_page.header.next_page_id = new_page.page_id;
 
                 new_page.data = new_leaf_page.to_bytes();
                 self.buffer_pool_manager.unpin_page(new_page_id, true);
@@ -633,7 +643,7 @@ impl BPlusTreeIndex {
                     self.internal_max_size as u32,
                 );
                 new_internal_page.batch_insert(
-                    internal_page.split_off(internal_page.current_size as usize / 2),
+                    internal_page.split_off(internal_page.header.current_size as usize / 2),
                     &self.index_metadata.key_schema,
                 );
 
@@ -713,7 +723,8 @@ impl BPlusTreeIndex {
         loop {
             match curr_page {
                 BPlusTreePage::Internal(internal_page) => {
-                    let page_id = internal_page.value_at(internal_page.current_size as usize - 1);
+                    let page_id =
+                        internal_page.value_at(internal_page.header.current_size as usize - 1);
                     let page = self
                         .buffer_pool_manager
                         .fetch_page(page_id)
@@ -725,7 +736,9 @@ impl BPlusTreeIndex {
                     self.buffer_pool_manager.unpin_page(page_id, false);
                 }
                 BPlusTreePage::Leaf(leaf_page) => {
-                    return leaf_page.kv_at(leaf_page.current_size as usize - 1).clone();
+                    return leaf_page
+                        .kv_at(leaf_page.header.current_size as usize - 1)
+                        .clone();
                 }
             }
         }
