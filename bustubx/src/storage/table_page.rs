@@ -1,12 +1,21 @@
-use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
+use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE};
 use crate::catalog::SchemaRef;
 use crate::common::rid::Rid;
-use crate::storage::codec::{CommonCodec, TupleCodec};
+use crate::storage::codec::{TablePageHeaderCodec, TablePageHeaderTupleInfoCodec, TupleCodec};
 
 use super::tuple::{Tuple, TupleMeta};
 
-pub const TABLE_PAGE_HEADER_SIZE: usize = 4 + 2 + 2;
-pub const TABLE_PAGE_TUPLE_INFO_SIZE: usize = 2 + 2 + (4 + 4 + 4);
+lazy_static::lazy_static! {
+    pub static ref EMPTY_TUPLE_INFO: TupleInfo = TupleInfo {
+        offset: 0,
+        size: 0,
+        meta: TupleMeta {
+            insert_txn_id: 0,
+            delete_txn_id: 0,
+            is_deleted: false,
+        }
+    };
+}
 
 /**
  * Slotted page format:
@@ -21,7 +30,7 @@ pub const TABLE_PAGE_TUPLE_INFO_SIZE: usize = 2 + 2 + (4 + 4 + 4);
  *  | NextPageId (4)| NumTuples(2) | NumDeletedTuples(2) |
  *  ----------------------------------------------------------------------------
  *  ----------------------------------------------------------------
- *  | Tuple_1 offset+size (4) + TupleMeta(12) | Tuple_2 offset+size (4) + TupleMeta(12)  | ... |
+ *  | Tuple_1 offset+size + TupleMeta | Tuple_2 offset+size + TupleMeta | ... |
  *  ----------------------------------------------------------------
  *
  */
@@ -42,7 +51,7 @@ impl TablePage {
                 next_page_id,
                 num_tuples: 0,
                 num_deleted_tuples: 0,
-                tuple_infos: Vec::with_capacity(BUSTUBX_PAGE_SIZE / TABLE_PAGE_TUPLE_INFO_SIZE),
+                tuple_infos: Vec::new(),
             },
             data: [0; BUSTUBX_PAGE_SIZE],
         }
@@ -69,9 +78,9 @@ impl TablePage {
 
         // Calculate the minimum valid tuple insertion offset, including the table page header size,
         // the total size of each tuple info (existing tuple infos and newly added tuple info).
-        let min_tuple_offset = TABLE_PAGE_HEADER_SIZE as u16
-            + (self.header.num_tuples as u16 + 1) * TABLE_PAGE_TUPLE_INFO_SIZE as u16;
-        if tuple_offset < min_tuple_offset {
+        let min_tuple_offset = TablePageHeaderCodec::encode(&self.header).len()
+            + TablePageHeaderTupleInfoCodec::encode(&EMPTY_TUPLE_INFO).len();
+        if (tuple_offset as usize) < min_tuple_offset {
             return None;
         }
 
@@ -173,9 +182,7 @@ pub struct TupleInfo {
 
 #[cfg(test)]
 mod tests {
-    use crate::buffer::BUSTUBX_PAGE_SIZE;
     use crate::catalog::{Column, DataType, Schema};
-    use crate::storage::codec::{TablePageCodec, TupleCodec};
     use crate::storage::Tuple;
     use std::sync::Arc;
 

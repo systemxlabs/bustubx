@@ -39,11 +39,7 @@ impl TablePageHeaderCodec {
         bytes.extend(CommonCodec::encode_u16(header.num_tuples));
         bytes.extend(CommonCodec::encode_u16(header.num_deleted_tuples));
         for tuple_info in header.tuple_infos.iter() {
-            bytes.extend(CommonCodec::encode_u16(tuple_info.offset));
-            bytes.extend(CommonCodec::encode_u16(tuple_info.size));
-            bytes.extend(CommonCodec::encode_u32(tuple_info.meta.insert_txn_id));
-            bytes.extend(CommonCodec::encode_u32(tuple_info.meta.delete_txn_id));
-            bytes.extend(CommonCodec::encode_bool(tuple_info.meta.is_deleted));
+            bytes.extend(TablePageHeaderTupleInfoCodec::encode(tuple_info));
         }
         bytes
     }
@@ -62,25 +58,9 @@ impl TablePageHeaderCodec {
 
         let mut tuple_infos = vec![];
         for _ in 0..num_tuples {
-            let (tuple_offset, offset) = CommonCodec::decode_u16(left_bytes)?;
+            let (tuple_info, offset) = TablePageHeaderTupleInfoCodec::decode(left_bytes)?;
             left_bytes = &left_bytes[offset..];
-            let (size, offset) = CommonCodec::decode_u16(left_bytes)?;
-            left_bytes = &left_bytes[offset..];
-            let (insert_txn_id, offset) = CommonCodec::decode_u32(left_bytes)?;
-            left_bytes = &left_bytes[offset..];
-            let (delete_txn_id, offset) = CommonCodec::decode_u32(left_bytes)?;
-            left_bytes = &left_bytes[offset..];
-            let (is_deleted, offset) = CommonCodec::decode_bool(left_bytes)?;
-            left_bytes = &left_bytes[offset..];
-            tuple_infos.push(TupleInfo {
-                offset: tuple_offset,
-                size,
-                meta: TupleMeta {
-                    insert_txn_id,
-                    delete_txn_id,
-                    is_deleted,
-                },
-            });
+            tuple_infos.push(tuple_info);
         }
         Ok((
             TablePageHeader {
@@ -88,6 +68,46 @@ impl TablePageHeaderCodec {
                 num_tuples,
                 num_deleted_tuples,
                 tuple_infos,
+            },
+            bytes.len() - left_bytes.len(),
+        ))
+    }
+}
+
+pub struct TablePageHeaderTupleInfoCodec;
+
+impl TablePageHeaderTupleInfoCodec {
+    pub fn encode(tuple_info: &TupleInfo) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend(CommonCodec::encode_u16(tuple_info.offset));
+        bytes.extend(CommonCodec::encode_u16(tuple_info.size));
+        bytes.extend(CommonCodec::encode_u32(tuple_info.meta.insert_txn_id));
+        bytes.extend(CommonCodec::encode_u32(tuple_info.meta.delete_txn_id));
+        bytes.extend(CommonCodec::encode_bool(tuple_info.meta.is_deleted));
+        bytes
+    }
+
+    pub fn decode(bytes: &[u8]) -> BustubxResult<DecodedData<TupleInfo>> {
+        let mut left_bytes = bytes;
+        let (tuple_offset, offset) = CommonCodec::decode_u16(left_bytes)?;
+        left_bytes = &left_bytes[offset..];
+        let (size, offset) = CommonCodec::decode_u16(left_bytes)?;
+        left_bytes = &left_bytes[offset..];
+        let (insert_txn_id, offset) = CommonCodec::decode_u32(left_bytes)?;
+        left_bytes = &left_bytes[offset..];
+        let (delete_txn_id, offset) = CommonCodec::decode_u32(left_bytes)?;
+        left_bytes = &left_bytes[offset..];
+        let (is_deleted, offset) = CommonCodec::decode_bool(left_bytes)?;
+        left_bytes = &left_bytes[offset..];
+        Ok((
+            TupleInfo {
+                offset: tuple_offset,
+                size,
+                meta: TupleMeta {
+                    insert_txn_id,
+                    delete_txn_id,
+                    is_deleted,
+                },
             },
             bytes.len() - left_bytes.len(),
         ))
