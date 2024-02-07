@@ -12,31 +12,8 @@ pub struct BPlusTreePageCodec;
 impl BPlusTreePageCodec {
     pub fn encode(page: &BPlusTreePage) -> Vec<u8> {
         match page {
-            BPlusTreePage::Leaf(page) => {
-                let mut bytes = vec![];
-                bytes.extend(BPlusTreeLeafPageHeaderCodec::encode(&page.header));
-                for (tuple, rid) in page.array.iter() {
-                    bytes.extend(TupleCodec::encode(tuple));
-                    bytes.extend(RidCodec::encode(rid));
-                }
-                // make sure length of bytes is BUSTUBX_PAGE_SIZE
-                assert!(bytes.len() <= BUSTUBX_PAGE_SIZE);
-                bytes.extend(vec![0; BUSTUBX_PAGE_SIZE - bytes.len()]);
-                bytes
-            }
-
-            BPlusTreePage::Internal(page) => {
-                let mut bytes = vec![];
-                bytes.extend(BPlusTreeInternalPageHeaderCodec::encode(&page.header));
-                for (tuple, page_id) in page.array.iter() {
-                    bytes.extend(TupleCodec::encode(tuple));
-                    bytes.extend(CommonCodec::encode_u32(*page_id));
-                }
-                // make sure length of bytes is BUSTUBX_PAGE_SIZE
-                assert!(bytes.len() <= BUSTUBX_PAGE_SIZE);
-                bytes.extend(vec![0; BUSTUBX_PAGE_SIZE - bytes.len()]);
-                bytes
-            }
+            BPlusTreePage::Leaf(page) => BPlusTreeLeafPageCodec::encode(page),
+            BPlusTreePage::Internal(page) => BPlusTreeInternalPageCodec::encode(page),
         }
     }
 
@@ -48,60 +25,145 @@ impl BPlusTreePageCodec {
                 bytes.len()
             )));
         }
-        let mut left_bytes = bytes;
 
         // not consume left_bytes
-        let (page_type, offset) = BPlusTreePageTypeCodec::decode(left_bytes)?;
+        let (page_type, _) = BPlusTreePageTypeCodec::decode(bytes)?;
 
         match page_type {
             BPlusTreePageType::LeafPage => {
-                let (header, offset) = BPlusTreeLeafPageHeaderCodec::decode(left_bytes)?;
-                left_bytes = &left_bytes[offset..];
-
-                let mut array = vec![];
-                for _ in 0..header.current_size {
-                    let (tuple, offset) = TupleCodec::decode(left_bytes, schema.clone())?;
-                    left_bytes = &left_bytes[offset..];
-
-                    let (rid, offset) = RidCodec::decode(left_bytes)?;
-                    left_bytes = &left_bytes[offset..];
-
-                    array.push((tuple, rid));
-                }
-
-                Ok((
-                    BPlusTreePage::Leaf(BPlusTreeLeafPage {
-                        schema,
-                        header,
-                        array,
-                    }),
-                    BUSTUBX_PAGE_SIZE,
-                ))
+                let (page, offset) = BPlusTreeLeafPageCodec::decode(bytes, schema.clone())?;
+                Ok((BPlusTreePage::Leaf(page), offset))
             }
             BPlusTreePageType::InternalPage => {
-                let (header, offset) = BPlusTreeInternalPageHeaderCodec::decode(left_bytes)?;
+                let (page, offset) = BPlusTreeInternalPageCodec::decode(bytes, schema.clone())?;
+                Ok((BPlusTreePage::Internal(page), offset))
+            }
+        }
+    }
+}
+
+pub struct BPlusTreeLeafPageCodec;
+
+impl BPlusTreeLeafPageCodec {
+    pub fn encode(page: &BPlusTreeLeafPage) -> Vec<u8> {
+        let mut bytes = vec![];
+        bytes.extend(BPlusTreeLeafPageHeaderCodec::encode(&page.header));
+        for (tuple, rid) in page.array.iter() {
+            bytes.extend(TupleCodec::encode(tuple));
+            bytes.extend(RidCodec::encode(rid));
+        }
+        // make sure length of bytes is BUSTUBX_PAGE_SIZE
+        assert!(bytes.len() <= BUSTUBX_PAGE_SIZE);
+        bytes.extend(vec![0; BUSTUBX_PAGE_SIZE - bytes.len()]);
+        bytes
+    }
+
+    pub fn decode(
+        bytes: &[u8],
+        schema: SchemaRef,
+    ) -> BustubxResult<DecodedData<BPlusTreeLeafPage>> {
+        if bytes.len() != BUSTUBX_PAGE_SIZE {
+            return Err(BustubxError::Storage(format!(
+                "Index page size is not {} instead of {}",
+                BUSTUBX_PAGE_SIZE,
+                bytes.len()
+            )));
+        }
+        let mut left_bytes = bytes;
+
+        // not consume left_bytes
+        let (page_type, _) = BPlusTreePageTypeCodec::decode(left_bytes)?;
+
+        if matches!(page_type, BPlusTreePageType::LeafPage) {
+            let (header, offset) = BPlusTreeLeafPageHeaderCodec::decode(left_bytes)?;
+            left_bytes = &left_bytes[offset..];
+
+            let mut array = vec![];
+            for _ in 0..header.current_size {
+                let (tuple, offset) = TupleCodec::decode(left_bytes, schema.clone())?;
                 left_bytes = &left_bytes[offset..];
 
-                let mut array = vec![];
-                for _ in 0..header.current_size {
-                    let (tuple, offset) = TupleCodec::decode(left_bytes, schema.clone())?;
-                    left_bytes = &left_bytes[offset..];
+                let (rid, offset) = RidCodec::decode(left_bytes)?;
+                left_bytes = &left_bytes[offset..];
 
-                    let (page_id, offset) = CommonCodec::decode_u32(left_bytes)?;
-                    left_bytes = &left_bytes[offset..];
-
-                    array.push((tuple, page_id));
-                }
-
-                Ok((
-                    BPlusTreePage::Internal(BPlusTreeInternalPage {
-                        schema,
-                        header,
-                        array,
-                    }),
-                    BUSTUBX_PAGE_SIZE,
-                ))
+                array.push((tuple, rid));
             }
+
+            Ok((
+                BPlusTreeLeafPage {
+                    schema,
+                    header,
+                    array,
+                },
+                BUSTUBX_PAGE_SIZE,
+            ))
+        } else {
+            Err(BustubxError::Storage(
+                "Index page type must be leaf page".to_string(),
+            ))
+        }
+    }
+}
+
+pub struct BPlusTreeInternalPageCodec;
+
+impl BPlusTreeInternalPageCodec {
+    pub fn encode(page: &BPlusTreeInternalPage) -> Vec<u8> {
+        let mut bytes = vec![];
+        bytes.extend(BPlusTreeInternalPageHeaderCodec::encode(&page.header));
+        for (tuple, page_id) in page.array.iter() {
+            bytes.extend(TupleCodec::encode(tuple));
+            bytes.extend(CommonCodec::encode_u32(*page_id));
+        }
+        // make sure length of bytes is BUSTUBX_PAGE_SIZE
+        assert!(bytes.len() <= BUSTUBX_PAGE_SIZE);
+        bytes.extend(vec![0; BUSTUBX_PAGE_SIZE - bytes.len()]);
+        bytes
+    }
+
+    pub fn decode(
+        bytes: &[u8],
+        schema: SchemaRef,
+    ) -> BustubxResult<DecodedData<BPlusTreeInternalPage>> {
+        if bytes.len() != BUSTUBX_PAGE_SIZE {
+            return Err(BustubxError::Storage(format!(
+                "Index page size is not {} instead of {}",
+                BUSTUBX_PAGE_SIZE,
+                bytes.len()
+            )));
+        }
+        let mut left_bytes = bytes;
+
+        // not consume left_bytes
+        let (page_type, _) = BPlusTreePageTypeCodec::decode(left_bytes)?;
+
+        if matches!(page_type, BPlusTreePageType::InternalPage) {
+            let (header, offset) = BPlusTreeInternalPageHeaderCodec::decode(left_bytes)?;
+            left_bytes = &left_bytes[offset..];
+
+            let mut array = vec![];
+            for _ in 0..header.current_size {
+                let (tuple, offset) = TupleCodec::decode(left_bytes, schema.clone())?;
+                left_bytes = &left_bytes[offset..];
+
+                let (page_id, offset) = CommonCodec::decode_u32(left_bytes)?;
+                left_bytes = &left_bytes[offset..];
+
+                array.push((tuple, page_id));
+            }
+
+            Ok((
+                BPlusTreeInternalPage {
+                    schema,
+                    header,
+                    array,
+                },
+                BUSTUBX_PAGE_SIZE,
+            ))
+        } else {
+            Err(BustubxError::Storage(
+                "Index page type must be internal page".to_string(),
+            ))
         }
     }
 }
