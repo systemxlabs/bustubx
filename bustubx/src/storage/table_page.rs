@@ -39,7 +39,6 @@ pub struct TablePage {
     pub schema: SchemaRef,
     pub header: TablePageHeader,
     // 整个页原始数据
-    // TODO 可以通过memmove、memcpy优化，参考bustub
     pub data: [u8; BUSTUBX_PAGE_SIZE],
 }
 

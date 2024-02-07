@@ -3,7 +3,7 @@ use crate::catalog::SchemaRef;
 use crate::storage::codec::{CommonCodec, DecodedData};
 use crate::storage::table_page::{TablePageHeader, TupleInfo};
 use crate::storage::{TablePage, TupleMeta};
-use crate::BustubxResult;
+use crate::{BustubxError, BustubxResult};
 
 pub struct TablePageCodec;
 
@@ -16,6 +16,13 @@ impl TablePageCodec {
     }
 
     pub fn decode(bytes: &[u8], schema: SchemaRef) -> BustubxResult<DecodedData<TablePage>> {
+        if bytes.len() != BUSTUBX_PAGE_SIZE {
+            return Err(BustubxError::Storage(format!(
+                "Table page size is not {} instead of {}",
+                BUSTUBX_PAGE_SIZE,
+                bytes.len()
+            )));
+        }
         let (header, offset) = TablePageHeaderCodec::decode(bytes)?;
         let mut data = [0u8; BUSTUBX_PAGE_SIZE];
         data.copy_from_slice(&bytes[0..BUSTUBX_PAGE_SIZE]);

@@ -3,6 +3,7 @@ use std::mem::size_of;
 use super::Tuple;
 use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
+use crate::storage::codec::BPlusTreePageTypeCodec;
 use crate::{catalog::Schema, common::rid::Rid};
 
 pub const INTERNAL_PAGE_HEADER_SIZE: usize = 4 + 4 + 4;
@@ -25,7 +26,6 @@ impl BPlusTreePage {
             BPlusTreePageType::LeafPage => {
                 Self::Leaf(BPlusTreeLeafPage::from_bytes(raw, key_schema.clone()))
             }
-            BPlusTreePageType::InvalidPage => panic!("Invalid b+ tree page type"),
         };
     }
     pub fn to_bytes(&self) -> [u8; BUSTUBX_PAGE_SIZE] {
@@ -71,14 +71,12 @@ impl BPlusTreePage {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BPlusTreePageType {
-    InvalidPage,
     LeafPage,
     InternalPage,
 }
 impl BPlusTreePageType {
     pub fn from_bytes(raw: &[u8; 4]) -> Self {
         match u32::from_be_bytes(*raw) {
-            0 => Self::InvalidPage,
             1 => Self::LeafPage,
             2 => Self::InternalPage,
             _ => panic!("Invalid page type"),
@@ -86,7 +84,6 @@ impl BPlusTreePageType {
     }
     pub fn to_bytes(&self) -> [u8; 4] {
         match self {
-            Self::InvalidPage => 0u32.to_be_bytes(),
             Self::LeafPage => 1u32.to_be_bytes(),
             Self::InternalPage => 2u32.to_be_bytes(),
         }
@@ -322,7 +319,7 @@ impl BPlusTreeInternalPage {
     }
 
     pub fn from_bytes(raw: &[u8; BUSTUBX_PAGE_SIZE], key_schema: SchemaRef) -> Self {
-        let page_type = BPlusTreePageType::from_bytes(&raw[0..4].try_into().unwrap());
+        let (page_type, _) = BPlusTreePageTypeCodec::decode(raw).unwrap();
         let current_size = u32::from_be_bytes(raw[4..8].try_into().unwrap());
         let max_size = u32::from_be_bytes(raw[8..12].try_into().unwrap());
         let mut array = Vec::with_capacity(max_size as usize);
@@ -347,7 +344,7 @@ impl BPlusTreeInternalPage {
 
     pub fn to_bytes(&self) -> [u8; BUSTUBX_PAGE_SIZE] {
         let mut buf = [0; BUSTUBX_PAGE_SIZE];
-        buf[0..4].copy_from_slice(&self.page_type.to_bytes());
+        buf[0..4].copy_from_slice(&BPlusTreePageTypeCodec::encode(&self.page_type));
         buf[4..8].copy_from_slice(&self.current_size.to_be_bytes());
         buf[8..12].copy_from_slice(&self.max_size.to_be_bytes());
         if self.current_size == 0 {
