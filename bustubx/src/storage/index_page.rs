@@ -3,9 +3,6 @@ use crate::buffer::{PageId, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
 use crate::{catalog::Schema, common::rid::Rid};
 
-pub const INTERNAL_PAGE_HEADER_SIZE: usize = 4 + 4 + 4;
-pub const LEAF_PAGE_HEADER_SIZE: usize = 4 + 4 + 4 + 4;
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum BPlusTreePage {
     // B+树内部节点页
