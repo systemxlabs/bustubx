@@ -2,8 +2,8 @@ use crate::catalog::Schema;
 use std::sync::Arc;
 
 use crate::planner::logical_plan::{
-    CreateIndex, CreateTable, EmptyRelation, Filter, Insert, Join, Limit, LogicalPlan, Project,
-    Sort, TableScan, Values,
+    Aggregate, CreateIndex, CreateTable, EmptyRelation, Filter, Insert, Join, Limit, LogicalPlan,
+    Project, Sort, TableScan, Values,
 };
 
 use crate::execution::physical_plan::PhysicalCreateTable;
@@ -139,6 +139,12 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
             if *produce_one_row { 1 } else { 0 },
             schema.clone(),
         )),
+        LogicalPlan::Aggregate(Aggregate {
+            input,
+            group_expr,
+            aggr_expr,
+            schema,
+        }) => todo!(),
     };
     plan
 }

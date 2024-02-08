@@ -1,3 +1,4 @@
+mod aggregate;
 mod create_index;
 mod create_table;
 mod empty_relation;
@@ -11,6 +12,7 @@ mod table_scan;
 mod util;
 mod values;
 
+pub use aggregate::Aggregate;
 pub use create_index::CreateIndex;
 pub use create_table::CreateTable;
 pub use empty_relation::EmptyRelation;
@@ -41,6 +43,7 @@ pub enum LogicalPlan {
     Sort(Sort),
     Values(Values),
     EmptyRelation(EmptyRelation),
+    Aggregate(Aggregate),
 }
 
 impl LogicalPlan {
@@ -57,6 +60,7 @@ impl LogicalPlan {
             LogicalPlan::Sort(Sort { input, .. }) => input.schema(),
             LogicalPlan::Values(Values { schema, .. }) => schema,
             LogicalPlan::EmptyRelation(EmptyRelation { schema, .. }) => schema,
+            LogicalPlan::Aggregate(Aggregate { schema, .. }) => schema,
         }
     }
 
@@ -68,6 +72,7 @@ impl LogicalPlan {
             LogicalPlan::Limit(Limit { input, .. }) => vec![input],
             LogicalPlan::Project(Project { input, .. }) => vec![input],
             LogicalPlan::Sort(Sort { input, .. }) => vec![input],
+            LogicalPlan::Aggregate(Aggregate { input, .. }) => vec![input],
             LogicalPlan::CreateTable(_)
             | LogicalPlan::CreateIndex(_)
             | LogicalPlan::TableScan(_)
@@ -194,6 +199,27 @@ impl LogicalPlan {
                         .clone(),
                 ),
             })),
+            LogicalPlan::Aggregate(Aggregate {
+                group_expr,
+                aggr_expr,
+                schema,
+                ..
+            }) => Ok(LogicalPlan::Aggregate(Aggregate {
+                group_expr: group_expr.clone(),
+                aggr_expr: aggr_expr.clone(),
+                schema: schema.clone(),
+                input: Arc::new(
+                    inputs
+                        .get(0)
+                        .ok_or_else(|| {
+                            BustubxError::Internal(format!(
+                                "inputs {:?} should have at least one",
+                                inputs
+                            ))
+                        })?
+                        .clone(),
+                ),
+            })),
             LogicalPlan::CreateTable(_)
             | LogicalPlan::CreateIndex(_)
             | LogicalPlan::TableScan(_)
@@ -217,6 +243,7 @@ impl std::fmt::Display for LogicalPlan {
             LogicalPlan::Sort(v) => write!(f, "{v}"),
             LogicalPlan::Values(v) => write!(f, "{v}"),
             LogicalPlan::EmptyRelation(v) => write!(f, "{v}"),
+            LogicalPlan::Aggregate(v) => write!(f, "{v}"),
         }
     }
 }
