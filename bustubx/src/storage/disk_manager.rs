@@ -62,7 +62,7 @@ impl DiskManager {
 
     pub fn write_page(&self, page_id: PageId, data: &[u8]) -> BustubxResult<()> {
         if data.len() != BUSTUBX_PAGE_SIZE {
-            return Err(BustubxError::Internal(format!(
+            return Err(BustubxError::Storage(format!(
                 "Page size is not {}",
                 BUSTUBX_PAGE_SIZE
             )));
