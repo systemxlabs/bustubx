@@ -63,7 +63,7 @@ impl BufferPoolManager {
                 // 如果页被修改过，则将其写回磁盘
                 let is_dirty = evicted_page.read().unwrap().is_dirty;
                 if is_dirty {
-                    self.flush_page(evicted_page_id);
+                    self.flush_page(evicted_page_id)?;
                 }
                 self.page_table.remove(&evicted_page_id);
                 frame_id
@@ -100,8 +100,9 @@ impl BufferPoolManager {
                 if let Some(frame_id) = self.replacer.evict() {
                     let evicted_page = self.pool[frame_id as usize].clone();
                     let evicted_page_id = evicted_page.read().unwrap().page_id;
-                    if evicted_page.read().unwrap().is_dirty {
-                        self.flush_page(evicted_page_id);
+                    let is_dirty = evicted_page.read().unwrap().is_dirty;
+                    if is_dirty {
+                        self.flush_page(evicted_page_id)?;
                     }
                     self.page_table.remove(&evicted_page_id);
                     frame_id
@@ -152,26 +153,26 @@ impl BufferPoolManager {
     }
 
     // 将缓冲池中指定页写回磁盘
-    pub fn flush_page(&mut self, page_id: PageId) -> bool {
+    pub fn flush_page(&mut self, page_id: PageId) -> BustubxResult<bool> {
         if self.page_table.contains_key(&page_id) {
             let frame_id = self.page_table[&page_id];
             let page = self.pool[frame_id as usize].clone();
             self.disk_manager
-                .write_page(page_id, &page.read().unwrap().data)
-                .unwrap();
+                .write_page(page_id, &page.read().unwrap().data)?;
             page.write().unwrap().is_dirty = false;
-            true
+            Ok(true)
         } else {
-            false
+            Ok(false)
         }
     }
 
     // 将缓冲池中的所有页写回磁盘
-    pub fn flush_all_pages(&mut self) {
+    pub fn flush_all_pages(&mut self) -> BustubxResult<()> {
         let page_ids: Vec<PageId> = self.page_table.keys().into_iter().copied().collect();
         for page_id in page_ids {
-            self.flush_page(page_id);
+            self.flush_page(page_id)?;
         }
+        Ok(())
     }
 
     // 删除缓冲池中的页
