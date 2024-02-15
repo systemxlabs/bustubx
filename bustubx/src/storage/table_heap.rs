@@ -1,5 +1,6 @@
 use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
+use crate::common::util::page_bytes_to_array;
 use crate::storage::codec::TablePageCodec;
 use crate::{buffer::BufferPoolManager, common::rid::Rid, BustubxResult};
 
@@ -25,9 +26,8 @@ impl TableHeap {
         let first_page = buffer_pool_manager.new_page()?;
         let first_page_id = first_page.read().unwrap().page_id;
         let table_page = TablePage::new(schema.clone(), INVALID_PAGE_ID);
-        let mut data = [0u8; BUSTUBX_PAGE_SIZE];
-        data.copy_from_slice(&TablePageCodec::encode(&table_page));
-        first_page.write().unwrap().data = data;
+        first_page.write().unwrap().data =
+            page_bytes_to_array(&TablePageCodec::encode(&table_page));
         buffer_pool_manager.unpin_page(first_page_id, true)?;
 
         Ok(Self {
@@ -79,9 +79,8 @@ impl TableHeap {
                 .expect("cannot allocate page");
             let next_page_id = next_page.read().unwrap().page_id;
             let next_table_page = TablePage::new(self.schema.clone(), INVALID_PAGE_ID);
-            let mut data = [0u8; BUSTUBX_PAGE_SIZE];
-            data.copy_from_slice(&TablePageCodec::encode(&next_table_page));
-            next_page.write().unwrap().data = data;
+            next_page.write().unwrap().data =
+                page_bytes_to_array(&TablePageCodec::encode(&next_table_page));
 
             // Update and release the previous page
             last_table_page.header.next_page_id = next_page_id;
@@ -124,10 +123,7 @@ impl TableHeap {
             TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone()).unwrap();
         table_page.update_tuple_meta(meta, &rid);
 
-        let mut data = [0u8; BUSTUBX_PAGE_SIZE];
-        data.copy_from_slice(&TablePageCodec::encode(&table_page));
-
-        page.write().unwrap().data = data;
+        page.write().unwrap().data = page_bytes_to_array(&TablePageCodec::encode(&table_page));
         self.buffer_pool_manager
             .unpin_page(rid.page_id, true)
             .unwrap();

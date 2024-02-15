@@ -1,3 +1,4 @@
+use crate::buffer::BUSTUBX_PAGE_SIZE;
 use crate::execution::physical_plan::PhysicalPlan;
 use crate::planner::logical_plan::LogicalPlan;
 use comfy_table::Cell;
@@ -57,4 +58,10 @@ fn pretty_format_physical_plan_recursively(plan: &PhysicalPlan, indent: usize) -
         result.push_str(&pretty_format_physical_plan_recursively(input, indent + 2));
     }
     result
+}
+
+pub fn page_bytes_to_array(bytes: &[u8]) -> [u8; BUSTUBX_PAGE_SIZE] {
+    let mut data = [0u8; BUSTUBX_PAGE_SIZE];
+    data.copy_from_slice(bytes);
+    data
 }

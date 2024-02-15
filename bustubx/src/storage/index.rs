@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 
 use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
+use crate::common::util::page_bytes_to_array;
 use crate::storage::codec::{
     BPlusTreeInternalPageCodec, BPlusTreeLeafPageCodec, BPlusTreePageCodec,
 };
@@ -162,10 +163,8 @@ impl BPlusTreeIndex {
                     &self.index_metadata.key_schema,
                 );
 
-                let mut data = [0; BUSTUBX_PAGE_SIZE];
-                data.copy_from_slice(&BPlusTreeInternalPageCodec::encode(&new_internal_page));
-
-                new_root_page.write().unwrap().data = data;
+                new_root_page.write().unwrap().data =
+                    page_bytes_to_array(&BPlusTreeInternalPageCodec::encode(&new_internal_page));
                 self.buffer_pool_manager
                     .unpin_page(new_root_page_id, true)
                     .unwrap();
@@ -305,12 +304,9 @@ impl BPlusTreeIndex {
                             &self.index_metadata.key_schema,
                         );
 
-                        let mut data = [0; BUSTUBX_PAGE_SIZE];
-                        data.copy_from_slice(&BPlusTreeInternalPageCodec::encode(
-                            &parent_internal_page,
-                        ));
-
-                        parent_page.write().unwrap().data = data;
+                        parent_page.write().unwrap().data = page_bytes_to_array(
+                            &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
+                        );
                         self.buffer_pool_manager
                             .unpin_page(parent_page_id, true)
                             .unwrap();
@@ -393,12 +389,9 @@ impl BPlusTreeIndex {
                             &self.index_metadata.key_schema,
                         );
 
-                        let mut data = [0; BUSTUBX_PAGE_SIZE];
-                        data.copy_from_slice(&BPlusTreeInternalPageCodec::encode(
-                            &parent_internal_page,
-                        ));
-
-                        parent_page.write().unwrap().data = data;
+                        parent_page.write().unwrap().data = page_bytes_to_array(
+                            &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
+                        );
                         self.buffer_pool_manager
                             .unpin_page(parent_page_id, true)
                             .unwrap();
@@ -493,12 +486,9 @@ impl BPlusTreeIndex {
                             .delete_page(parent_page_id)
                             .unwrap();
                     } else {
-                        let mut data = [0; BUSTUBX_PAGE_SIZE];
-                        data.copy_from_slice(&BPlusTreeInternalPageCodec::encode(
-                            &parent_internal_page,
-                        ));
-
-                        parent_page.write().unwrap().data = data;
+                        parent_page.write().unwrap().data = page_bytes_to_array(
+                            &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
+                        );
                         self.buffer_pool_manager
                             .unpin_page(curr_page_id, true)
                             .unwrap();
@@ -587,12 +577,9 @@ impl BPlusTreeIndex {
                             .delete_page(parent_page_id)
                             .unwrap();
                     } else {
-                        let mut data = [0; BUSTUBX_PAGE_SIZE];
-                        data.copy_from_slice(&BPlusTreeInternalPageCodec::encode(
-                            &parent_internal_page,
-                        ));
-
-                        parent_page.write().unwrap().data = data;
+                        parent_page.write().unwrap().data = page_bytes_to_array(
+                            &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
+                        );
                         self.buffer_pool_manager
                             .unpin_page(curr_page_id, true)
                             .unwrap();
@@ -628,10 +615,8 @@ impl BPlusTreeIndex {
             BPlusTreeLeafPage::new(self.index_metadata.key_schema.clone(), self.leaf_max_size);
         leaf_page.insert(key.clone(), rid, &self.index_metadata.key_schema);
 
-        let mut data = [0; BUSTUBX_PAGE_SIZE];
-        data.copy_from_slice(&BPlusTreeLeafPageCodec::encode(&leaf_page));
-
-        new_page.write().unwrap().data = data;
+        new_page.write().unwrap().data =
+            page_bytes_to_array(&BPlusTreeLeafPageCodec::encode(&leaf_page));
 
         // 更新root page id
         self.root_page_id = new_page_id;
@@ -742,10 +727,8 @@ impl BPlusTreeIndex {
                 new_leaf_page.header.next_page_id = leaf_page.header.next_page_id;
                 leaf_page.header.next_page_id = new_page.read().unwrap().page_id;
 
-                let mut data = [0; BUSTUBX_PAGE_SIZE];
-                data.copy_from_slice(&BPlusTreeLeafPageCodec::encode(&new_leaf_page));
-
-                new_page.write().unwrap().data = data;
+                new_page.write().unwrap().data =
+                    page_bytes_to_array(&BPlusTreeLeafPageCodec::encode(&new_leaf_page));
                 self.buffer_pool_manager
                     .unpin_page(new_page_id, true)
                     .unwrap();
@@ -769,10 +752,8 @@ impl BPlusTreeIndex {
                     &self.index_metadata.key_schema,
                 );
 
-                let mut data = [0; BUSTUBX_PAGE_SIZE];
-                data.copy_from_slice(&BPlusTreeInternalPageCodec::encode(&new_internal_page));
-
-                new_page.write().unwrap().data = data;
+                new_page.write().unwrap().data =
+                    page_bytes_to_array(&BPlusTreeInternalPageCodec::encode(&new_internal_page));
                 self.buffer_pool_manager
                     .unpin_page(new_page_id, true)
                     .unwrap();
