@@ -115,10 +115,10 @@ impl BPlusTreeIndex {
             // 向右分裂出一个新page
             let internalkv = self.split(&mut curr_page);
 
-            let mut data = [0; BUSTUBX_PAGE_SIZE];
-            data.copy_from_slice(&BPlusTreePageCodec::encode(&curr_page));
-
-            self.buffer_pool_manager.write_page(curr_page_id, data);
+            self.buffer_pool_manager.write_page(
+                curr_page_id,
+                page_bytes_to_array(&BPlusTreePageCodec::encode(&curr_page)),
+            );
             self.buffer_pool_manager
                 .unpin_page(curr_page_id, true)
                 .unwrap();
@@ -177,10 +177,10 @@ impl BPlusTreeIndex {
             }
         }
 
-        let mut data = [0; BUSTUBX_PAGE_SIZE];
-        data.copy_from_slice(&BPlusTreePageCodec::encode(&curr_page));
-
-        self.buffer_pool_manager.write_page(curr_page_id, data);
+        self.buffer_pool_manager.write_page(
+            curr_page_id,
+            page_bytes_to_array(&BPlusTreePageCodec::encode(&curr_page)),
+        );
         self.buffer_pool_manager
             .unpin_page(curr_page_id, true)
             .unwrap();
@@ -279,11 +279,12 @@ impl BPlusTreeIndex {
                             }
                         };
                         // 更新兄弟节点
-                        let mut data = [0; BUSTUBX_PAGE_SIZE];
-                        data.copy_from_slice(&BPlusTreePageCodec::encode(&left_sibling_tree_page));
-
-                        self.buffer_pool_manager
-                            .write_page(left_sibling_page_id, data);
+                        self.buffer_pool_manager.write_page(
+                            left_sibling_page_id,
+                            page_bytes_to_array(&BPlusTreePageCodec::encode(
+                                &left_sibling_tree_page,
+                            )),
+                        );
                         self.buffer_pool_manager
                             .unpin_page(left_sibling_page_id, true)
                             .unwrap();
@@ -364,11 +365,12 @@ impl BPlusTreeIndex {
                             }
                         };
                         // 更新兄弟节点
-                        let mut data = [0; BUSTUBX_PAGE_SIZE];
-                        data.copy_from_slice(&BPlusTreePageCodec::encode(&right_sibling_tree_page));
-
-                        self.buffer_pool_manager
-                            .write_page(right_sibling_page_id, data);
+                        self.buffer_pool_manager.write_page(
+                            right_sibling_page_id,
+                            page_bytes_to_array(&BPlusTreePageCodec::encode(
+                                &right_sibling_tree_page,
+                            )),
+                        );
                         self.buffer_pool_manager
                             .unpin_page(right_sibling_page_id, true)
                             .unwrap();
@@ -443,11 +445,11 @@ impl BPlusTreeIndex {
                             }
                         }
                     };
-                    let mut data = [0; BUSTUBX_PAGE_SIZE];
-                    data.copy_from_slice(&BPlusTreePageCodec::encode(&left_sibling_tree_page));
 
-                    self.buffer_pool_manager
-                        .write_page(left_sibling_page_id, data);
+                    self.buffer_pool_manager.write_page(
+                        left_sibling_page_id,
+                        page_bytes_to_array(&BPlusTreePageCodec::encode(&left_sibling_tree_page)),
+                    );
 
                     // 删除当前页
                     let deleted_page_id = curr_page_id;
@@ -539,10 +541,10 @@ impl BPlusTreeIndex {
                         }
                     };
 
-                    let mut data = [0; BUSTUBX_PAGE_SIZE];
-                    data.copy_from_slice(&BPlusTreePageCodec::encode(&curr_page));
-
-                    self.buffer_pool_manager.write_page(curr_page_id, data);
+                    self.buffer_pool_manager.write_page(
+                        curr_page_id,
+                        page_bytes_to_array(&BPlusTreePageCodec::encode(&curr_page)),
+                    );
 
                     // 删除右兄弟页
                     let deleted_page_id = right_sibling_page_id;
@@ -591,10 +593,10 @@ impl BPlusTreeIndex {
             }
         }
 
-        let mut data = [0; BUSTUBX_PAGE_SIZE];
-        data.copy_from_slice(&BPlusTreePageCodec::encode(&curr_page));
-
-        self.buffer_pool_manager.write_page(curr_page_id, data);
+        self.buffer_pool_manager.write_page(
+            curr_page_id,
+            page_bytes_to_array(&BPlusTreePageCodec::encode(&curr_page)),
+        );
         self.buffer_pool_manager
             .unpin_page(curr_page_id, true)
             .unwrap();

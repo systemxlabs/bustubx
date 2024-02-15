@@ -1,6 +1,7 @@
 use crate::buffer::BUSTUBX_PAGE_SIZE;
 use crate::catalog::SchemaRef;
 use crate::common::rid::Rid;
+use crate::common::util::page_bytes_to_array;
 use crate::storage::codec::{CommonCodec, DecodedData};
 use crate::storage::table_page::{TablePageHeader, TupleInfo};
 use crate::storage::{TablePage, TupleMeta};
@@ -24,14 +25,12 @@ impl TablePageCodec {
                 bytes.len()
             )));
         }
-        let (header, offset) = TablePageHeaderCodec::decode(bytes)?;
-        let mut data = [0u8; BUSTUBX_PAGE_SIZE];
-        data.copy_from_slice(&bytes[0..BUSTUBX_PAGE_SIZE]);
+        let (header, _) = TablePageHeaderCodec::decode(bytes)?;
         Ok((
             TablePage {
                 schema,
                 header,
-                data,
+                data: page_bytes_to_array(&bytes[0..BUSTUBX_PAGE_SIZE]),
             },
             BUSTUBX_PAGE_SIZE,
         ))
@@ -175,8 +174,8 @@ mod tests {
         };
 
         let mut table_page = TablePage::new(schema.clone(), INVALID_PAGE_ID);
-        table_page.insert_tuple(&tuple1_meta, &tuple1);
-        table_page.insert_tuple(&tuple2_meta, &tuple2);
+        table_page.insert_tuple(&tuple1_meta, &tuple1).unwrap();
+        table_page.insert_tuple(&tuple2_meta, &tuple2).unwrap();
 
         let (new_page, _) =
             TablePageCodec::decode(&TablePageCodec::encode(&table_page), schema.clone()).unwrap();

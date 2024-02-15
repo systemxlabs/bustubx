@@ -86,8 +86,7 @@ impl VolcanoExecutor for PhysicalInsert {
                 delete_txn_id: 0,
                 is_deleted: false,
             };
-            // TODO check result
-            table_heap.insert_tuple(&tuple_meta, &tuple);
+            table_heap.insert_tuple(&tuple_meta, &tuple)?;
             self.insert_rows
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         }

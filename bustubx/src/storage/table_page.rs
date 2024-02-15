@@ -2,6 +2,7 @@ use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE};
 use crate::catalog::SchemaRef;
 use crate::common::rid::Rid;
 use crate::storage::codec::{TablePageHeaderCodec, TablePageHeaderTupleInfoCodec, TupleCodec};
+use crate::{BustubxError, BustubxResult};
 
 use super::tuple::{Tuple, TupleMeta};
 
@@ -57,44 +58,48 @@ impl TablePage {
     }
 
     // Get the offset for the next tuple insertion.
-    pub fn get_next_tuple_offset(&self, meta: &TupleMeta, tuple: &Tuple) -> Option<u16> {
+    pub fn next_tuple_offset(&self, tuple: &Tuple) -> BustubxResult<usize> {
         // Get the ending offset of the current slot. If there are inserted tuples,
         // get the offset of the previous inserted tuple; otherwise, set it to the size of the page.
         let slot_end_offset = if self.header.num_tuples > 0 {
-            self.header.tuple_infos[self.header.num_tuples as usize - 1].offset
+            self.header.tuple_infos[self.header.num_tuples as usize - 1].offset as usize
         } else {
-            BUSTUBX_PAGE_SIZE as u16
+            BUSTUBX_PAGE_SIZE
         };
 
         // Check if the current slot has enough space for the new tuple. Return None if not.
-        if slot_end_offset < TupleCodec::encode(tuple).len() as u16 {
-            return None;
+        if slot_end_offset < TupleCodec::encode(tuple).len() {
+            return Err(BustubxError::Storage(
+                "No enough space to store tuple".to_string(),
+            ));
         }
 
         // Calculate the insertion offset for the new tuple by subtracting its data length
         // from the ending offset of the current slot.
-        let tuple_offset = slot_end_offset - TupleCodec::encode(tuple).len() as u16;
+        let tuple_offset = slot_end_offset - TupleCodec::encode(tuple).len();
 
         // Calculate the minimum valid tuple insertion offset, including the table page header size,
         // the total size of each tuple info (existing tuple infos and newly added tuple info).
         let min_tuple_offset = TablePageHeaderCodec::encode(&self.header).len()
             + TablePageHeaderTupleInfoCodec::encode(&EMPTY_TUPLE_INFO).len();
-        if (tuple_offset as usize) < min_tuple_offset {
-            return None;
+        if tuple_offset < min_tuple_offset {
+            return Err(BustubxError::Storage(
+                "No enough space to store tuple".to_string(),
+            ));
         }
 
         // Return the calculated insertion offset for the new tuple.
-        return Some(tuple_offset);
+        return Ok(tuple_offset);
     }
 
-    pub fn insert_tuple(&mut self, meta: &TupleMeta, tuple: &Tuple) -> Option<u16> {
+    pub fn insert_tuple(&mut self, meta: &TupleMeta, tuple: &Tuple) -> BustubxResult<u16> {
         // Get the offset for the next tuple insertion.
-        let tuple_offset = self.get_next_tuple_offset(meta, tuple)?;
+        let tuple_offset = self.next_tuple_offset(tuple)?;
         let tuple_id = self.header.num_tuples;
 
         // Store tuple information including offset, length, and metadata.
         self.header.tuple_infos.push(TupleInfo {
-            offset: tuple_offset,
+            offset: tuple_offset as u16,
             size: TupleCodec::encode(tuple).len() as u16,
             meta: meta.clone(),
         });
@@ -108,49 +113,54 @@ impl TablePage {
         }
 
         // Copy the tuple's data into the appropriate position within the page's data buffer.
-        self.data[tuple_offset as usize
-            ..(tuple_offset + TupleCodec::encode(tuple).len() as u16) as usize]
+        self.data[tuple_offset..tuple_offset + TupleCodec::encode(tuple).len()]
             .copy_from_slice(&TupleCodec::encode(tuple));
-        return Some(tuple_id);
+        return Ok(tuple_id);
     }
 
-    pub fn update_tuple_meta(&mut self, meta: &TupleMeta, rid: &Rid) {
-        let tuple_id = rid.slot_num;
-        if tuple_id >= self.header.num_tuples as u32 {
-            panic!("tuple_id {} out of range", tuple_id);
+    pub fn update_tuple_meta(&mut self, meta: &TupleMeta, slot_num: u16) -> BustubxResult<()> {
+        if slot_num >= self.header.num_tuples {
+            return Err(BustubxError::Storage(format!(
+                "tuple_id {} out of range",
+                slot_num
+            )));
         }
-        if meta.is_deleted && !self.header.tuple_infos[tuple_id as usize].meta.is_deleted {
+        if meta.is_deleted && !self.header.tuple_infos[slot_num as usize].meta.is_deleted {
             self.header.num_deleted_tuples += 1;
         }
 
-        self.header.tuple_infos[tuple_id as usize].meta = meta.clone();
+        self.header.tuple_infos[slot_num as usize].meta = meta.clone();
+        Ok(())
     }
 
-    pub fn get_tuple(&self, rid: &Rid) -> (TupleMeta, Tuple) {
-        let tuple_id = rid.slot_num;
-        if tuple_id >= self.header.num_tuples as u32 {
-            panic!("tuple_id {} out of range", tuple_id);
+    pub fn tuple(&self, slot_num: u16) -> BustubxResult<(TupleMeta, Tuple)> {
+        if slot_num >= self.header.num_tuples {
+            return Err(BustubxError::Storage(format!(
+                "tuple_id {} out of range",
+                slot_num
+            )));
         }
 
-        let offset = self.header.tuple_infos[tuple_id as usize].offset;
-        let size = self.header.tuple_infos[tuple_id as usize].size;
-        let meta = self.header.tuple_infos[tuple_id as usize].meta;
+        let offset = self.header.tuple_infos[slot_num as usize].offset;
+        let size = self.header.tuple_infos[slot_num as usize].size;
+        let meta = self.header.tuple_infos[slot_num as usize].meta;
         let (tuple, _) = TupleCodec::decode(
             &self.data[offset as usize..(offset + size) as usize],
             self.schema.clone(),
-        )
-        .unwrap();
+        )?;
 
-        return (meta, tuple);
+        Ok((meta, tuple))
     }
 
-    pub fn get_tuple_meta(&self, rid: &Rid) -> TupleMeta {
-        let tuple_id = rid.slot_num;
-        if tuple_id >= self.header.num_tuples as u32 {
-            panic!("tuple_id {} out of range", tuple_id);
+    pub fn tuple_meta(&self, slot_num: u16) -> BustubxResult<TupleMeta> {
+        if slot_num >= self.header.num_tuples {
+            return Err(BustubxError::Storage(format!(
+                "tuple_id {} out of range",
+                slot_num
+            )));
         }
 
-        return self.header.tuple_infos[tuple_id as usize].meta.clone();
+        return Ok(self.header.tuple_infos[slot_num as usize].meta.clone());
     }
 
     pub fn get_next_rid(&self, rid: &Rid) -> Option<Rid> {
@@ -197,28 +207,34 @@ mod tests {
             delete_txn_id: 0,
             is_deleted: false,
         };
-        let tuple_id = table_page.insert_tuple(
-            &meta,
-            &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
-        );
-        assert_eq!(tuple_id, Some(0));
-        let tuple_id = table_page.insert_tuple(
-            &meta,
-            &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
-        );
-        assert_eq!(tuple_id, Some(1));
-        let tuple_id = table_page.insert_tuple(
-            &meta,
-            &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
-        );
-        assert_eq!(tuple_id, Some(2));
+        let tuple_id = table_page
+            .insert_tuple(
+                &meta,
+                &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
+            )
+            .unwrap();
+        assert_eq!(tuple_id, 0);
+        let tuple_id = table_page
+            .insert_tuple(
+                &meta,
+                &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
+            )
+            .unwrap();
+        assert_eq!(tuple_id, 1);
+        let tuple_id = table_page
+            .insert_tuple(
+                &meta,
+                &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
+            )
+            .unwrap();
+        assert_eq!(tuple_id, 2);
 
-        let (tuple_meta, tuple) = table_page.get_tuple(&super::Rid::new(0, 0));
+        let (tuple_meta, tuple) = table_page.tuple(0).unwrap();
         assert_eq!(tuple_meta, meta);
         assert_eq!(tuple.data, vec![1i8.into(), 1i16.into()]);
-        let (tuple_meta, tuple) = table_page.get_tuple(&super::Rid::new(0, 1));
+        let (tuple_meta, tuple) = table_page.tuple(1).unwrap();
         assert_eq!(tuple.data, vec![2i8.into(), 2i16.into()]);
-        let (tuple_meta, tuple) = table_page.get_tuple(&super::Rid::new(0, 2));
+        let (tuple_meta, tuple) = table_page.tuple(2).unwrap();
         assert_eq!(tuple.data, vec![3i8.into(), 3i16.into()]);
     }
 
@@ -234,26 +250,32 @@ mod tests {
             delete_txn_id: 0,
             is_deleted: false,
         };
-        let tuple_id = table_page.insert_tuple(
-            &meta,
-            &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
-        );
-        let tuple_id = table_page.insert_tuple(
-            &meta,
-            &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
-        );
-        let tuple_id = table_page.insert_tuple(
-            &meta,
-            &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
-        );
+        let tuple_id = table_page
+            .insert_tuple(
+                &meta,
+                &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
+            )
+            .unwrap();
+        let tuple_id = table_page
+            .insert_tuple(
+                &meta,
+                &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
+            )
+            .unwrap();
+        let tuple_id = table_page
+            .insert_tuple(
+                &meta,
+                &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
+            )
+            .unwrap();
 
-        let mut tuple_meta = table_page.get_tuple_meta(&super::Rid::new(0, 0));
+        let mut tuple_meta = table_page.tuple_meta(0).unwrap();
         tuple_meta.is_deleted = true;
         tuple_meta.delete_txn_id = 1;
         tuple_meta.insert_txn_id = 2;
 
-        table_page.update_tuple_meta(&tuple_meta, &super::Rid::new(0, 0));
-        let tuple_meta = table_page.get_tuple_meta(&super::Rid::new(0, 0));
+        table_page.update_tuple_meta(&tuple_meta, 0).unwrap();
+        let tuple_meta = table_page.tuple_meta(0).unwrap();
         assert_eq!(tuple_meta.is_deleted, true);
         assert_eq!(tuple_meta.delete_txn_id, 1);
         assert_eq!(tuple_meta.insert_txn_id, 2);
