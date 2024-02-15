@@ -1,3 +1,4 @@
+use crate::{BustubxError, BustubxResult};
 use std::collections::{HashMap, LinkedList};
 
 use super::buffer_pool::FrameId;
@@ -59,7 +60,7 @@ impl LRUKReplacer {
                 continue;
             }
             let k_distance = if node.history.len() < self.k {
-                std::u64::MAX - node.history.front().unwrap()
+                u64::MAX - node.history.front().unwrap()
             } else {
                 self.current_timestamp - node.history.front().unwrap()
             };
@@ -68,32 +69,34 @@ impl LRUKReplacer {
                 result = Some(*frame_id);
             }
         }
-        if result.is_some() {
-            self.remove(result.unwrap());
+        if let Some(frame_id) = result {
+            self.remove(frame_id);
         }
         result
     }
 
     // 记录frame的访问
-    pub fn record_access(&mut self, frame_id: FrameId) {
+    pub fn record_access(&mut self, frame_id: FrameId) -> BustubxResult<()> {
         if let Some(node) = self.node_store.get_mut(&frame_id) {
             node.record_access(self.current_timestamp);
             self.current_timestamp += 1;
         } else {
             // 创建新node
-            assert!(
-                self.node_store.len() < self.replacer_size,
-                "frame size exceeds the limit"
-            );
+            if self.node_store.len() >= self.replacer_size {
+                return Err(BustubxError::Internal(
+                    "frame size exceeds the limit".to_string(),
+                ));
+            }
             let mut node = LRUKNode::new(frame_id, self.k);
             node.record_access(self.current_timestamp);
             self.current_timestamp += 1;
             self.node_store.insert(frame_id, node);
         }
+        Ok(())
     }
 
     // 设置frame是否可被置换
-    pub fn set_evictable(&mut self, frame_id: FrameId, set_evictable: bool) {
+    pub fn set_evictable(&mut self, frame_id: FrameId, set_evictable: bool) -> BustubxResult<()> {
         if let Some(node) = self.node_store.get_mut(&frame_id) {
             let evictable = node.is_evictable;
             node.is_evictable = set_evictable;
@@ -102,8 +105,9 @@ impl LRUKReplacer {
             } else if !set_evictable && evictable {
                 self.current_size -= 1;
             }
+            Ok(())
         } else {
-            panic!("frame not found")
+            Err(BustubxError::Internal("frame not found".to_string()))
         }
     }
 
@@ -129,22 +133,22 @@ mod tests {
     #[test]
     pub fn test_lru_k_set_evictable() {
         let mut replacer = LRUKReplacer::new(3, 2);
-        replacer.record_access(1);
-        replacer.set_evictable(1, true);
+        replacer.record_access(1).unwrap();
+        replacer.set_evictable(1, true).unwrap();
         assert_eq!(replacer.size(), 1);
-        replacer.set_evictable(1, false);
+        replacer.set_evictable(1, false).unwrap();
         assert_eq!(replacer.size(), 0);
     }
 
     #[test]
     pub fn test_lru_k_evict_all_pages_at_least_k() {
         let mut replacer = LRUKReplacer::new(2, 3);
-        replacer.record_access(1);
-        replacer.record_access(2);
-        replacer.record_access(2);
-        replacer.record_access(1);
-        replacer.set_evictable(1, true);
-        replacer.set_evictable(2, true);
+        replacer.record_access(1).unwrap();
+        replacer.record_access(2).unwrap();
+        replacer.record_access(2).unwrap();
+        replacer.record_access(1).unwrap();
+        replacer.set_evictable(1, true).unwrap();
+        replacer.set_evictable(2, true).unwrap();
         let frame_id = replacer.evict();
         assert_eq!(frame_id, Some(1));
     }
@@ -152,15 +156,15 @@ mod tests {
     #[test]
     pub fn test_lru_k_evict_some_page_less_than_k() {
         let mut replacer = LRUKReplacer::new(3, 3);
-        replacer.record_access(1);
-        replacer.record_access(2);
-        replacer.record_access(3);
-        replacer.record_access(1);
-        replacer.record_access(1);
-        replacer.record_access(3);
-        replacer.set_evictable(1, true);
-        replacer.set_evictable(2, true);
-        replacer.set_evictable(3, true);
+        replacer.record_access(1).unwrap();
+        replacer.record_access(2).unwrap();
+        replacer.record_access(3).unwrap();
+        replacer.record_access(1).unwrap();
+        replacer.record_access(1).unwrap();
+        replacer.record_access(3).unwrap();
+        replacer.set_evictable(1, true).unwrap();
+        replacer.set_evictable(2, true).unwrap();
+        replacer.set_evictable(3, true).unwrap();
         let frame_id = replacer.evict();
         assert_eq!(frame_id, Some(2));
     }
@@ -170,23 +174,23 @@ mod tests {
         let mut lru_replacer = LRUKReplacer::new(7, 2);
 
         // Scenario: add six elements to the replacer. We have [1,2,3,4,5]. Frame 6 is non-evictable.
-        lru_replacer.record_access(1);
-        lru_replacer.record_access(2);
-        lru_replacer.record_access(3);
-        lru_replacer.record_access(4);
-        lru_replacer.record_access(5);
-        lru_replacer.record_access(6);
-        lru_replacer.set_evictable(1, true);
-        lru_replacer.set_evictable(2, true);
-        lru_replacer.set_evictable(3, true);
-        lru_replacer.set_evictable(4, true);
-        lru_replacer.set_evictable(5, true);
-        lru_replacer.set_evictable(6, false);
+        lru_replacer.record_access(1).unwrap();
+        lru_replacer.record_access(2).unwrap();
+        lru_replacer.record_access(3).unwrap();
+        lru_replacer.record_access(4).unwrap();
+        lru_replacer.record_access(5).unwrap();
+        lru_replacer.record_access(6).unwrap();
+        lru_replacer.set_evictable(1, true).unwrap();
+        lru_replacer.set_evictable(2, true).unwrap();
+        lru_replacer.set_evictable(3, true).unwrap();
+        lru_replacer.set_evictable(4, true).unwrap();
+        lru_replacer.set_evictable(5, true).unwrap();
+        lru_replacer.set_evictable(6, false).unwrap();
         assert_eq!(5, lru_replacer.size());
 
         // Scenario: Insert access history for frame 1. Now frame 1 has two access histories.
         // All other frames have max backward k-dist. The order of eviction is [2,3,4,5,1].
-        lru_replacer.record_access(1);
+        lru_replacer.record_access(1).unwrap();
 
         // Scenario: Evict three pages from the replacer. Elements with max k-distance should be
         // popped first based on LRU.
@@ -200,12 +204,12 @@ mod tests {
 
         // Scenario: Now replacer has frames [5,1]. Insert new frames 3, 4, and update access
         // history for 5. We should end with [3,1,5,4]
-        lru_replacer.record_access(3);
-        lru_replacer.record_access(4);
-        lru_replacer.record_access(5);
-        lru_replacer.record_access(4);
-        lru_replacer.set_evictable(3, true);
-        lru_replacer.set_evictable(4, true);
+        lru_replacer.record_access(3).unwrap();
+        lru_replacer.record_access(4).unwrap();
+        lru_replacer.record_access(5).unwrap();
+        lru_replacer.record_access(4).unwrap();
+        lru_replacer.set_evictable(3, true).unwrap();
+        lru_replacer.set_evictable(4, true).unwrap();
         assert_eq!(4, lru_replacer.size());
 
         // Scenario: continue looking for victims. We expect 3 to be evicted next.
@@ -214,23 +218,23 @@ mod tests {
         assert_eq!(3, lru_replacer.size());
 
         // Set 6 to be evictable. 6 Should be evicted next since it has max backward k-dist.
-        lru_replacer.set_evictable(6, true);
+        lru_replacer.set_evictable(6, true).unwrap();
         assert_eq!(4, lru_replacer.size());
         let value = lru_replacer.evict();
         assert_eq!(Some(6), value);
         assert_eq!(3, lru_replacer.size());
 
         // Now we have [1,5,4]. Continue looking for victims.
-        lru_replacer.set_evictable(1, false);
+        lru_replacer.set_evictable(1, false).unwrap();
         assert_eq!(2, lru_replacer.size());
         let value = lru_replacer.evict();
         assert_eq!(Some(5), value);
         assert_eq!(1, lru_replacer.size());
 
         // Update access history for 1. Now we have [4,1]. Next victim is 4.
-        lru_replacer.record_access(1);
-        lru_replacer.record_access(1);
-        lru_replacer.set_evictable(1, true);
+        lru_replacer.record_access(1).unwrap();
+        lru_replacer.record_access(1).unwrap();
+        lru_replacer.set_evictable(1, true).unwrap();
         assert_eq!(2, lru_replacer.size());
         let value = lru_replacer.evict();
         assert_eq!(Some(4), value);

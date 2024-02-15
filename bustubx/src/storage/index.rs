@@ -118,7 +118,9 @@ impl BPlusTreeIndex {
             data.copy_from_slice(&BPlusTreePageCodec::encode(&curr_page));
 
             self.buffer_pool_manager.write_page(curr_page_id, data);
-            self.buffer_pool_manager.unpin_page(curr_page_id, true);
+            self.buffer_pool_manager
+                .unpin_page(curr_page_id, true)
+                .unwrap();
 
             if let Some(page_id) = context.read_set.pop_back() {
                 // 更新父节点
@@ -131,7 +133,7 @@ impl BPlusTreeIndex {
                     self.index_metadata.key_schema.clone(),
                 )
                 .unwrap();
-                self.buffer_pool_manager.unpin_page(page_id, false);
+                self.buffer_pool_manager.unpin_page(page_id, false).unwrap();
                 tree_page.insert_internalkv(internalkv, &self.index_metadata.key_schema);
 
                 curr_page = tree_page;
@@ -164,7 +166,9 @@ impl BPlusTreeIndex {
                 data.copy_from_slice(&BPlusTreeInternalPageCodec::encode(&new_internal_page));
 
                 new_root_page.write().unwrap().data = data;
-                self.buffer_pool_manager.unpin_page(new_root_page_id, true);
+                self.buffer_pool_manager
+                    .unpin_page(new_root_page_id, true)
+                    .unwrap();
 
                 // 更新root page id
                 self.root_page_id = new_root_page_id;
@@ -178,7 +182,9 @@ impl BPlusTreeIndex {
         data.copy_from_slice(&BPlusTreePageCodec::encode(&curr_page));
 
         self.buffer_pool_manager.write_page(curr_page_id, data);
-        self.buffer_pool_manager.unpin_page(curr_page_id, true);
+        self.buffer_pool_manager
+            .unpin_page(curr_page_id, true)
+            .unwrap();
         return true;
     }
 
@@ -280,7 +286,8 @@ impl BPlusTreeIndex {
                         self.buffer_pool_manager
                             .write_page(left_sibling_page_id, data);
                         self.buffer_pool_manager
-                            .unpin_page(left_sibling_page_id, true);
+                            .unpin_page(left_sibling_page_id, true)
+                            .unwrap();
 
                         // 更新父节点
                         let parent_page = self
@@ -304,12 +311,15 @@ impl BPlusTreeIndex {
                         ));
 
                         parent_page.write().unwrap().data = data;
-                        self.buffer_pool_manager.unpin_page(parent_page_id, true);
+                        self.buffer_pool_manager
+                            .unpin_page(parent_page_id, true)
+                            .unwrap();
 
                         break;
                     }
                     self.buffer_pool_manager
-                        .unpin_page(left_sibling_page_id, false);
+                        .unpin_page(left_sibling_page_id, false)
+                        .unwrap();
                 }
 
                 // 尝试从右兄弟借一个
@@ -364,7 +374,8 @@ impl BPlusTreeIndex {
                         self.buffer_pool_manager
                             .write_page(right_sibling_page_id, data);
                         self.buffer_pool_manager
-                            .unpin_page(right_sibling_page_id, true);
+                            .unpin_page(right_sibling_page_id, true)
+                            .unwrap();
 
                         // 更新父节点
                         let parent_page = self
@@ -388,12 +399,15 @@ impl BPlusTreeIndex {
                         ));
 
                         parent_page.write().unwrap().data = data;
-                        self.buffer_pool_manager.unpin_page(parent_page_id, true);
+                        self.buffer_pool_manager
+                            .unpin_page(parent_page_id, true)
+                            .unwrap();
 
                         break;
                     }
                     self.buffer_pool_manager
-                        .unpin_page(right_sibling_page_id, false);
+                        .unpin_page(right_sibling_page_id, false)
+                        .unwrap();
                 }
 
                 // 跟左兄弟合并
@@ -444,8 +458,12 @@ impl BPlusTreeIndex {
 
                     // 删除当前页
                     let deleted_page_id = curr_page_id;
-                    self.buffer_pool_manager.unpin_page(deleted_page_id, false);
-                    self.buffer_pool_manager.delete_page(deleted_page_id);
+                    self.buffer_pool_manager
+                        .unpin_page(deleted_page_id, false)
+                        .unwrap();
+                    self.buffer_pool_manager
+                        .delete_page(deleted_page_id)
+                        .unwrap();
 
                     // 更新当前页为左兄弟页
                     curr_page_id = left_sibling_page_id;
@@ -468,8 +486,12 @@ impl BPlusTreeIndex {
                     {
                         self.root_page_id = curr_page_id;
                         // 删除旧的根节点
-                        self.buffer_pool_manager.unpin_page(parent_page_id, false);
-                        self.buffer_pool_manager.delete_page(parent_page_id);
+                        self.buffer_pool_manager
+                            .unpin_page(parent_page_id, false)
+                            .unwrap();
+                        self.buffer_pool_manager
+                            .delete_page(parent_page_id)
+                            .unwrap();
                     } else {
                         let mut data = [0; BUSTUBX_PAGE_SIZE];
                         data.copy_from_slice(&BPlusTreeInternalPageCodec::encode(
@@ -477,7 +499,9 @@ impl BPlusTreeIndex {
                         ));
 
                         parent_page.write().unwrap().data = data;
-                        self.buffer_pool_manager.unpin_page(curr_page_id, true);
+                        self.buffer_pool_manager
+                            .unpin_page(curr_page_id, true)
+                            .unwrap();
                         curr_page = BPlusTreePage::Internal(parent_internal_page);
                         curr_page_id = parent_page_id;
                     }
@@ -532,8 +556,12 @@ impl BPlusTreeIndex {
 
                     // 删除右兄弟页
                     let deleted_page_id = right_sibling_page_id;
-                    self.buffer_pool_manager.unpin_page(deleted_page_id, false);
-                    self.buffer_pool_manager.delete_page(deleted_page_id);
+                    self.buffer_pool_manager
+                        .unpin_page(deleted_page_id, false)
+                        .unwrap();
+                    self.buffer_pool_manager
+                        .delete_page(deleted_page_id)
+                        .unwrap();
 
                     // 更新父节点
                     let parent_page = self
@@ -552,8 +580,12 @@ impl BPlusTreeIndex {
                     {
                         self.root_page_id = curr_page_id;
                         // 删除旧的根节点
-                        self.buffer_pool_manager.unpin_page(parent_page_id, false);
-                        self.buffer_pool_manager.delete_page(parent_page_id);
+                        self.buffer_pool_manager
+                            .unpin_page(parent_page_id, false)
+                            .unwrap();
+                        self.buffer_pool_manager
+                            .delete_page(parent_page_id)
+                            .unwrap();
                     } else {
                         let mut data = [0; BUSTUBX_PAGE_SIZE];
                         data.copy_from_slice(&BPlusTreeInternalPageCodec::encode(
@@ -561,7 +593,9 @@ impl BPlusTreeIndex {
                         ));
 
                         parent_page.write().unwrap().data = data;
-                        self.buffer_pool_manager.unpin_page(curr_page_id, true);
+                        self.buffer_pool_manager
+                            .unpin_page(curr_page_id, true)
+                            .unwrap();
                         curr_page = BPlusTreePage::Internal(parent_internal_page);
                         curr_page_id = parent_page_id;
                     }
@@ -574,7 +608,9 @@ impl BPlusTreeIndex {
         data.copy_from_slice(&BPlusTreePageCodec::encode(&curr_page));
 
         self.buffer_pool_manager.write_page(curr_page_id, data);
-        self.buffer_pool_manager.unpin_page(curr_page_id, true);
+        self.buffer_pool_manager
+            .unpin_page(curr_page_id, true)
+            .unwrap();
     }
 
     pub fn scan(&self, key: &Tuple) -> Vec<Rid> {
@@ -600,7 +636,9 @@ impl BPlusTreeIndex {
         // 更新root page id
         self.root_page_id = new_page_id;
 
-        self.buffer_pool_manager.unpin_page(new_page_id, true);
+        self.buffer_pool_manager
+            .unpin_page(new_page_id, true)
+            .unwrap();
     }
 
     // 找到叶子节点上对应的Value
@@ -626,7 +664,9 @@ impl BPlusTreeIndex {
         )
         .unwrap();
         let result = leaf_page.look_up(key, &self.index_metadata.key_schema);
-        self.buffer_pool_manager.unpin_page(leaf_page_id, false);
+        self.buffer_pool_manager
+            .unpin_page(leaf_page_id, false)
+            .unwrap();
         return result;
     }
 
@@ -651,7 +691,9 @@ impl BPlusTreeIndex {
                 BPlusTreePage::Internal(internal_page) => {
                     context.read_set.push_back(curr_page_id);
                     // 释放上一页
-                    self.buffer_pool_manager.unpin_page(curr_page_id, false);
+                    self.buffer_pool_manager
+                        .unpin_page(curr_page_id, false)
+                        .unwrap();
                     // 查找下一页
                     let next_page_id = internal_page.look_up(key, &self.index_metadata.key_schema);
                     let next_page = self
@@ -667,7 +709,9 @@ impl BPlusTreeIndex {
                     curr_page = next_page;
                 }
                 BPlusTreePage::Leaf(leaf_page) => {
-                    self.buffer_pool_manager.unpin_page(curr_page_id, false);
+                    self.buffer_pool_manager
+                        .unpin_page(curr_page_id, false)
+                        .unwrap();
                     return curr_page_id;
                 }
             }
@@ -702,7 +746,9 @@ impl BPlusTreeIndex {
                 data.copy_from_slice(&BPlusTreeLeafPageCodec::encode(&new_leaf_page));
 
                 new_page.write().unwrap().data = data;
-                self.buffer_pool_manager.unpin_page(new_page_id, true);
+                self.buffer_pool_manager
+                    .unpin_page(new_page_id, true)
+                    .unwrap();
 
                 return (new_leaf_page.key_at(0).clone(), new_page_id);
             }
@@ -716,7 +762,7 @@ impl BPlusTreeIndex {
                 // 拆分kv对
                 let mut new_internal_page = BPlusTreeInternalPage::new(
                     self.index_metadata.key_schema.clone(),
-                    self.internal_max_size as u32,
+                    self.internal_max_size,
                 );
                 new_internal_page.batch_insert(
                     internal_page.split_off(internal_page.header.current_size as usize / 2),
@@ -727,7 +773,9 @@ impl BPlusTreeIndex {
                 data.copy_from_slice(&BPlusTreeInternalPageCodec::encode(&new_internal_page));
 
                 new_page.write().unwrap().data = data;
-                self.buffer_pool_manager.unpin_page(new_page_id, true);
+                self.buffer_pool_manager
+                    .unpin_page(new_page_id, true)
+                    .unwrap();
 
                 let min_leafkv = self.find_min_leafkv(new_page_id);
                 return (min_leafkv.0, new_page_id);
@@ -753,7 +801,9 @@ impl BPlusTreeIndex {
             self.index_metadata.key_schema.clone(),
         )
         .unwrap();
-        self.buffer_pool_manager.unpin_page(parent_page_id, false);
+        self.buffer_pool_manager
+            .unpin_page(parent_page_id, false)
+            .unwrap();
         return parent_page.sibling_page_ids(child_page_id);
     }
 
@@ -772,7 +822,7 @@ impl BPlusTreeIndex {
             self.index_metadata.key_schema.clone(),
         )
         .unwrap();
-        self.buffer_pool_manager.unpin_page(page_id, false);
+        self.buffer_pool_manager.unpin_page(page_id, false).unwrap();
         loop {
             match curr_page {
                 BPlusTreePage::Internal(internal_page) => {
@@ -787,7 +837,7 @@ impl BPlusTreeIndex {
                     )
                     .unwrap()
                     .0;
-                    self.buffer_pool_manager.unpin_page(page_id, false);
+                    self.buffer_pool_manager.unpin_page(page_id, false).unwrap();
                 }
                 BPlusTreePage::Leaf(leaf_page) => {
                     return leaf_page.kv_at(0).clone();
@@ -807,7 +857,7 @@ impl BPlusTreeIndex {
             self.index_metadata.key_schema.clone(),
         )
         .unwrap();
-        self.buffer_pool_manager.unpin_page(page_id, false);
+        self.buffer_pool_manager.unpin_page(page_id, false).unwrap();
         loop {
             match curr_page {
                 BPlusTreePage::Internal(internal_page) => {
@@ -823,7 +873,7 @@ impl BPlusTreeIndex {
                     )
                     .unwrap()
                     .0;
-                    self.buffer_pool_manager.unpin_page(page_id, false);
+                    self.buffer_pool_manager.unpin_page(page_id, false).unwrap();
                 }
                 BPlusTreePage::Leaf(leaf_page) => {
                     return leaf_page
@@ -861,7 +911,7 @@ impl BPlusTreeIndex {
                     self.index_metadata.key_schema.clone(),
                 )
                 .unwrap();
-                self.buffer_pool_manager.unpin_page(page_id, false);
+                self.buffer_pool_manager.unpin_page(page_id, false).unwrap();
                 match curr_page {
                     BPlusTreePage::Internal(internal_page) => {
                         internal_page.print_page(page_id, &self.index_metadata.key_schema);

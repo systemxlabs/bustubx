@@ -11,7 +11,7 @@ use crate::{BustubxError, BustubxResult};
 
 use super::replacer::LRUKReplacer;
 
-pub type FrameId = u32;
+pub type FrameId = usize;
 
 pub const TABLE_HEAP_BUFFER_POOL_SIZE: usize = 100;
 
@@ -32,7 +32,7 @@ impl BufferPoolManager {
     pub fn new(num_pages: usize, disk_manager: Arc<DiskManager>) -> Self {
         let mut free_list = VecDeque::with_capacity(num_pages);
         for i in 0..num_pages {
-            free_list.push_back(i as FrameId);
+            free_list.push_back(i);
         }
         Self {
             pool: vec![Arc::new(RwLock::new(Page::new(0))); num_pages],
@@ -58,7 +58,7 @@ impl BufferPoolManager {
         } else {
             // 无空闲frame，从缓冲池中替换一个页
             if let Some(frame_id) = self.replacer.evict() {
-                let evicted_page = self.pool[frame_id as usize].clone();
+                let evicted_page = self.pool[frame_id].clone();
                 let evicted_page_id = evicted_page.read().unwrap().page_id;
                 // 如果页被修改过，则将其写回磁盘
                 let is_dirty = evicted_page.read().unwrap().is_dirty;
@@ -77,20 +77,20 @@ impl BufferPoolManager {
         self.page_table.insert(new_page_id, frame_id);
         let mut new_page = Page::new(new_page_id);
         new_page.pin_count = 1;
-        self.pool[frame_id as usize] = Arc::new(RwLock::new(new_page));
+        self.pool[frame_id] = Arc::new(RwLock::new(new_page));
 
-        self.replacer.record_access(frame_id);
-        self.replacer.set_evictable(frame_id, false);
+        self.replacer.record_access(frame_id)?;
+        self.replacer.set_evictable(frame_id, false)?;
 
-        Ok(self.pool[frame_id as usize].clone())
+        Ok(self.pool[frame_id].clone())
     }
 
     pub fn fetch_page(&mut self, page_id: PageId) -> BustubxResult<Arc<RwLock<Page>>> {
         if self.page_table.contains_key(&page_id) {
             let frame_id = self.page_table[&page_id];
-            let page = self.pool[frame_id as usize].clone();
+            let page = self.pool[frame_id].clone();
             page.write().unwrap().pin_count += 1;
-            self.replacer.set_evictable(frame_id, false);
+            self.replacer.set_evictable(frame_id, false)?;
             return Ok(page);
         } else {
             // 分配一个frame
@@ -98,7 +98,7 @@ impl BufferPoolManager {
                 self.free_list.pop_front().unwrap()
             } else {
                 if let Some(frame_id) = self.replacer.evict() {
-                    let evicted_page = self.pool[frame_id as usize].clone();
+                    let evicted_page = self.pool[frame_id].clone();
                     let evicted_page_id = evicted_page.read().unwrap().page_id;
                     let is_dirty = evicted_page.read().unwrap().is_dirty;
                     if is_dirty {
@@ -115,40 +115,41 @@ impl BufferPoolManager {
             let mut new_page = Page::new(page_id);
             new_page.pin_count = 1;
             new_page.data = self.disk_manager.read_page(page_id).unwrap();
-            self.pool[frame_id as usize] = Arc::new(RwLock::new(new_page));
+            self.pool[frame_id] = Arc::new(RwLock::new(new_page));
 
-            self.replacer.record_access(frame_id);
-            self.replacer.set_evictable(frame_id, false);
+            self.replacer.record_access(frame_id)?;
+            self.replacer.set_evictable(frame_id, false)?;
 
-            Ok(self.pool[frame_id as usize].clone())
+            Ok(self.pool[frame_id].clone())
         }
     }
 
     pub fn write_page(&mut self, page_id: PageId, data: [u8; BUSTUBX_PAGE_SIZE]) {
         if self.page_table.contains_key(&page_id) {
             let frame_id = self.page_table[&page_id];
-            let page = self.pool[frame_id as usize].clone();
+            let page = self.pool[frame_id].clone();
             page.write().unwrap().data = data;
             page.write().unwrap().is_dirty = true;
         }
     }
 
     // 从缓冲池中取消固定页
-    pub fn unpin_page(&mut self, page_id: PageId, is_dirty: bool) -> bool {
+    pub fn unpin_page(&mut self, page_id: PageId, is_dirty: bool) -> BustubxResult<bool> {
         if self.page_table.contains_key(&page_id) {
             let frame_id = self.page_table[&page_id];
-            let page = self.pool[frame_id as usize].clone();
+            let page = self.pool[frame_id].clone();
             if page.read().unwrap().pin_count == 0 {
-                return false;
+                return Ok(false);
             }
             page.write().unwrap().pin_count -= 1;
             page.write().unwrap().is_dirty |= is_dirty;
-            if page.read().unwrap().pin_count == 0 {
-                self.replacer.set_evictable(frame_id, true);
+            let pin_count = page.read().unwrap().pin_count;
+            if pin_count == 0 {
+                self.replacer.set_evictable(frame_id, true)?;
             }
-            true
+            Ok(true)
         } else {
-            false
+            Ok(false)
         }
     }
 
@@ -156,7 +157,7 @@ impl BufferPoolManager {
     pub fn flush_page(&mut self, page_id: PageId) -> BustubxResult<bool> {
         if self.page_table.contains_key(&page_id) {
             let frame_id = self.page_table[&page_id];
-            let page = self.pool[frame_id as usize].clone();
+            let page = self.pool[frame_id].clone();
             self.disk_manager
                 .write_page(page_id, &page.read().unwrap().data)?;
             page.write().unwrap().is_dirty = false;
@@ -176,15 +177,15 @@ impl BufferPoolManager {
     }
 
     // 删除缓冲池中的页
-    pub fn delete_page(&mut self, page_id: PageId) -> bool {
+    pub fn delete_page(&mut self, page_id: PageId) -> BustubxResult<bool> {
         if !self.page_table.contains_key(&page_id) {
-            return true;
+            return Ok(true);
         }
         let frame_id = self.page_table[&page_id];
-        let page = self.pool[frame_id as usize].clone();
+        let page = self.pool[frame_id].clone();
         if page.read().unwrap().pin_count > 0 {
             // 页被固定，无法删除
-            return false;
+            return Ok(false);
         }
 
         // 从缓冲池中删除
@@ -194,8 +195,8 @@ impl BufferPoolManager {
         self.replacer.remove(frame_id);
 
         // 从磁盘上删除
-        self.disk_manager.deallocate_page(page_id).unwrap();
-        return true;
+        self.disk_manager.deallocate_page(page_id)?;
+        Ok(true)
     }
 }
 
@@ -231,7 +232,7 @@ mod tests {
         let page = buffer_pool_manager.new_page();
         assert!(page.is_err());
 
-        buffer_pool_manager.unpin_page(0, false);
+        buffer_pool_manager.unpin_page(0, false).unwrap();
         let page = buffer_pool_manager.new_page().unwrap();
         assert_eq!(page.read().unwrap().page_id, 3);
 
@@ -252,7 +253,7 @@ mod tests {
         let page = buffer_pool_manager.new_page();
         assert!(page.is_err());
 
-        buffer_pool_manager.unpin_page(0, true);
+        buffer_pool_manager.unpin_page(0, true).unwrap();
         let page = buffer_pool_manager.new_page().unwrap();
         assert_eq!(page.read().unwrap().page_id, 3);
 
@@ -268,19 +269,19 @@ mod tests {
         let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page = buffer_pool_manager.new_page().unwrap();
-        buffer_pool_manager.unpin_page(0, true);
+        buffer_pool_manager.unpin_page(0, true).unwrap();
         let page = buffer_pool_manager.new_page().unwrap();
-        buffer_pool_manager.unpin_page(1, false);
+        buffer_pool_manager.unpin_page(1, false).unwrap();
         let page = buffer_pool_manager.new_page().unwrap();
-        buffer_pool_manager.unpin_page(2, false);
+        buffer_pool_manager.unpin_page(2, false).unwrap();
 
         let page = buffer_pool_manager.fetch_page(0).unwrap();
         assert_eq!(page.read().unwrap().page_id, 0);
-        buffer_pool_manager.unpin_page(0, false);
+        buffer_pool_manager.unpin_page(0, false).unwrap();
 
         let page = buffer_pool_manager.fetch_page(1).unwrap();
         assert_eq!(page.read().unwrap().page_id, 1);
-        buffer_pool_manager.unpin_page(1, false);
+        buffer_pool_manager.unpin_page(1, false).unwrap();
         assert_eq!(buffer_pool_manager.replacer.size(), 3);
 
         let _ = remove_file(db_path);
@@ -295,13 +296,13 @@ mod tests {
         let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page_id = buffer_pool_manager.new_page().unwrap();
-        buffer_pool_manager.unpin_page(0, true);
+        buffer_pool_manager.unpin_page(0, true).unwrap();
         let page_id = buffer_pool_manager.new_page().unwrap();
-        buffer_pool_manager.unpin_page(1, true);
+        buffer_pool_manager.unpin_page(1, true).unwrap();
         let page_id = buffer_pool_manager.new_page().unwrap();
-        buffer_pool_manager.unpin_page(2, false);
+        buffer_pool_manager.unpin_page(2, false).unwrap();
 
-        let res = buffer_pool_manager.delete_page(0);
+        let res = buffer_pool_manager.delete_page(0).unwrap();
         assert!(res);
         assert_eq!(buffer_pool_manager.pool.len(), 3);
         assert_eq!(buffer_pool_manager.free_list.len(), 1);
