@@ -25,11 +25,9 @@ impl<'a> LogicalPlanner<'a> {
         let table_schema = self
             .context
             .catalog
-            .get_table_by_name(table.table())
-            .map_or(
-                Err(BustubxError::Plan(format!("table {} not found", table))),
-                |info| Ok(info.schema.clone()),
-            )?;
+            .get_table_by_name(table.table())?
+            .schema
+            .clone();
         Ok(LogicalPlan::CreateIndex(CreateIndex {
             index_name,
             table,

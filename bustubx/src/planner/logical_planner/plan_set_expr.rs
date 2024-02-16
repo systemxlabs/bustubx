@@ -210,11 +210,9 @@ impl LogicalPlanner<'_> {
                 let schema = self
                     .context
                     .catalog
-                    .get_table_by_name(table_ref.table())
-                    .map_or(
-                        Err(BustubxError::Plan(format!("table {} not found", table_ref))),
-                        |info| Ok(info.schema.clone()),
-                    )?;
+                    .get_table_by_name(table_ref.table())?
+                    .schema
+                    .clone();
                 Ok(LogicalPlan::TableScan(TableScan {
                     table_ref,
                     table_schema: schema,

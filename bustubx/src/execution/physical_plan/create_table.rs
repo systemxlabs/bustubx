@@ -19,7 +19,7 @@ impl VolcanoExecutor for PhysicalCreateTable {
         context.catalog.create_table(
             self.table.table().to_string(),
             Arc::new(self.schema.clone()),
-        );
+        )?;
         Ok(None)
     }
     fn output_schema(&self) -> SchemaRef {

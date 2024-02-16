@@ -78,8 +78,7 @@ impl VolcanoExecutor for PhysicalInsert {
             // TODO update index if needed
             let table_heap = &mut context
                 .catalog
-                .get_mut_table_by_name(self.table.table())
-                .unwrap()
+                .get_mut_table_by_name(self.table.table())?
                 .table;
             let tuple_meta = TupleMeta {
                 insert_txn_id: 0,
