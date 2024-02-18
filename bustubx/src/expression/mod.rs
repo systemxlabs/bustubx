@@ -1,11 +1,11 @@
-mod aggregate;
+mod aggr;
 mod alias;
 mod binary;
 mod cast;
 mod column;
 mod literal;
 
-pub use aggregate::AggregateFunction;
+pub use aggr::*;
 pub use alias::Alias;
 pub use binary::{BinaryExpr, BinaryOp};
 pub use cast::Cast;

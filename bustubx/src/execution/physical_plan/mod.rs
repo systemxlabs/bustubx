@@ -1,3 +1,4 @@
+mod aggregate;
 mod create_index;
 mod create_table;
 mod empty;

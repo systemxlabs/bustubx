@@ -11,7 +11,7 @@ use crate::error::{BustubxError, BustubxResult};
 use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE};
 use crate::storage::codec::MetaPageCodec;
 use crate::storage::meta_page::MetaPage;
-use crate::storage::{EMPTY_META_PAGE, META_PAGE_SIZE};
+use crate::storage::META_PAGE_SIZE;
 
 static EMPTY_PAGE: [u8; BUSTUBX_PAGE_SIZE] = [0; BUSTUBX_PAGE_SIZE];
 

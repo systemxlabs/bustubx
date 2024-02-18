@@ -1,7 +1,12 @@
+mod count;
+
+pub use count::CountAccumulator;
+
 use crate::catalog::{Column, DataType, Schema};
 use crate::common::ScalarValue;
 use crate::expression::{Expr, ExprTrait};
 use crate::{BustubxError, BustubxResult, Tuple};
+use std::fmt::Debug;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct AggregateFunction {
@@ -11,11 +16,6 @@ pub struct AggregateFunction {
     pub args: Vec<Expr>,
     /// Whether this is a DISTINCT aggregation or not
     pub distinct: bool,
-}
-
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub enum AggregateFunctionKind {
-    Count,
 }
 
 impl ExprTrait for AggregateFunction {
@@ -56,8 +56,29 @@ impl std::fmt::Display for AggregateFunction {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum AggregateFunctionKind {
+    Count,
+}
+
+impl AggregateFunctionKind {
+    pub fn create_accumulator(&self) -> Box<dyn Accumulator> {
+        match self {
+            AggregateFunctionKind::Count => Box::new(CountAccumulator::new()),
+        }
+    }
+}
+
 impl std::fmt::Display for AggregateFunctionKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
     }
+}
+
+pub trait Accumulator: Send + Sync + Debug {
+    /// Updates the accumulator's state from its input.
+    fn update_value(&mut self, value: &ScalarValue) -> BustubxResult<()>;
+
+    /// Returns the final aggregate value, consuming the internal state.
+    fn evaluate(&self) -> BustubxResult<ScalarValue>;
 }
