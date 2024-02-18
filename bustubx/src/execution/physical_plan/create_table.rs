@@ -16,10 +16,9 @@ pub struct PhysicalCreateTable {
 
 impl VolcanoExecutor for PhysicalCreateTable {
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
-        context.catalog.create_table(
-            self.table.table().to_string(),
-            Arc::new(self.schema.clone()),
-        )?;
+        context
+            .catalog
+            .create_table(self.table.clone(), Arc::new(self.schema.clone()))?;
         Ok(None)
     }
     fn output_schema(&self) -> SchemaRef {

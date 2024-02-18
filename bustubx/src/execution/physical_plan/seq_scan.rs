@@ -30,7 +30,7 @@ impl PhysicalSeqScan {
 impl VolcanoExecutor for PhysicalSeqScan {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         debug!("init table scan executor");
-        let table_info = context.catalog.get_mut_table_by_name(self.table.table())?;
+        let table_info = context.catalog.table_mut(&self.table)?;
         let inited_iterator = table_info.table.iter(None, None);
         let mut iterator = self.iterator.lock().unwrap();
         *iterator = inited_iterator;
@@ -38,7 +38,7 @@ impl VolcanoExecutor for PhysicalSeqScan {
     }
 
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
-        let table_info = context.catalog.get_mut_table_by_name(self.table.table())?;
+        let table_info = context.catalog.table_mut(&self.table)?;
         let mut iterator = self.iterator.lock().unwrap();
         let full_tuple = iterator.next(&mut table_info.table);
         return Ok(full_tuple.map(|t| t.1));
