@@ -1,0 +1,41 @@
+use crate::storage::codec::MetaPageCodec;
+use crate::{BustubxError, BustubxResult};
+
+pub static EMPTY_META_PAGE: MetaPage = MetaPage {
+    major_version: 0,
+    minor_version: 0,
+};
+
+lazy_static::lazy_static! {
+    pub static ref META_PAGE_SIZE: usize = MetaPageCodec::encode(&EMPTY_META_PAGE).len();
+}
+
+#[derive(Debug)]
+pub struct MetaPage {
+    pub major_version: u32,
+    pub minor_version: u32,
+}
+
+impl MetaPage {
+    pub fn try_new() -> BustubxResult<Self> {
+        let version_str = env!("CARGO_PKG_VERSION");
+        let version_arr = version_str.split(".").collect::<Vec<&str>>();
+        if version_arr.len() < 2 {
+            return Err(BustubxError::Storage(format!(
+                "Package version is not xx.xx {}",
+                version_str
+            )));
+        }
+        let major_version = version_arr[0].parse::<u32>().map_err(|e| {
+            BustubxError::Storage(format!("Failed to parse major version {}", version_arr[0]))
+        })?;
+        let minor_version = version_arr[1].parse::<u32>().map_err(|e| {
+            BustubxError::Storage(format!("Failed to parse minor version {}", version_arr[1]))
+        })?;
+
+        Ok(Self {
+            major_version,
+            minor_version,
+        })
+    }
+}

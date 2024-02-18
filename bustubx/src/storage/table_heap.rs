@@ -235,8 +235,8 @@ mod tests {
         let buffer_pool_manager = BufferPoolManager::new(10, Arc::new(disk_manager));
         let table_heap =
             TableHeap::try_new(Arc::new(Schema::empty()), buffer_pool_manager).unwrap();
-        assert_eq!(table_heap.first_page_id, 0);
-        assert_eq!(table_heap.last_page_id, 0);
+        assert_eq!(table_heap.first_page_id, 1);
+        assert_eq!(table_heap.last_page_id, 1);
     }
 
     #[test]
@@ -263,8 +263,8 @@ mod tests {
                 &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
             )
             .unwrap();
-        assert_eq!(table_heap.first_page_id, 0);
-        assert_eq!(table_heap.last_page_id, 0);
+        assert_eq!(table_heap.first_page_id, 1);
+        assert_eq!(table_heap.last_page_id, 1);
 
         table_heap
             .insert_tuple(
@@ -272,8 +272,8 @@ mod tests {
                 &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
             )
             .unwrap();
-        assert_eq!(table_heap.first_page_id, 0);
-        assert_eq!(table_heap.last_page_id, 0);
+        assert_eq!(table_heap.first_page_id, 1);
+        assert_eq!(table_heap.last_page_id, 1);
 
         table_heap
             .insert_tuple(
@@ -281,8 +281,8 @@ mod tests {
                 &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
             )
             .unwrap();
-        assert_eq!(table_heap.first_page_id, 0);
-        assert_eq!(table_heap.last_page_id, 0);
+        assert_eq!(table_heap.first_page_id, 1);
+        assert_eq!(table_heap.last_page_id, 1);
     }
 
     #[test]
