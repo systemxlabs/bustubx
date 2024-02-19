@@ -4,6 +4,7 @@ mod binary;
 mod cast;
 mod column;
 mod literal;
+mod util;
 
 pub use aggr::*;
 pub use alias::Alias;
@@ -11,6 +12,7 @@ pub use binary::{BinaryExpr, BinaryOp};
 pub use cast::Cast;
 pub use column::ColumnExpr;
 pub use literal::Literal;
+pub use util::*;
 
 use crate::catalog::Schema;
 use crate::catalog::{Column, DataType};

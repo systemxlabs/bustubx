@@ -6,7 +6,6 @@ use crate::planner::logical_plan::{
     Project, Sort, TableScan, Values,
 };
 
-use crate::execution::physical_plan::PhysicalCreateTable;
 use crate::execution::physical_plan::PhysicalFilter;
 use crate::execution::physical_plan::PhysicalInsert;
 use crate::execution::physical_plan::PhysicalLimit;
@@ -16,6 +15,7 @@ use crate::execution::physical_plan::PhysicalProject;
 use crate::execution::physical_plan::PhysicalSeqScan;
 use crate::execution::physical_plan::PhysicalSort;
 use crate::execution::physical_plan::PhysicalValues;
+use crate::execution::physical_plan::{PhysicalAggregate, PhysicalCreateTable};
 use crate::execution::physical_plan::{PhysicalCreateIndex, PhysicalEmpty};
 
 pub struct PhysicalPlanner;
@@ -126,6 +126,7 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
             ref input,
             limit,
         }) => {
+            // TODO limit
             let input_physical_plan = build_plan(Arc::clone(input));
             PhysicalPlan::Sort(PhysicalSort::new(
                 expr.clone(),
@@ -141,10 +142,18 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
         )),
         LogicalPlan::Aggregate(Aggregate {
             input,
-            group_expr,
-            aggr_expr,
+            group_exprs,
+            aggr_exprs,
             schema,
-        }) => todo!(),
+        }) => {
+            let input_physical_plan = build_plan(Arc::clone(input));
+            PhysicalPlan::Aggregate(PhysicalAggregate::new(
+                Arc::new(input_physical_plan),
+                group_exprs.clone(),
+                aggr_exprs.clone(),
+                schema.clone(),
+            ))
+        }
     };
     plan
 }

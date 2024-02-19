@@ -11,6 +11,7 @@ mod seq_scan;
 mod sort;
 mod values;
 
+pub use aggregate::PhysicalAggregate;
 pub use create_index::PhysicalCreateIndex;
 pub use create_table::PhysicalCreateTable;
 pub use empty::PhysicalEmpty;
@@ -43,6 +44,7 @@ pub enum PhysicalPlan {
     Values(PhysicalValues),
     NestedLoopJoin(PhysicalNestedLoopJoin),
     Sort(PhysicalSort),
+    Aggregate(PhysicalAggregate),
 }
 
 impl PhysicalPlan {
@@ -58,6 +60,7 @@ impl PhysicalPlan {
                 ..
             }) => vec![left_input, right_input],
             PhysicalPlan::Sort(PhysicalSort { input, .. }) => vec![input],
+            PhysicalPlan::Aggregate(PhysicalAggregate { input, .. }) => vec![input],
             PhysicalPlan::Empty(_)
             | PhysicalPlan::CreateTable(_)
             | PhysicalPlan::CreateIndex(_)
@@ -81,6 +84,7 @@ impl VolcanoExecutor for PhysicalPlan {
             PhysicalPlan::Limit(op) => op.init(context),
             PhysicalPlan::NestedLoopJoin(op) => op.init(context),
             PhysicalPlan::Sort(op) => op.init(context),
+            PhysicalPlan::Aggregate(op) => op.init(context),
         }
     }
 
@@ -97,6 +101,7 @@ impl VolcanoExecutor for PhysicalPlan {
             PhysicalPlan::Limit(op) => op.next(context),
             PhysicalPlan::NestedLoopJoin(op) => op.next(context),
             PhysicalPlan::Sort(op) => op.next(context),
+            PhysicalPlan::Aggregate(op) => op.next(context),
         }
     }
 
@@ -113,6 +118,7 @@ impl VolcanoExecutor for PhysicalPlan {
             Self::Limit(op) => op.output_schema(),
             Self::NestedLoopJoin(op) => op.output_schema(),
             Self::Sort(op) => op.output_schema(),
+            Self::Aggregate(op) => op.output_schema(),
         }
     }
 }
@@ -131,6 +137,7 @@ impl std::fmt::Display for PhysicalPlan {
             Self::Limit(op) => write!(f, "{op}"),
             Self::NestedLoopJoin(op) => write!(f, "{op}"),
             Self::Sort(op) => write!(f, "{op}"),
+            Self::Aggregate(op) => write!(f, "{op}"),
         }
     }
 }

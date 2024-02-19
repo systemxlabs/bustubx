@@ -24,22 +24,30 @@ fn read_dir_recursive<P: AsRef<Path>>(path: P) -> Vec<PathBuf> {
 }
 
 fn read_dir_recursive_impl(dst: &mut Vec<PathBuf>, path: &Path) {
-    let entries = std::fs::read_dir(path).unwrap();
-    for entry in entries {
-        let path = entry.unwrap().path();
-
-        if path.is_dir() {
-            read_dir_recursive_impl(dst, &path);
+    let push_file = |dst: &mut Vec<PathBuf>, path: PathBuf| {
+        // skip _xxx.slt file
+        if regex::Regex::new(r"/_.*\.slt")
+            .unwrap()
+            .is_match(path.to_str().unwrap())
+        {
+            println!("skip file: {:?}", path);
         } else {
-            // skip _xxx.slt file
-            if regex::Regex::new(r"/_.*\.slt")
-                .unwrap()
-                .is_match(path.to_str().unwrap())
-            {
-                println!("skip file: {:?}", path);
-                continue;
-            }
             dst.push(path);
         }
+    };
+
+    if path.is_dir() {
+        let entries = std::fs::read_dir(path).unwrap();
+        for entry in entries {
+            let path = entry.unwrap().path();
+
+            if path.is_dir() {
+                read_dir_recursive_impl(dst, &path);
+            } else {
+                push_file(dst, path);
+            }
+        }
+    } else {
+        push_file(dst, path.to_path_buf());
     }
 }

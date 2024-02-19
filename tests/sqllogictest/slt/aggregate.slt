@@ -1,0 +1,10 @@
+statement ok
+create table t1 (a int, b int)
+
+statement ok
+insert into t1 values (1, 2), (NULL, 3), (5, 4)
+
+query IR
+select count(a), avg(b) from t1
+----
+2 3

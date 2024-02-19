@@ -8,9 +8,9 @@ pub struct Aggregate {
     /// The incoming logical plan
     pub input: Arc<LogicalPlan>,
     /// Grouping expressions
-    pub group_expr: Vec<Expr>,
+    pub group_exprs: Vec<Expr>,
     /// Aggregate expressions
-    pub aggr_expr: Vec<Expr>,
+    pub aggr_exprs: Vec<Expr>,
     /// The schema description of the aggregate output
     pub schema: SchemaRef,
 }

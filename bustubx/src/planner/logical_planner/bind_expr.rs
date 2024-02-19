@@ -1,5 +1,7 @@
 use crate::common::{ScalarValue, TableReference};
-use crate::expression::{BinaryExpr, ColumnExpr, Expr, Literal};
+use crate::expression::{
+    AggregateFunction, AggregateFunctionKind, BinaryExpr, ColumnExpr, Expr, Literal,
+};
 use crate::planner::LogicalPlanner;
 use crate::{BustubxError, BustubxResult};
 
@@ -49,6 +51,7 @@ impl LogicalPlanner<'_> {
                     idents
                 ))),
             },
+            sqlparser::ast::Expr::Function(function) => self.bind_function(function),
             _ => Err(BustubxError::NotSupport(format!(
                 "sqlparser expr {} not supported",
                 sql
@@ -76,6 +79,44 @@ impl LogicalPlanner<'_> {
             _ => Err(BustubxError::NotSupport(format!(
                 "sqlparser value {} not supported",
                 value
+            ))),
+        }
+    }
+
+    pub fn bind_function(&self, function: &sqlparser::ast::Function) -> BustubxResult<Expr> {
+        let name = function.name.to_string();
+
+        if let Some(func_kind) = AggregateFunctionKind::find(name.as_str()) {
+            let args = function
+                .args
+                .iter()
+                .map(|arg| self.bind_function_arg(arg))
+                .collect::<BustubxResult<Vec<Expr>>>()?;
+            return Ok(Expr::AggregateFunction(AggregateFunction {
+                func_kind,
+                args,
+                distinct: function.distinct,
+            }));
+        }
+
+        Err(BustubxError::Plan(format!(
+            "The function {} is not supported",
+            function
+        )))
+    }
+
+    pub fn bind_function_arg(&self, arg: &sqlparser::ast::FunctionArg) -> BustubxResult<Expr> {
+        match arg {
+            sqlparser::ast::FunctionArg::Named {
+                name: _,
+                arg: sqlparser::ast::FunctionArgExpr::Expr(arg),
+            } => self.bind_expr(arg),
+            sqlparser::ast::FunctionArg::Unnamed(sqlparser::ast::FunctionArgExpr::Expr(arg)) => {
+                self.bind_expr(arg)
+            }
+            _ => Err(BustubxError::Plan(format!(
+                "The function arg {} is not supported",
+                arg
             ))),
         }
     }

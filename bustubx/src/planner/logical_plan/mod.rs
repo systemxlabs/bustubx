@@ -200,13 +200,13 @@ impl LogicalPlan {
                 ),
             })),
             LogicalPlan::Aggregate(Aggregate {
-                group_expr,
-                aggr_expr,
+                group_exprs,
+                aggr_exprs,
                 schema,
                 ..
             }) => Ok(LogicalPlan::Aggregate(Aggregate {
-                group_expr: group_expr.clone(),
-                aggr_expr: aggr_expr.clone(),
+                group_exprs: group_exprs.clone(),
+                aggr_exprs: aggr_exprs.clone(),
                 schema: schema.clone(),
                 input: Arc::new(
                     inputs

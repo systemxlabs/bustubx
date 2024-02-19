@@ -73,7 +73,7 @@ impl Schema {
             .enumerate()
             .find(|(_, col)| match (relation, &col.relation) {
                 (Some(rel), Some(col_rel)) => rel.resolved_eq(col_rel) && name == &col.name,
-                (Some(rel), None) => false,
+                (Some(_), None) => false,
                 (None, Some(_)) | (None, None) => name == &col.name,
             })
             .ok_or_else(|| BustubxError::Plan(format!("Unable to get column named \"{name}\"")))?;

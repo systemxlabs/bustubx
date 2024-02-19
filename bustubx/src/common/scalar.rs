@@ -82,6 +82,16 @@ impl ScalarValue {
                     self, data_type
                 ))),
             },
+            DataType::Float64 => match self {
+                ScalarValue::Int8(v) => Ok(ScalarValue::Float64(v.map(|v| v as f64))),
+                ScalarValue::Int32(v) => Ok(ScalarValue::Float64(v.map(|v| v as f64))),
+                ScalarValue::Int64(v) => Ok(ScalarValue::Float64(v.map(|v| v as f64))),
+                ScalarValue::Float64(v) => Ok(ScalarValue::Float64(v.map(|v| v))),
+                _ => Err(BustubxError::NotSupport(format!(
+                    "Failed to cast {} to {} type",
+                    self, data_type
+                ))),
+            },
             _ => Err(BustubxError::NotSupport(format!(
                 "Not support cast to {} type",
                 data_type

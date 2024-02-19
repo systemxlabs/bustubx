@@ -1,13 +1,14 @@
 use crate::catalog::{Column, Schema, EMPTY_SCHEMA_REF};
-use crate::expression::{Alias, ColumnExpr, Expr, ExprTrait};
-use crate::planner::logical_plan::JoinType;
+use crate::expression::{columnize_expr, Alias, ColumnExpr, Expr, ExprTrait};
 use crate::planner::logical_plan::{
     build_join_schema, project_schema, EmptyRelation, Filter, Join, LogicalPlan, Project,
     TableScan, Values,
 };
+use crate::planner::logical_plan::{Aggregate, JoinType};
 use crate::planner::LogicalPlanner;
 use crate::{BustubxError, BustubxResult};
 use std::sync::Arc;
+use std::vec;
 
 impl LogicalPlanner<'_> {
     pub fn plan_set_expr(&self, set_expr: &sqlparser::ast::SetExpr) -> BustubxResult<LogicalPlan> {
@@ -24,7 +25,51 @@ impl LogicalPlanner<'_> {
     pub fn plan_select(&self, select: &sqlparser::ast::Select) -> BustubxResult<LogicalPlan> {
         let table_scan = self.plan_from_tables(&select.from)?;
         let selection = self.plan_selection(table_scan, &select.selection)?;
-        self.plan_project(selection, &select.projection)
+        let aggregate = self.plan_aggregate(selection, &select.projection, &select.group_by)?;
+        self.plan_project(aggregate, &select.projection)
+    }
+
+    pub fn plan_aggregate(
+        &self,
+        input: LogicalPlan,
+        project: &Vec<sqlparser::ast::SelectItem>,
+        group_by: &Vec<sqlparser::ast::Expr>,
+    ) -> BustubxResult<LogicalPlan> {
+        let mut exprs = vec![];
+        for select_item in project {
+            exprs.extend(self.bind_select_item(&input, select_item)?);
+        }
+
+        let aggr_exprs = exprs
+            .iter()
+            .filter(|e| matches!(e, Expr::AggregateFunction(_)))
+            .cloned()
+            .collect::<Vec<Expr>>();
+        let group_exprs = group_by
+            .iter()
+            .map(|e| self.bind_expr(e))
+            .collect::<BustubxResult<Vec<Expr>>>()?;
+
+        if aggr_exprs.is_empty() && group_exprs.is_empty() {
+            Ok(input)
+        } else {
+            let mut columns = aggr_exprs
+                .iter()
+                .map(|e| e.to_column(input.schema()))
+                .collect::<BustubxResult<Vec<Column>>>()?;
+            columns.extend(
+                group_exprs
+                    .iter()
+                    .map(|e| e.to_column(input.schema()))
+                    .collect::<BustubxResult<Vec<Column>>>()?,
+            );
+            Ok(LogicalPlan::Aggregate(Aggregate {
+                input: Arc::new((input)),
+                group_exprs,
+                aggr_exprs,
+                schema: Arc::new(Schema::new(columns)),
+            }))
+        }
     }
 
     pub fn plan_project(
@@ -34,42 +79,61 @@ impl LogicalPlanner<'_> {
     ) -> BustubxResult<LogicalPlan> {
         let mut exprs = vec![];
         for select_item in project {
-            match select_item {
-                sqlparser::ast::SelectItem::UnnamedExpr(expr) => exprs.push(self.bind_expr(expr)?),
-                sqlparser::ast::SelectItem::ExprWithAlias { expr, alias } => {
-                    exprs.push(Expr::Alias(Alias {
-                        name: alias.value.clone(),
-                        expr: Box::new(self.bind_expr(expr)?),
-                    }))
-                }
-                sqlparser::ast::SelectItem::Wildcard(_) => {
-                    let all_columns = input
-                        .schema()
-                        .columns
-                        .iter()
-                        .map(|col| {
-                            Expr::Column(ColumnExpr {
-                                relation: col.relation.clone(),
-                                name: col.name.clone(),
-                            })
-                        })
-                        .collect::<Vec<Expr>>();
-                    exprs.extend(all_columns);
-                }
-                _ => {
-                    return Err(BustubxError::Plan(format!(
-                        "sqlparser select item {} not supported",
-                        select_item
-                    )));
-                }
-            }
+            exprs.extend(self.bind_select_item(&input, select_item)?);
         }
-        let schema = Arc::new(project_schema(&input, &exprs)?);
+        let columnized_exprs = exprs
+            .into_iter()
+            .map(|e| {
+                if let Ok(new_expr) = columnize_expr(&e, &input.schema()) {
+                    new_expr
+                } else {
+                    e
+                }
+            })
+            .collect::<Vec<Expr>>();
+
+        let schema = Arc::new(project_schema(&input, &columnized_exprs)?);
         Ok(LogicalPlan::Project(Project {
-            exprs,
+            exprs: columnized_exprs,
             input: Arc::new(input),
             schema,
         }))
+    }
+
+    pub fn bind_select_item(
+        &self,
+        input: &LogicalPlan,
+        item: &sqlparser::ast::SelectItem,
+    ) -> BustubxResult<Vec<Expr>> {
+        match item {
+            sqlparser::ast::SelectItem::UnnamedExpr(expr) => Ok(vec![self.bind_expr(expr)?]),
+            sqlparser::ast::SelectItem::ExprWithAlias { expr, alias } => {
+                Ok(vec![Expr::Alias(Alias {
+                    name: alias.value.clone(),
+                    expr: Box::new(self.bind_expr(expr)?),
+                })])
+            }
+            sqlparser::ast::SelectItem::Wildcard(_) => {
+                let all_columns = input
+                    .schema()
+                    .columns
+                    .iter()
+                    .map(|col| {
+                        Expr::Column(ColumnExpr {
+                            relation: col.relation.clone(),
+                            name: col.name.clone(),
+                        })
+                    })
+                    .collect::<Vec<Expr>>();
+                Ok(all_columns)
+            }
+            _ => {
+                return Err(BustubxError::Plan(format!(
+                    "sqlparser select item {} not supported",
+                    item
+                )));
+            }
+        }
     }
 
     pub fn plan_selection(
