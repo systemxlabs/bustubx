@@ -90,7 +90,7 @@ impl BPlusTreeIndex {
 
     pub fn insert(&mut self, key: &Tuple, rid: Rid) -> bool {
         if self.is_empty() {
-            self.start_new_tree(key, rid);
+            self.start_new_tree(key, rid).unwrap();
             return true;
         }
         let mut context = Context::new(self.root_page_id);

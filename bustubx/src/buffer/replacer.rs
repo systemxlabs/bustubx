@@ -36,7 +36,7 @@ pub struct LRUKReplacer {
     // 可置换的frame数上限
     replacer_size: usize,
     k: usize,
-    pub node_store: HashMap<FrameId, LRUKNode>,
+    node_store: HashMap<FrameId, LRUKNode>,
     // 当前时间戳（从0递增）
     current_timestamp: u64,
 }

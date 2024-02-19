@@ -10,6 +10,8 @@ pub enum ScalarValue {
     Int32(Option<i32>),
     Int64(Option<i64>),
     UInt64(Option<u64>),
+    Float32(Option<f32>),
+    Float64(Option<f64>),
 }
 
 impl ScalarValue {
@@ -21,6 +23,8 @@ impl ScalarValue {
             DataType::Int32 => Self::Int32(None),
             DataType::Int64 => Self::Int64(None),
             DataType::UInt64 => Self::UInt64(None),
+            DataType::Float32 => Self::Float32(None),
+            DataType::Float64 => Self::Float64(None),
         }
     }
 
@@ -32,6 +36,8 @@ impl ScalarValue {
             ScalarValue::Int32(_) => DataType::Int32,
             ScalarValue::Int64(_) => DataType::Int64,
             ScalarValue::UInt64(_) => DataType::UInt64,
+            ScalarValue::Float32(_) => DataType::Float32,
+            ScalarValue::Float64(_) => DataType::Float64,
         }
     }
 
@@ -43,11 +49,14 @@ impl ScalarValue {
             ScalarValue::Int32(v) => v.is_none(),
             ScalarValue::Int64(v) => v.is_none(),
             ScalarValue::UInt64(v) => v.is_none(),
+            ScalarValue::Float32(v) => v.is_none(),
+            ScalarValue::Float64(v) => v.is_none(),
         }
     }
 
     /// Try to cast this value to a ScalarValue of type `data_type`
     pub fn cast_to(&self, data_type: &DataType) -> BustubxResult<Self> {
+        // TODO use macro
         match data_type {
             DataType::Boolean => match self {
                 ScalarValue::Boolean(v) => Ok(ScalarValue::Boolean(v.clone())),
@@ -59,6 +68,15 @@ impl ScalarValue {
             DataType::Int32 => match self {
                 ScalarValue::Int8(v) => Ok(ScalarValue::Int32(v.map(|v| v as i32))),
                 ScalarValue::Int64(v) => Ok(ScalarValue::Int32(v.map(|v| v as i32))),
+                _ => Err(BustubxError::NotSupport(format!(
+                    "Failed to cast {} to {} type",
+                    self, data_type
+                ))),
+            },
+            DataType::Float32 => match self {
+                ScalarValue::Int8(v) => Ok(ScalarValue::Float32(v.map(|v| v as f32))),
+                ScalarValue::Int64(v) => Ok(ScalarValue::Float32(v.map(|v| v as f32))),
+                ScalarValue::Float64(v) => Ok(ScalarValue::Float32(v.map(|v| v as f32))),
                 _ => Err(BustubxError::NotSupport(format!(
                     "Failed to cast {} to {} type",
                     self, data_type
@@ -96,6 +114,16 @@ impl PartialEq for ScalarValue {
             (Int64(_), _) => false,
             (UInt64(v1), UInt64(v2)) => v1.eq(v2),
             (UInt64(_), _) => false,
+            (Float32(v1), Float32(v2)) => match (v1, v2) {
+                (Some(f1), Some(f2)) => f1.to_bits() == f2.to_bits(),
+                _ => v1.eq(v2),
+            },
+            (Float32(_), _) => false,
+            (Float64(v1), Float64(v2)) => match (v1, v2) {
+                (Some(f1), Some(f2)) => f1.to_bits() == f2.to_bits(),
+                _ => v1.eq(v2),
+            },
+            (Float64(_), _) => false,
         }
     }
 }
@@ -118,6 +146,16 @@ impl PartialOrd for ScalarValue {
             (Int64(_), _) => None,
             (UInt64(v1), UInt64(v2)) => v1.partial_cmp(v2),
             (UInt64(_), _) => None,
+            (Float32(v1), Float32(v2)) => match (v1, v2) {
+                (Some(f1), Some(f2)) => Some(f1.total_cmp(f2)),
+                _ => v1.partial_cmp(v2),
+            },
+            (Float32(_), _) => None,
+            (Float64(v1), Float64(v2)) => match (v1, v2) {
+                (Some(f1), Some(f2)) => Some(f1.total_cmp(f2)),
+                _ => v1.partial_cmp(v2),
+            },
+            (Float64(_), _) => None,
         }
     }
 }
@@ -137,6 +175,10 @@ impl std::fmt::Display for ScalarValue {
             ScalarValue::Int64(Some(v)) => write!(f, "{v}"),
             ScalarValue::UInt64(None) => write!(f, "NULL"),
             ScalarValue::UInt64(Some(v)) => write!(f, "{v}"),
+            ScalarValue::Float32(None) => write!(f, "NULL"),
+            ScalarValue::Float32(Some(v)) => write!(f, "{v}"),
+            ScalarValue::Float64(None) => write!(f, "NULL"),
+            ScalarValue::Float64(Some(v)) => write!(f, "{v}"),
         }
     }
 }
@@ -157,9 +199,11 @@ macro_rules! impl_from_for_scalar {
     };
 }
 
+impl_from_for_scalar!(bool, Boolean);
 impl_from_for_scalar!(i8, Int8);
 impl_from_for_scalar!(i16, Int16);
 impl_from_for_scalar!(i32, Int32);
 impl_from_for_scalar!(i64, Int64);
 impl_from_for_scalar!(u64, UInt64);
-impl_from_for_scalar!(bool, Boolean);
+impl_from_for_scalar!(f32, Float32);
+impl_from_for_scalar!(f64, Float64);

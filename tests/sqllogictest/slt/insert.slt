@@ -1,11 +1,11 @@
 statement ok
-create table t1 (a int, b int)
+create table t1 (a int, b float)
 
 statement ok
-insert into t1 values (1, 1), (2, NULL)
+insert into t1 values (1, 1.1), (2, NULL)
 
-query II
+query IR
 select * from t1
 ----
-1 1
+1 1.1
 2 NULL

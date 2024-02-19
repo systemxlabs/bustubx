@@ -59,10 +59,15 @@ impl LogicalPlanner<'_> {
     pub fn bind_value(&self, value: &sqlparser::ast::Value) -> BustubxResult<Expr> {
         match value {
             sqlparser::ast::Value::Number(s, _) => {
-                let num: i64 = s.parse::<i64>().map_err(|e| {
-                    BustubxError::Internal("Failed to parse literal as i64".to_string())
-                })?;
-                Ok(Expr::Literal(Literal { value: num.into() }))
+                if let Ok(num) = s.parse::<i64>() {
+                    return Ok(Expr::Literal(Literal { value: num.into() }));
+                }
+                if let Ok(num) = s.parse::<f64>() {
+                    return Ok(Expr::Literal(Literal { value: num.into() }));
+                }
+                Err(BustubxError::Internal(
+                    "Failed to parse sql number value".to_string(),
+                ))
             }
             sqlparser::ast::Value::Boolean(b) => Ok(Expr::Literal(Literal { value: (*b).into() })),
             sqlparser::ast::Value::Null => Ok(Expr::Literal(Literal {

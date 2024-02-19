@@ -457,7 +457,7 @@ impl BPlusTreeLeafPage {
                 }
             );
         }
-        println!("")
+        println!()
     }
 }
 

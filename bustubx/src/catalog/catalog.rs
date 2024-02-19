@@ -134,7 +134,8 @@ impl Catalog {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::remove_file, sync::Arc};
+    use std::sync::Arc;
+    use tempfile::TempDir;
 
     use crate::common::TableReference;
     use crate::{
@@ -145,10 +146,10 @@ mod tests {
 
     #[test]
     pub fn test_catalog_create_table() {
-        let db_path = "./test_catalog_create_table.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut catalog = super::Catalog::new(buffer_pool_manager);
 
@@ -183,16 +184,14 @@ mod tests {
         let table_info = catalog.table(&table_ref2).unwrap();
         assert_eq!(table_info.name, table_ref2.table());
         assert_eq!(table_info.schema.column_count(), 3);
-
-        let _ = remove_file(db_path);
     }
 
     #[test]
     pub fn test_catalog_create_index() {
-        let db_path = "./test_catalog_create_index.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut catalog = super::Catalog::new(buffer_pool_manager);
 
@@ -262,7 +261,5 @@ mod tests {
         assert!(index_info.is_some());
         let index_info = index_info.unwrap();
         assert_eq!(index_info.name, index_name1);
-
-        let _ = remove_file(db_path);
     }
 }

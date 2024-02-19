@@ -1,5 +1,7 @@
 use crate::storage::codec::DecodedData;
 use crate::{BustubxError, BustubxResult};
+use core::f32;
+use std::f64;
 
 pub struct CommonCodec;
 
@@ -152,6 +154,40 @@ impl CommonCodec {
         ];
         Ok((i64::from_be_bytes(data), 8))
     }
+
+    pub fn encode_f32(data: f32) -> Vec<u8> {
+        data.to_be_bytes().to_vec()
+    }
+
+    pub fn decode_f32(bytes: &[u8]) -> BustubxResult<DecodedData<f32>> {
+        if bytes.len() < 4 {
+            return Err(BustubxError::Storage(format!(
+                "bytes length {} is less than {}",
+                bytes.len(),
+                4
+            )));
+        }
+        let data = [bytes[0], bytes[1], bytes[2], bytes[3]];
+        Ok((f32::from_be_bytes(data), 4))
+    }
+
+    pub fn encode_f64(data: f64) -> Vec<u8> {
+        data.to_be_bytes().to_vec()
+    }
+
+    pub fn decode_f64(bytes: &[u8]) -> BustubxResult<DecodedData<f64>> {
+        if bytes.len() < 8 {
+            return Err(BustubxError::Storage(format!(
+                "bytes length {} is less than {}",
+                bytes.len(),
+                8
+            )));
+        }
+        let data = [
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        ];
+        Ok((f64::from_be_bytes(data), 8))
+    }
 }
 
 #[cfg(test)]
@@ -218,6 +254,18 @@ mod tests {
         assert_eq!(
             5i64,
             CommonCodec::decode_i64(&CommonCodec::encode_i64(5i64))
+                .unwrap()
+                .0
+        );
+        assert_eq!(
+            5.0f32,
+            CommonCodec::decode_f32(&CommonCodec::encode_f32(5.0f32))
+                .unwrap()
+                .0
+        );
+        assert_eq!(
+            5.0f64,
+            CommonCodec::decode_f64(&CommonCodec::encode_f64(5.0f64))
                 .unwrap()
                 .0
         );

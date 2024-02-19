@@ -80,10 +80,6 @@ impl Schema {
         Ok(idx)
     }
 
-    pub fn fixed_len(&self) -> usize {
-        self.columns.iter().map(|c| c.data_type.type_size()).sum()
-    }
-
     pub fn column_count(&self) -> usize {
         self.columns.len()
     }

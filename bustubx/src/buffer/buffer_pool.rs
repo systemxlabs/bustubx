@@ -205,14 +205,15 @@ impl BufferPoolManager {
 #[cfg(test)]
 mod tests {
     use crate::{buffer::BufferPoolManager, storage::DiskManager};
-    use std::{fs::remove_file, sync::Arc};
+    use std::sync::Arc;
+    use tempfile::TempDir;
 
     #[test]
     pub fn test_buffer_pool_manager_new_page() {
-        let db_path = "./test_buffer_pool_manager_new_page.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
         let page = buffer_pool_manager.new_page().unwrap().clone();
         assert_eq!(page.read().unwrap().page_id, 1);
@@ -237,16 +238,14 @@ mod tests {
         buffer_pool_manager.unpin_page(1, false).unwrap();
         let page = buffer_pool_manager.new_page().unwrap();
         assert_eq!(page.read().unwrap().page_id, 4);
-
-        let _ = remove_file(db_path);
     }
 
     #[test]
     pub fn test_buffer_pool_manager_unpin_page() {
-        let db_path = "./test_buffer_pool_manager_unpin_page.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page = buffer_pool_manager.new_page().unwrap();
@@ -258,16 +257,14 @@ mod tests {
         buffer_pool_manager.unpin_page(1, true).unwrap();
         let page = buffer_pool_manager.new_page().unwrap();
         assert_eq!(page.read().unwrap().page_id, 4);
-
-        let _ = remove_file(db_path);
     }
 
     #[test]
     pub fn test_buffer_pool_manager_fetch_page() {
-        let db_path = "./test_buffer_pool_manager_fetch_page.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page1 = buffer_pool_manager.new_page().unwrap();
@@ -291,16 +288,14 @@ mod tests {
         buffer_pool_manager.unpin_page(page2_id, false).unwrap();
 
         assert_eq!(buffer_pool_manager.replacer.size(), 3);
-
-        let _ = remove_file(db_path);
     }
 
     #[test]
     pub fn test_buffer_pool_manager_delete_page() {
-        let db_path = "./test_buffer_pool_manager_delete_page.db";
-        let _ = remove_file(db_path);
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = DiskManager::try_new(&db_path).unwrap();
+        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page1 = buffer_pool_manager.new_page().unwrap();
@@ -324,7 +319,5 @@ mod tests {
 
         let page = buffer_pool_manager.fetch_page(page1_id).unwrap();
         assert_eq!(page.read().unwrap().page_id, page1_id);
-
-        let _ = remove_file(db_path);
     }
 }

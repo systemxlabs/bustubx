@@ -14,13 +14,17 @@ impl ScalarValueCodec {
             ScalarValue::Int32(Some(v)) => CommonCodec::encode_i32(*v),
             ScalarValue::Int64(Some(v)) => CommonCodec::encode_i64(*v),
             ScalarValue::UInt64(Some(v)) => CommonCodec::encode_u64(*v),
+            ScalarValue::Float32(Some(v)) => CommonCodec::encode_f32(*v),
+            ScalarValue::Float64(Some(v)) => CommonCodec::encode_f64(*v),
             // null
             ScalarValue::Boolean(None)
             | ScalarValue::Int8(None)
             | ScalarValue::Int16(None)
             | ScalarValue::Int32(None)
             | ScalarValue::Int64(None)
-            | ScalarValue::UInt64(None) => vec![],
+            | ScalarValue::UInt64(None)
+            | ScalarValue::Float32(None)
+            | ScalarValue::Float64(None) => vec![],
         }
     }
 
@@ -49,6 +53,14 @@ impl ScalarValueCodec {
             DataType::UInt64 => {
                 let (value, offset) = CommonCodec::decode_u64(bytes)?;
                 Ok((ScalarValue::UInt64(Some(value)), offset))
+            }
+            DataType::Float32 => {
+                let (value, offset) = CommonCodec::decode_f32(bytes)?;
+                Ok((ScalarValue::Float32(Some(value)), offset))
+            }
+            DataType::Float64 => {
+                let (value, offset) = CommonCodec::decode_f64(bytes)?;
+                Ok((ScalarValue::Float64(Some(value)), offset))
             }
         }
     }

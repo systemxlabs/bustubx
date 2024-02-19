@@ -8,19 +8,8 @@ pub enum DataType {
     Int32,
     Int64,
     UInt64,
-}
-
-impl DataType {
-    pub fn type_size(&self) -> usize {
-        match self {
-            DataType::Boolean => 1,
-            DataType::Int8 => 1,
-            DataType::Int16 => 2,
-            DataType::Int32 => 4,
-            DataType::Int64 => 8,
-            DataType::UInt64 => 8,
-        }
-    }
+    Float32,
+    Float64,
 }
 
 impl TryFrom<&sqlparser::ast::DataType> for DataType {
@@ -34,6 +23,8 @@ impl TryFrom<&sqlparser::ast::DataType> for DataType {
             sqlparser::ast::DataType::Int(_) => Ok(DataType::Int32),
             sqlparser::ast::DataType::BigInt(_) => Ok(DataType::Int64),
             sqlparser::ast::DataType::UnsignedBigInt(_) => Ok(DataType::UInt64),
+            sqlparser::ast::DataType::Float(_) => Ok(DataType::Float32),
+            sqlparser::ast::DataType::Double => Ok(DataType::Float32),
             _ => Err(BustubxError::NotSupport(format!(
                 "Not support datatype {}",
                 value

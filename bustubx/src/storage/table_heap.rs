@@ -117,7 +117,7 @@ impl TableHeap {
 
     pub fn tuple(&mut self, rid: Rid) -> BustubxResult<(TupleMeta, Tuple)> {
         let page = self.buffer_pool_manager.fetch_page(rid.page_id)?;
-        let (mut table_page, _) =
+        let (table_page, _) =
             TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone())?;
         let result = table_page.tuple(rid.slot_num as u16)?;
         self.buffer_pool_manager.unpin_page(rid.page_id, false)?;
@@ -126,7 +126,7 @@ impl TableHeap {
 
     pub fn tuple_meta(&mut self, rid: Rid) -> BustubxResult<TupleMeta> {
         let page = self.buffer_pool_manager.fetch_page(rid.page_id)?;
-        let (mut table_page, _) =
+        let (table_page, _) =
             TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone())?;
         let result = table_page.tuple_meta(rid.slot_num as u16)?;
         self.buffer_pool_manager.unpin_page(rid.page_id, false)?;

@@ -26,10 +26,10 @@ impl MetaPage {
                 version_str
             )));
         }
-        let major_version = version_arr[0].parse::<u32>().map_err(|e| {
+        let major_version = version_arr[0].parse::<u32>().map_err(|_| {
             BustubxError::Storage(format!("Failed to parse major version {}", version_arr[0]))
         })?;
-        let minor_version = version_arr[1].parse::<u32>().map_err(|e| {
+        let minor_version = version_arr[1].parse::<u32>().map_err(|_| {
             BustubxError::Storage(format!("Failed to parse minor version {}", version_arr[1]))
         })?;
 
