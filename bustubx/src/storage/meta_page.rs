@@ -1,19 +1,22 @@
+use crate::buffer::PageId;
 use crate::storage::codec::MetaPageCodec;
 use crate::{BustubxError, BustubxResult};
 
 pub static EMPTY_META_PAGE: MetaPage = MetaPage {
     major_version: 0,
     minor_version: 0,
+    freelist_page_id: 0,
 };
 
 lazy_static::lazy_static! {
     pub static ref META_PAGE_SIZE: usize = MetaPageCodec::encode(&EMPTY_META_PAGE).len();
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct MetaPage {
     pub major_version: u32,
     pub minor_version: u32,
+    pub freelist_page_id: PageId,
 }
 
 impl MetaPage {
@@ -36,6 +39,7 @@ impl MetaPage {
         Ok(Self {
             major_version,
             minor_version,
+            freelist_page_id: 0,
         })
     }
 }
