@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::path::Path;
+use std::sync::RwLock;
 use std::{
     io::{Read, Seek, Write},
     sync::{atomic::AtomicU32, Mutex, MutexGuard},
@@ -8,10 +9,10 @@ use tracing::info;
 
 use crate::error::{BustubxError, BustubxResult};
 
-use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE};
-use crate::storage::codec::MetaPageCodec;
+use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
+use crate::storage::codec::{FreelistPageCodec, MetaPageCodec};
 use crate::storage::meta_page::MetaPage;
-use crate::storage::META_PAGE_SIZE;
+use crate::storage::{disk_manager, FreelistPage, META_PAGE_SIZE};
 
 static EMPTY_PAGE: [u8; BUSTUBX_PAGE_SIZE] = [0; BUSTUBX_PAGE_SIZE];
 
@@ -19,7 +20,7 @@ static EMPTY_PAGE: [u8; BUSTUBX_PAGE_SIZE] = [0; BUSTUBX_PAGE_SIZE];
 pub struct DiskManager {
     next_page_id: AtomicU32,
     db_file: Mutex<File>,
-    meta: MetaPage,
+    meta: RwLock<MetaPage>,
 }
 
 impl DiskManager {
@@ -56,13 +57,20 @@ impl DiskManager {
             (((db_file_len - *META_PAGE_SIZE as u64) / BUSTUBX_PAGE_SIZE as u64) + 1) as PageId;
         info!("Initialized disk_manager next_page_id: {}", next_page_id);
 
-        Ok(Self {
+        let disk_manager = Self {
             next_page_id: AtomicU32::new(next_page_id),
             // Use a mutex to wrap the file handle to ensure that only one thread
             // can access the file at the same time among multiple threads.
             db_file: Mutex::new(db_file),
-            meta,
-        })
+            meta: RwLock::new(meta),
+        };
+
+        // new page for freelist
+        let freelist_page_id = disk_manager.allocate_page()?;
+        disk_manager.meta.write().unwrap().freelist_page_id = freelist_page_id;
+        disk_manager.write_meta_page()?;
+
+        Ok(disk_manager)
     }
 
     pub fn read_page(&self, page_id: PageId) -> BustubxResult<[u8; BUSTUBX_PAGE_SIZE]> {
@@ -90,28 +98,96 @@ impl DiskManager {
         Self::write_page_internal(&mut guard, page_id, data)
     }
 
-    // TODO 使用bitmap管理
     pub fn allocate_page(&self) -> BustubxResult<PageId> {
-        let mut guard = self.db_file.lock().unwrap();
+        if let Some(page_id) = self.freelist_pop()? {
+            Ok(page_id)
+        } else {
+            let mut guard = self.db_file.lock().unwrap();
 
-        // fetch current value and increment page id
-        let page_id = self
-            .next_page_id
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            // fetch current value and increment page id
+            let page_id = self
+                .next_page_id
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
-        // Write an empty page (all zeros) to the allocated page.
-        Self::write_page_internal(&mut guard, page_id, &EMPTY_PAGE)?;
+            // Write an empty page (all zeros) to the allocated page.
+            Self::write_page_internal(&mut guard, page_id, &EMPTY_PAGE)?;
 
-        Ok(page_id)
+            Ok(page_id)
+        }
     }
 
     pub fn deallocate_page(&self, page_id: PageId) -> BustubxResult<()> {
-        // TODO 利用pageId或者释放的空间
-        let mut guard = self.db_file.lock().unwrap();
-
         // Write an empty page (all zeros) to the deallocated page.
         // But this page is not deallocated, only data will be written with null or zeros.
-        Self::write_page_internal(&mut guard, page_id, &EMPTY_PAGE)
+        let mut guard = self.db_file.lock().unwrap();
+        Self::write_page_internal(&mut guard, page_id, &EMPTY_PAGE)?;
+        drop(guard);
+
+        self.freelist_push(page_id)?;
+        Ok(())
+    }
+
+    fn freelist_push(&self, page_id: PageId) -> BustubxResult<()> {
+        let mut curr_page_id = INVALID_PAGE_ID;
+        let mut next_page_id = self.meta.read().unwrap().freelist_page_id;
+        loop {
+            let mut freelist_page = if next_page_id == INVALID_PAGE_ID {
+                next_page_id = self.allocate_page()?;
+                // init freelist page
+                let freelist_page = FreelistPage::new();
+                self.write_page(next_page_id, &FreelistPageCodec::encode(&freelist_page))?;
+                if curr_page_id != INVALID_PAGE_ID {
+                    let (mut curr_freelist_page, _) =
+                        FreelistPageCodec::decode(&self.read_page(curr_page_id)?)?;
+                    curr_freelist_page.header.next_page_id = next_page_id;
+                    self.write_page(
+                        curr_page_id,
+                        &FreelistPageCodec::encode(&curr_freelist_page),
+                    )?;
+                }
+
+                freelist_page
+            } else {
+                let (freelist_page, _) = FreelistPageCodec::decode(&self.read_page(next_page_id)?)?;
+                freelist_page
+            };
+
+            if freelist_page.is_full() {
+                curr_page_id = next_page_id;
+                next_page_id = freelist_page.header.next_page_id;
+            } else {
+                freelist_page.push(page_id);
+                // persist page data
+                self.write_page(next_page_id, &FreelistPageCodec::encode(&freelist_page))?;
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    fn freelist_pop(&self) -> BustubxResult<Option<PageId>> {
+        let mut freelist_page_id = self.meta.read().unwrap().freelist_page_id;
+        loop {
+            if freelist_page_id != INVALID_PAGE_ID {
+                let (mut freelist_page, _) =
+                    FreelistPageCodec::decode(&self.read_page(freelist_page_id)?)?;
+                if let Some(page_id) = freelist_page.pop() {
+                    self.write_page(freelist_page_id, &FreelistPageCodec::encode(&freelist_page))?;
+                    return Ok(Some(page_id));
+                } else {
+                    freelist_page_id = freelist_page.header.next_page_id;
+                }
+            } else {
+                return Ok(None);
+            }
+        }
+    }
+
+    fn write_meta_page(&self) -> BustubxResult<()> {
+        let mut guard = self.db_file.lock().unwrap();
+        guard.write_all(&MetaPageCodec::encode(&self.meta.read().unwrap()))?;
+        guard.flush()?;
+        Ok(())
     }
 
     fn write_page_internal(
@@ -150,7 +226,7 @@ mod tests {
         let disk_manager = super::DiskManager::try_new(&temp_path).unwrap();
 
         let page_id1 = disk_manager.allocate_page().unwrap();
-        assert_eq!(page_id1, 1);
+        assert_eq!(page_id1, 2);
         let mut page1 = vec![1, 2, 3];
         page1.extend(vec![0; BUSTUBX_PAGE_SIZE - 3]);
         disk_manager.write_page(page_id1, &page1).unwrap();
@@ -158,7 +234,7 @@ mod tests {
         assert_eq!(page, page1.as_slice());
 
         let page_id2 = disk_manager.allocate_page().unwrap();
-        assert_eq!(page_id2, 2);
+        assert_eq!(page_id2, 3);
         let mut page2 = vec![0; BUSTUBX_PAGE_SIZE - 3];
         page2.extend(vec![4, 5, 6]);
         disk_manager.write_page(page_id2, &page2).unwrap();
@@ -168,7 +244,24 @@ mod tests {
         let db_file_len = disk_manager.db_file_len().unwrap();
         assert_eq!(
             db_file_len as usize,
-            BUSTUBX_PAGE_SIZE * 2 + MetaPageCodec::encode(&EMPTY_META_PAGE).len()
+            BUSTUBX_PAGE_SIZE * 3 + MetaPageCodec::encode(&EMPTY_META_PAGE).len()
         );
+    }
+
+    #[test]
+    pub fn test_disk_manager_freelist() {
+        let temp_dir = TempDir::new().unwrap();
+        let temp_path = temp_dir.path().join("test.db");
+
+        let disk_manager = super::DiskManager::try_new(&temp_path).unwrap();
+
+        let page_id1 = disk_manager.allocate_page().unwrap();
+        let page_id2 = disk_manager.allocate_page().unwrap();
+        let page_id3 = disk_manager.allocate_page().unwrap();
+
+        disk_manager.deallocate_page(page_id1).unwrap();
+
+        let page_id4 = disk_manager.allocate_page().unwrap();
+        assert_eq!(page_id1, page_id4);
     }
 }

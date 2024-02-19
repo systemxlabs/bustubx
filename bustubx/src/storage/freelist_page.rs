@@ -25,3 +25,33 @@ pub struct FreelistPageHeader {
     pub current_size: u32,
     pub max_size: u32,
 }
+
+impl FreelistPage {
+    pub fn new() -> Self {
+        Self {
+            header: FreelistPageHeader {
+                next_page_id: INVALID_PAGE_ID,
+                current_size: 0,
+                max_size: FREELIST_PAGE_MAX_SIZE.clone() as u32,
+            },
+            array: vec![],
+        }
+    }
+
+    pub fn is_full(&self) -> bool {
+        self.header.current_size >= self.header.max_size
+    }
+
+    pub fn push(&mut self, page_id: PageId) {
+        self.array.push(page_id);
+        self.header.current_size += 1;
+    }
+
+    pub fn pop(&mut self) -> Option<PageId> {
+        let page_id = self.array.pop();
+        if page_id.is_some() {
+            self.header.current_size -= 1;
+        }
+        page_id
+    }
+}

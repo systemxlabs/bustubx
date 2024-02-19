@@ -8,14 +8,10 @@ mod tuple;
 
 pub use common::CommonCodec;
 pub use freelist_page::{FreelistPageCodec, FreelistPageHeaderCodec};
-pub use index_page::{
-    BPlusTreeInternalPageCodec, BPlusTreeLeafPageCodec, BPlusTreePageCodec, BPlusTreePageTypeCodec,
-};
+pub use index_page::*;
 pub use meta_page::MetaPageCodec;
 pub use scalar::ScalarValueCodec;
-pub use table_page::{
-    RidCodec, TablePageCodec, TablePageHeaderCodec, TablePageHeaderTupleInfoCodec,
-};
+pub use table_page::*;
 pub use tuple::TupleCodec;
 
 // data + consumed offset

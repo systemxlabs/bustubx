@@ -1,4 +1,4 @@
-use crate::buffer::PageId;
+use crate::buffer::{PageId, INVALID_PAGE_ID};
 use crate::storage::codec::MetaPageCodec;
 use crate::{BustubxError, BustubxResult};
 
@@ -39,7 +39,7 @@ impl MetaPage {
         Ok(Self {
             major_version,
             minor_version,
-            freelist_page_id: 0,
+            freelist_page_id: INVALID_PAGE_ID,
         })
     }
 }

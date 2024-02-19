@@ -1,6 +1,6 @@
 pub type PageId = u32;
 
-pub const INVALID_PAGE_ID: PageId = u32::MAX;
+pub const INVALID_PAGE_ID: PageId = 0;
 pub const BUSTUBX_PAGE_SIZE: usize = 4096;
 
 #[derive(Debug, Clone)]

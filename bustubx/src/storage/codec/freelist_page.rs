@@ -1,3 +1,4 @@
+use crate::buffer::BUSTUBX_PAGE_SIZE;
 use crate::storage::codec::{CommonCodec, DecodedData};
 use crate::storage::{FreelistPage, FreelistPageHeader};
 use crate::BustubxResult;
@@ -45,6 +46,9 @@ impl FreelistPageCodec {
         for i in 0..page.header.current_size {
             bytes.extend(CommonCodec::encode_u32(page.array[i as usize]))
         }
+        // make sure length of bytes is BUSTUBX_PAGE_SIZE
+        assert!(bytes.len() <= BUSTUBX_PAGE_SIZE);
+        bytes.extend(vec![0; BUSTUBX_PAGE_SIZE - bytes.len()]);
         bytes
     }
 
@@ -61,10 +65,7 @@ impl FreelistPageCodec {
             array.push(page_id);
         }
 
-        Ok((
-            FreelistPage { header, array },
-            bytes.len() - left_bytes.len(),
-        ))
+        Ok((FreelistPage { header, array }, BUSTUBX_PAGE_SIZE))
     }
 }
 

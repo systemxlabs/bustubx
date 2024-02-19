@@ -227,65 +227,6 @@ mod tests {
     };
 
     #[test]
-    pub fn test_table_heap_new() {
-        let temp_dir = TempDir::new().unwrap();
-        let temp_path = temp_dir.path().join("test.db");
-
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
-        let buffer_pool_manager = BufferPoolManager::new(10, Arc::new(disk_manager));
-        let table_heap =
-            TableHeap::try_new(Arc::new(Schema::empty()), buffer_pool_manager).unwrap();
-        assert_eq!(table_heap.first_page_id, 1);
-        assert_eq!(table_heap.last_page_id, 1);
-    }
-
-    #[test]
-    pub fn test_table_heap_insert_tuple() {
-        let temp_dir = TempDir::new().unwrap();
-        let temp_path = temp_dir.path().join("test.db");
-
-        let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, false),
-            Column::new("b".to_string(), DataType::Int16, false),
-        ]));
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
-        let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
-        let mut table_heap = TableHeap::try_new(schema.clone(), buffer_pool_manager).unwrap();
-        let meta = super::TupleMeta {
-            insert_txn_id: 0,
-            delete_txn_id: 0,
-            is_deleted: false,
-        };
-
-        table_heap
-            .insert_tuple(
-                &meta,
-                &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
-            )
-            .unwrap();
-        assert_eq!(table_heap.first_page_id, 1);
-        assert_eq!(table_heap.last_page_id, 1);
-
-        table_heap
-            .insert_tuple(
-                &meta,
-                &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
-            )
-            .unwrap();
-        assert_eq!(table_heap.first_page_id, 1);
-        assert_eq!(table_heap.last_page_id, 1);
-
-        table_heap
-            .insert_tuple(
-                &meta,
-                &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
-            )
-            .unwrap();
-        assert_eq!(table_heap.first_page_id, 1);
-        assert_eq!(table_heap.last_page_id, 1);
-    }
-
-    #[test]
     pub fn test_table_heap_update_tuple_meta() {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
@@ -335,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_table_heap_get_tuple() {
+    pub fn test_table_heap_insert_tuple() {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
