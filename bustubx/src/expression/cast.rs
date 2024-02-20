@@ -26,7 +26,7 @@ impl ExprTrait for Cast {
         value.cast_to(&self.data_type)
     }
 
-    fn to_column(&self, input_schema: &Schema) -> BustubxResult<Column> {
+    fn to_column(&self, _input_schema: &Schema) -> BustubxResult<Column> {
         Err(BustubxError::Plan(format!(
             "expr {:?} as column not supported",
             self

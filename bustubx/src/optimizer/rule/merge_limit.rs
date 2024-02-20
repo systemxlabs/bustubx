@@ -27,9 +27,8 @@ impl LogicalOptimizerRule for MergeLimit {
                 offset: child.offset + parent.offset,
                 input: Arc::new((*child.input).clone()),
             });
-            return self
-                .try_optimize(&plan)
-                .map(|opt_plan| opt_plan.or_else(|| Some(plan)));
+            self.try_optimize(&plan)
+                .map(|opt_plan| opt_plan.or_else(|| Some(plan)))
         } else {
             Ok(None)
         }

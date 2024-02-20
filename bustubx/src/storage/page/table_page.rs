@@ -111,7 +111,7 @@ impl TablePage {
         }
 
         // Return the calculated insertion offset for the new tuple.
-        return Ok(tuple_offset);
+        Ok(tuple_offset)
     }
 
     pub fn insert_tuple(&mut self, meta: &TupleMeta, tuple: &Tuple) -> BustubxResult<u16> {
@@ -123,7 +123,7 @@ impl TablePage {
         self.header.tuple_infos.push(TupleInfo {
             offset: tuple_offset as u16,
             size: TupleCodec::encode(tuple).len() as u16,
-            meta: meta.clone(),
+            meta: *meta,
         });
 
         // only check
@@ -137,7 +137,7 @@ impl TablePage {
         // Copy the tuple's data into the appropriate position within the page's data buffer.
         self.data[tuple_offset..tuple_offset + TupleCodec::encode(tuple).len()]
             .copy_from_slice(&TupleCodec::encode(tuple));
-        return Ok(tuple_id);
+        Ok(tuple_id)
     }
 
     pub fn update_tuple_meta(&mut self, meta: &TupleMeta, slot_num: u16) -> BustubxResult<()> {
@@ -151,7 +151,7 @@ impl TablePage {
             self.header.num_deleted_tuples += 1;
         }
 
-        self.header.tuple_infos[slot_num as usize].meta = meta.clone();
+        self.header.tuple_infos[slot_num as usize].meta = *meta;
         Ok(())
     }
 
@@ -182,7 +182,7 @@ impl TablePage {
             )));
         }
 
-        return Ok(self.header.tuple_infos[slot_num as usize].meta.clone());
+        Ok(self.header.tuple_infos[slot_num as usize].meta)
     }
 
     pub fn get_next_rid(&self, rid: &Rid) -> Option<Rid> {
@@ -192,7 +192,7 @@ impl TablePage {
             return None;
         }
 
-        return Some(Rid::new(rid.page_id, tuple_id + 1));
+        Some(Rid::new(rid.page_id, tuple_id + 1))
     }
 }
 
@@ -239,9 +239,9 @@ mod tests {
         let (tuple_meta, tuple) = table_page.tuple(0).unwrap();
         assert_eq!(tuple_meta, meta);
         assert_eq!(tuple.data, vec![1i8.into(), 1i16.into()]);
-        let (tuple_meta, tuple) = table_page.tuple(1).unwrap();
+        let (_tuple_meta, tuple) = table_page.tuple(1).unwrap();
         assert_eq!(tuple.data, vec![2i8.into(), 2i16.into()]);
-        let (tuple_meta, tuple) = table_page.tuple(2).unwrap();
+        let (_tuple_meta, tuple) = table_page.tuple(2).unwrap();
         assert_eq!(tuple.data, vec![3i8.into(), 3i16.into()]);
     }
 
@@ -257,19 +257,19 @@ mod tests {
             delete_txn_id: 0,
             is_deleted: false,
         };
-        let tuple_id = table_page
+        let _tuple_id = table_page
             .insert_tuple(
                 &meta,
                 &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
             )
             .unwrap();
-        let tuple_id = table_page
+        let _tuple_id = table_page
             .insert_tuple(
                 &meta,
                 &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
             )
             .unwrap();
-        let tuple_id = table_page
+        let _tuple_id = table_page
             .insert_tuple(
                 &meta,
                 &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
@@ -283,7 +283,7 @@ mod tests {
 
         table_page.update_tuple_meta(&tuple_meta, 0).unwrap();
         let tuple_meta = table_page.tuple_meta(0).unwrap();
-        assert_eq!(tuple_meta.is_deleted, true);
+        assert!(tuple_meta.is_deleted);
         assert_eq!(tuple_meta.delete_txn_id, 1);
         assert_eq!(tuple_meta.insert_txn_id, 2);
     }

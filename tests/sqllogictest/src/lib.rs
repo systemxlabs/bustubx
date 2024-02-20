@@ -6,6 +6,12 @@ pub struct BustubxDB {
     db: Database,
 }
 
+impl Default for BustubxDB {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BustubxDB {
     pub fn new() -> Self {
         let db = Database::new_temp().unwrap();

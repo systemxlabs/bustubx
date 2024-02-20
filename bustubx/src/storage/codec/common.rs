@@ -15,14 +15,14 @@ impl CommonCodec {
     }
 
     pub fn decode_bool(bytes: &[u8]) -> BustubxResult<DecodedData<bool>> {
-        if bytes.len() < 1 {
+        if bytes.is_empty() {
             return Err(BustubxError::Storage(format!(
                 "bytes length {} is less than {}",
                 bytes.len(),
                 1
             )));
         }
-        Ok((if bytes[0] == 0 { false } else { true }, 1))
+        Ok((bytes[0] != 0, 1))
     }
 
     pub fn encode_u8(data: u8) -> Vec<u8> {
@@ -30,7 +30,7 @@ impl CommonCodec {
     }
 
     pub fn decode_u8(bytes: &[u8]) -> BustubxResult<DecodedData<u8>> {
-        if bytes.len() < 1 {
+        if bytes.is_empty() {
             return Err(BustubxError::Storage(format!(
                 "bytes length {} is less than {}",
                 bytes.len(),
@@ -95,7 +95,7 @@ impl CommonCodec {
     }
 
     pub fn decode_i8(bytes: &[u8]) -> BustubxResult<DecodedData<i8>> {
-        if bytes.len() < 1 {
+        if bytes.is_empty() {
             return Err(BustubxError::Storage(format!(
                 "bytes length {} is less than {}",
                 bytes.len(),
@@ -206,15 +206,13 @@ mod tests {
 
     #[test]
     fn common_codec() {
-        assert_eq!(
-            true,
+        assert!(
             CommonCodec::decode_bool(&CommonCodec::encode_bool(true))
                 .unwrap()
                 .0
         );
-        assert_eq!(
-            false,
-            CommonCodec::decode_bool(&CommonCodec::encode_bool(false))
+        assert!(
+            !CommonCodec::decode_bool(&CommonCodec::encode_bool(false))
                 .unwrap()
                 .0
         );

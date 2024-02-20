@@ -10,7 +10,7 @@ impl<'a> LogicalPlanner<'a> {
         table_name: &sqlparser::ast::ObjectName,
         columns: &Vec<sqlparser::ast::OrderByExpr>,
     ) -> BustubxResult<LogicalPlan> {
-        let index_name = index_name.0.get(0).map_or(
+        let index_name = index_name.0.first().map_or(
             Err(BustubxError::Plan(format!(
                 "Index name {index_name} is not expected"
             ))),
@@ -19,7 +19,7 @@ impl<'a> LogicalPlanner<'a> {
         let table = self.bind_table_name(table_name)?;
         let mut columns_expr = vec![];
         for col in columns.iter() {
-            let col_expr = self.bind_order_by_expr(&col)?;
+            let col_expr = self.bind_order_by_expr(col)?;
             columns_expr.push(col_expr);
         }
         let table_schema = self.context.catalog.table(&table)?.schema.clone();

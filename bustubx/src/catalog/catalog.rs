@@ -161,7 +161,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut catalog = super::Catalog::new(buffer_pool);
 
@@ -203,7 +203,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut catalog = super::Catalog::new(buffer_pool);
 

@@ -29,7 +29,7 @@ impl LogicalOptimizerRule for PushDownLimit {
                         input: sort.input.clone(),
                         limit: new_limit,
                     });
-                    plan.with_new_inputs(&vec![new_sort]).map(Some)
+                    plan.with_new_inputs(&[new_sort]).map(Some)
                 }
             }
             _ => Ok(None),

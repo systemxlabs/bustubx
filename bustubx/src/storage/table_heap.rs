@@ -140,9 +140,9 @@ impl TableHeap {
             .unwrap();
         if table_page.header.num_tuples == 0 {
             // TODO 忽略删除的tuple
-            return None;
+            None
         } else {
-            return Some(Rid::new(self.first_page_id, 0));
+            Some(Rid::new(self.first_page_id, 0))
         }
     }
 
@@ -173,9 +173,9 @@ impl TableHeap {
             .unwrap();
         if next_table_page.header.num_tuples == 0 {
             // TODO 忽略删除的tuple
-            return None;
+            None
         } else {
-            return Some(Rid::new(table_page.header.next_page_id, 0));
+            Some(Rid::new(table_page.header.next_page_id, 0))
         }
     }
 
@@ -195,9 +195,7 @@ pub struct TableIterator {
 
 impl TableIterator {
     pub fn next(&mut self, table_heap: &mut TableHeap) -> Option<(TupleMeta, Tuple)> {
-        if self.rid.is_none() {
-            return None;
-        }
+        self.rid?;
         let rid = self.rid.unwrap();
         if self.stop_at.is_some() && rid == self.stop_at.unwrap() {
             return None;
@@ -228,7 +226,7 @@ mod tests {
             Column::new("a".to_string(), DataType::Int8, false),
             Column::new("b".to_string(), DataType::Int16, false),
         ]));
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::try_new(schema.clone(), buffer_pool).unwrap();
         let meta = super::TupleMeta {
@@ -237,7 +235,7 @@ mod tests {
             is_deleted: false,
         };
 
-        let rid1 = table_heap
+        let _rid1 = table_heap
             .insert_tuple(
                 &meta,
                 &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
@@ -249,7 +247,7 @@ mod tests {
                 &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
             )
             .unwrap();
-        let rid3 = table_heap
+        let _rid3 = table_heap
             .insert_tuple(
                 &meta,
                 &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
@@ -265,7 +263,7 @@ mod tests {
         let meta = table_heap.tuple_meta(rid2).unwrap();
         assert_eq!(meta.insert_txn_id, 1);
         assert_eq!(meta.delete_txn_id, 2);
-        assert_eq!(meta.is_deleted, true);
+        assert!(meta.is_deleted);
     }
 
     #[test]
@@ -277,7 +275,7 @@ mod tests {
             Column::new("a".to_string(), DataType::Int8, false),
             Column::new("b".to_string(), DataType::Int16, false),
         ]));
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::try_new(schema.clone(), buffer_pool).unwrap();
 
@@ -338,7 +336,7 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16, false),
         ]));
 
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut table_heap = TableHeap::try_new(schema.clone(), buffer_pool).unwrap();
 
@@ -347,7 +345,7 @@ mod tests {
             delete_txn_id: 1,
             is_deleted: false,
         };
-        let rid1 = table_heap
+        let _rid1 = table_heap
             .insert_tuple(
                 &meta1,
                 &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
@@ -358,7 +356,7 @@ mod tests {
             delete_txn_id: 2,
             is_deleted: false,
         };
-        let rid2 = table_heap
+        let _rid2 = table_heap
             .insert_tuple(
                 &meta2,
                 &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
@@ -369,7 +367,7 @@ mod tests {
             delete_txn_id: 3,
             is_deleted: false,
         };
-        let rid3 = table_heap
+        let _rid3 = table_heap
             .insert_tuple(
                 &meta3,
                 &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),

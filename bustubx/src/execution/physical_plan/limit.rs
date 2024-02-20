@@ -51,7 +51,7 @@ impl VolcanoExecutor for PhysicalLimit {
             }
             return if self.limit.is_some() {
                 let limit = self.limit.unwrap();
-                if (cursor as usize) < offset + limit {
+                if cursor < offset + limit {
                     Ok(next_tuple)
                 } else {
                     Ok(None)

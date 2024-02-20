@@ -36,7 +36,7 @@ impl ExprTrait for AggregateFunction {
     fn evaluate(&self, tuple: &Tuple) -> BustubxResult<ScalarValue> {
         match self.func_kind {
             AggregateFunctionKind::Count | AggregateFunctionKind::Avg => {
-                let expr = self.args.get(0).ok_or(BustubxError::Internal(format!(
+                let expr = self.args.first().ok_or(BustubxError::Internal(format!(
                     "aggregate function {} should have one arg instead of {:?}",
                     self.func_kind, self.args
                 )))?;

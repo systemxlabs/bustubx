@@ -63,7 +63,7 @@ impl ScalarValue {
         // TODO use macro
         match data_type {
             DataType::Boolean => match self {
-                ScalarValue::Boolean(v) => Ok(ScalarValue::Boolean(v.clone())),
+                ScalarValue::Boolean(v) => Ok(ScalarValue::Boolean(*v)),
                 _ => Err(BustubxError::NotSupport(format!(
                     "Failed to cast {} to {} type",
                     self, data_type
@@ -103,11 +103,11 @@ impl ScalarValue {
         }
     }
 
-    pub fn wrapping_add(&self, other: Self) -> BustubxResult<Self> {
+    pub fn wrapping_add(&self, _other: Self) -> BustubxResult<Self> {
         todo!()
     }
 
-    pub fn wrapping_sub(&self, other: Self) -> BustubxResult<Self> {
+    pub fn wrapping_sub(&self, _other: Self) -> BustubxResult<Self> {
         todo!()
     }
 }

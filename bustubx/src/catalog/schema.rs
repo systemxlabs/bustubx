@@ -20,9 +20,9 @@ pub struct Schema {
 }
 
 impl Schema {
-    pub fn new(mut columns: Vec<Column>) -> Self {
+    pub fn new(columns: Vec<Column>) -> Self {
         Self {
-            columns: columns.into_iter().map(|col| Arc::new(col)).collect(),
+            columns: columns.into_iter().map(Arc::new).collect(),
         }
     }
 

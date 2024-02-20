@@ -86,8 +86,8 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
         LogicalPlan::TableScan(TableScan {
             table_ref,
             table_schema,
-            filters,
-            limit,
+            filters: _,
+            limit: _,
         }) => PhysicalPlan::TableScan(PhysicalSeqScan::new(
             table_ref.clone(),
             table_schema.clone(),
@@ -99,7 +99,7 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
         }) => {
             let input_physical_plan = build_plan((*input).clone());
             PhysicalPlan::Limit(PhysicalLimit::new(
-                limit.clone(),
+                *limit,
                 *offset,
                 Arc::new(input_physical_plan),
             ))
@@ -114,7 +114,7 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
             let left_physical_plan = build_plan((*left).clone());
             let right_physical_plan = build_plan((*right).clone());
             PhysicalPlan::NestedLoopJoin(PhysicalNestedLoopJoin::new(
-                join_type.clone(),
+                *join_type,
                 condition.clone(),
                 Arc::new(left_physical_plan),
                 Arc::new(right_physical_plan),
@@ -124,7 +124,7 @@ pub fn build_plan(logical_plan: Arc<LogicalPlan>) -> PhysicalPlan {
         LogicalPlan::Sort(Sort {
             order_by: expr,
             ref input,
-            limit,
+            limit: _,
         }) => {
             // TODO limit
             let input_physical_plan = build_plan(Arc::clone(input));

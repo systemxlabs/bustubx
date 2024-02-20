@@ -48,7 +48,7 @@ impl<'a> LogicalPlanner<'a> {
         let limit = match limit {
             None => None,
             Some(limit_expr) => {
-                let n = match self.bind_expr(&limit_expr)? {
+                let n = match self.bind_expr(limit_expr)? {
                     Expr::Literal(lit) => match lit.value {
                         ScalarValue::Int64(Some(v)) if v >= 0 => Ok(v as usize),
                         _ => Err(BustubxError::Plan(format!(

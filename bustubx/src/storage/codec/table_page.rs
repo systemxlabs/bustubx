@@ -11,7 +11,7 @@ pub struct TablePageCodec;
 impl TablePageCodec {
     pub fn encode(page: &TablePage) -> Vec<u8> {
         let header_bytes = TablePageHeaderCodec::encode(&page.header);
-        let mut all_bytes = page.data.clone();
+        let mut all_bytes = page.data;
         all_bytes[0..header_bytes.len()].copy_from_slice(&header_bytes);
         all_bytes.to_vec()
     }

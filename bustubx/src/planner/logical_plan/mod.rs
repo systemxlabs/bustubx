@@ -87,7 +87,7 @@ impl LogicalPlan {
                 predicate: predicate.clone(),
                 input: Arc::new(
                     inputs
-                        .get(0)
+                        .first()
                         .ok_or_else(|| {
                             BustubxError::Internal(format!(
                                 "inputs {:?} should have at least one",
@@ -108,7 +108,7 @@ impl LogicalPlan {
                 projected_schema: projected_schema.clone(),
                 input: Arc::new(
                     inputs
-                        .get(0)
+                        .first()
                         .ok_or_else(|| {
                             BustubxError::Internal(format!(
                                 "inputs {:?} should have at least one",
@@ -126,7 +126,7 @@ impl LogicalPlan {
             }) => Ok(LogicalPlan::Join(Join {
                 left: Arc::new(
                     inputs
-                        .get(0)
+                        .first()
                         .ok_or_else(|| {
                             BustubxError::Internal(format!(
                                 "inputs {:?} should have at least two",
@@ -137,7 +137,7 @@ impl LogicalPlan {
                 ),
                 right: Arc::new(
                     inputs
-                        .get(0)
+                        .first()
                         .ok_or_else(|| {
                             BustubxError::Internal(format!(
                                 "inputs {:?} should have at least two",
@@ -146,16 +146,16 @@ impl LogicalPlan {
                         })?
                         .clone(),
                 ),
-                join_type: join_type.clone(),
+                join_type: *join_type,
                 condition: condition.clone(),
                 schema: schema.clone(),
             })),
             LogicalPlan::Limit(Limit { limit, offset, .. }) => Ok(LogicalPlan::Limit(Limit {
-                limit: limit.clone(),
-                offset: offset.clone(),
+                limit: *limit,
+                offset: *offset,
                 input: Arc::new(
                     inputs
-                        .get(0)
+                        .first()
                         .ok_or_else(|| {
                             BustubxError::Internal(format!(
                                 "inputs {:?} should have at least one",
@@ -171,7 +171,7 @@ impl LogicalPlan {
                     schema: schema.clone(),
                     input: Arc::new(
                         inputs
-                            .get(0)
+                            .first()
                             .ok_or_else(|| {
                                 BustubxError::Internal(format!(
                                     "inputs {:?} should have at least one",
@@ -186,10 +186,10 @@ impl LogicalPlan {
                 order_by, limit, ..
             }) => Ok(LogicalPlan::Sort(Sort {
                 order_by: order_by.clone(),
-                limit: limit.clone(),
+                limit: *limit,
                 input: Arc::new(
                     inputs
-                        .get(0)
+                        .first()
                         .ok_or_else(|| {
                             BustubxError::Internal(format!(
                                 "inputs {:?} should have at least one",
@@ -210,7 +210,7 @@ impl LogicalPlan {
                 schema: schema.clone(),
                 input: Arc::new(
                     inputs
-                        .get(0)
+                        .first()
                         .ok_or_else(|| {
                             BustubxError::Internal(format!(
                                 "inputs {:?} should have at least one",

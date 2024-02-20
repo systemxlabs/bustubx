@@ -1,5 +1,5 @@
 use crate::catalog::SchemaRef;
-use crate::common::{TableReference, TransactionId};
+use crate::common::TableReference;
 use crate::{catalog::Schema, common::ScalarValue, BustubxError, BustubxResult};
 use std::sync::Arc;
 
@@ -61,7 +61,7 @@ impl Tuple {
             let compare_res = self
                 .value(column_index)
                 .unwrap()
-                .partial_cmp(&other.value(column_index).unwrap())
+                .partial_cmp(other.value(column_index).unwrap())
                 .unwrap();
             if compare_res == std::cmp::Ordering::Equal {
                 continue;
@@ -73,7 +73,7 @@ impl Tuple {
                 return std::cmp::Ordering::Greater;
             }
         }
-        return std::cmp::Ordering::Equal;
+        std::cmp::Ordering::Equal
     }
 }
 

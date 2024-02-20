@@ -32,7 +32,7 @@ impl FreelistPage {
             header: FreelistPageHeader {
                 next_page_id: INVALID_PAGE_ID,
                 current_size: 0,
-                max_size: FREELIST_PAGE_MAX_SIZE.clone() as u32,
+                max_size: *FREELIST_PAGE_MAX_SIZE as u32,
             },
             array: vec![],
         }

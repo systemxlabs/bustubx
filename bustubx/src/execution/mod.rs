@@ -7,7 +7,7 @@ use crate::execution::physical_plan::PhysicalPlan;
 use crate::{catalog::Catalog, storage::Tuple, BustubxResult};
 
 pub trait VolcanoExecutor {
-    fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
+    fn init(&self, _context: &mut ExecutionContext) -> BustubxResult<()> {
         Ok(())
     }
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>>;

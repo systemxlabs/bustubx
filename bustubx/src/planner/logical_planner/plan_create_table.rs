@@ -17,8 +17,7 @@ impl<'a> LogicalPlanner<'a> {
             let not_null: bool = col_def
                 .options
                 .iter()
-                .find(|opt| matches!(opt.option, sqlparser::ast::ColumnOption::NotNull))
-                .is_some();
+                .any(|opt| matches!(opt.option, sqlparser::ast::ColumnOption::NotNull));
             columns.push(
                 Column::new(
                     col_def.name.value.clone(),

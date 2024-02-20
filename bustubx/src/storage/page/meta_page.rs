@@ -30,7 +30,7 @@ pub struct MetaPage {
 impl MetaPage {
     pub fn try_new() -> BustubxResult<Self> {
         let version_str = env!("CARGO_PKG_VERSION");
-        let version_arr = version_str.split(".").collect::<Vec<&str>>();
+        let version_arr = version_str.split('.').collect::<Vec<&str>>();
         if version_arr.len() < 2 {
             return Err(BustubxError::Storage(format!(
                 "Package version is not xx.xx {}",

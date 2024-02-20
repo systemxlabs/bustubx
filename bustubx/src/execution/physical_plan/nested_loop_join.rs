@@ -97,7 +97,7 @@ impl VolcanoExecutor for PhysicalNestedLoopJoin {
             self.right_input.init(context)?;
             left_next_tuple = self.left_input.next(context)?;
         }
-        return Ok(None);
+        Ok(None)
     }
 
     fn output_schema(&self) -> SchemaRef {

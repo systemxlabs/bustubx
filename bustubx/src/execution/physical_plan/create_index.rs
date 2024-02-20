@@ -16,7 +16,7 @@ pub struct PhysicalCreateIndex {
 }
 
 impl VolcanoExecutor for PhysicalCreateIndex {
-    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
+    fn next(&self, _context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         // TODO implement
         Ok(None)
     }

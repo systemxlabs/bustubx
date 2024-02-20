@@ -84,7 +84,7 @@ impl LogicalPlanner<'_> {
         let columnized_exprs = exprs
             .into_iter()
             .map(|e| {
-                if let Ok(new_expr) = columnize_expr(&e, &input.schema()) {
+                if let Ok(new_expr) = columnize_expr(&e, input.schema()) {
                     new_expr
                 } else {
                     e
@@ -127,12 +127,10 @@ impl LogicalPlanner<'_> {
                     .collect::<Vec<Expr>>();
                 Ok(all_columns)
             }
-            _ => {
-                return Err(BustubxError::Plan(format!(
-                    "sqlparser select item {} not supported",
-                    item
-                )));
-            }
+            _ => Err(BustubxError::Plan(format!(
+                "sqlparser select item {} not supported",
+                item
+            ))),
         }
     }
 
@@ -267,7 +265,7 @@ impl LogicalPlanner<'_> {
         relation: &sqlparser::ast::TableFactor,
     ) -> BustubxResult<LogicalPlan> {
         match relation {
-            sqlparser::ast::TableFactor::Table { name, alias, .. } => {
+            sqlparser::ast::TableFactor::Table { name, .. } => {
                 // TODO handle alias
                 let table_ref = self.bind_table_name(name)?;
                 // TODO get schema by full table name
@@ -281,14 +279,12 @@ impl LogicalPlanner<'_> {
             }
             sqlparser::ast::TableFactor::NestedJoin {
                 table_with_joins,
-                alias,
+                alias: _,
             } => {
                 // TODO handle alias
                 self.plan_table_with_joins(table_with_joins)
             }
-            sqlparser::ast::TableFactor::Derived {
-                subquery, alias, ..
-            } => self.plan_query(subquery),
+            sqlparser::ast::TableFactor::Derived { subquery, .. } => self.plan_query(subquery),
             _ => Err(BustubxError::Plan(format!(
                 "sqlparser relation {} not supported",
                 relation

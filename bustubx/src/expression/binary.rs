@@ -20,8 +20,8 @@ pub struct BinaryExpr {
 
 impl ExprTrait for BinaryExpr {
     fn data_type(&self, input_schema: &Schema) -> BustubxResult<DataType> {
-        let left_type = self.left.data_type(input_schema)?;
-        let right_type = self.right.data_type(input_schema)?;
+        let _left_type = self.left.data_type(input_schema)?;
+        let _right_type = self.right.data_type(input_schema)?;
         match self.op {
             BinaryOp::Gt
             | BinaryOp::Lt
@@ -46,12 +46,12 @@ impl ExprTrait for BinaryExpr {
         let l = self.left.evaluate(tuple)?;
         let r = self.right.evaluate(tuple)?;
         match self.op {
-            BinaryOp::Gt => evaluate_comparison(l, r, &vec![Ordering::Greater]),
-            BinaryOp::Lt => evaluate_comparison(l, r, &vec![Ordering::Less]),
-            BinaryOp::GtEq => evaluate_comparison(l, r, &vec![Ordering::Greater, Ordering::Equal]),
-            BinaryOp::LtEq => evaluate_comparison(l, r, &vec![Ordering::Less, Ordering::Equal]),
-            BinaryOp::Eq => evaluate_comparison(l, r, &vec![Ordering::Equal]),
-            BinaryOp::NotEq => evaluate_comparison(l, r, &vec![Ordering::Greater, Ordering::Less]),
+            BinaryOp::Gt => evaluate_comparison(l, r, &[Ordering::Greater]),
+            BinaryOp::Lt => evaluate_comparison(l, r, &[Ordering::Less]),
+            BinaryOp::GtEq => evaluate_comparison(l, r, &[Ordering::Greater, Ordering::Equal]),
+            BinaryOp::LtEq => evaluate_comparison(l, r, &[Ordering::Less, Ordering::Equal]),
+            BinaryOp::Eq => evaluate_comparison(l, r, &[Ordering::Equal]),
+            BinaryOp::NotEq => evaluate_comparison(l, r, &[Ordering::Greater, Ordering::Less]),
             _ => Err(BustubxError::NotSupport(format!(
                 "binary operator {:?} not support evaluating yet",
                 self.op
@@ -59,7 +59,7 @@ impl ExprTrait for BinaryExpr {
         }
     }
 
-    fn to_column(&self, input_schema: &Schema) -> BustubxResult<Column> {
+    fn to_column(&self, _input_schema: &Schema) -> BustubxResult<Column> {
         Err(BustubxError::Plan(format!(
             "expr {:?} as column not supported",
             self

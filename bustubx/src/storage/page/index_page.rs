@@ -122,7 +122,7 @@ impl BPlusTreeInternalPage {
                 },
             );
         }
-        return (None, None);
+        (None, None)
     }
 
     // TODO 可以通过二分查找来插入
@@ -177,9 +177,7 @@ impl BPlusTreeInternalPage {
                 self.array.remove(0);
                 self.header.current_size -= 1;
             }
-            return;
         }
-        return;
     }
 
     pub fn delete_page_id(&mut self, page_id: PageId) {
@@ -214,7 +212,7 @@ impl BPlusTreeInternalPage {
     pub fn split_off(&mut self, at: usize) -> Vec<InternalKV> {
         let new_array = self.array.split_off(at);
         self.header.current_size -= new_array.len() as u32;
-        return new_array;
+        new_array
     }
 
     pub fn reverse_split_off(&mut self, at: usize) -> Vec<InternalKV> {
@@ -223,7 +221,7 @@ impl BPlusTreeInternalPage {
             new_array.push(self.array.remove(0));
         }
         self.header.current_size -= new_array.len() as u32;
-        return new_array;
+        new_array
     }
 
     pub fn replace_key(&mut self, old_key: &Tuple, new_key: Tuple, key_schema: &Schema) {
@@ -254,7 +252,7 @@ impl BPlusTreeInternalPage {
         if key.compare(&self.array[start as usize].0, key_schema) == std::cmp::Ordering::Equal {
             return Some(start as usize);
         }
-        return None;
+        None
     }
 
     // 查找key对应的page_id
@@ -278,13 +276,13 @@ impl BPlusTreeInternalPage {
         }
         let compare_res = key.compare(&self.array[start as usize].0, key_schema);
         if compare_res == std::cmp::Ordering::Less {
-            return self.array[start as usize - 1].1;
+            self.array[start as usize - 1].1
         } else {
-            return self.array[start as usize].1;
+            self.array[start as usize].1
         }
     }
 
-    pub fn print_page(&self, page_id: PageId, key_schema: &Schema) {
+    pub fn print_page(&self, page_id: PageId, _key_schema: &Schema) {
         println!(
             "{:?}, page_id: {}, size: {}/{}",
             self.header.page_type, page_id, self.header.current_size, self.header.max_size
@@ -384,7 +382,7 @@ impl BPlusTreeLeafPage {
     pub fn split_off(&mut self, at: usize) -> Vec<LeafKV> {
         let new_array = self.array.split_off(at);
         self.header.current_size -= new_array.len() as u32;
-        return new_array;
+        new_array
     }
 
     pub fn reverse_split_off(&mut self, at: usize) -> Vec<LeafKV> {
@@ -393,7 +391,7 @@ impl BPlusTreeLeafPage {
             new_array.push(self.array.remove(0));
         }
         self.header.current_size -= new_array.len() as u32;
-        return new_array;
+        new_array
     }
 
     pub fn delete(&mut self, key: &Tuple, key_schema: &Schema) {
@@ -407,7 +405,7 @@ impl BPlusTreeLeafPage {
     // 查找key对应的rid
     pub fn look_up(&self, key: &Tuple, key_schema: &Schema) -> Option<Rid> {
         let key_index = self.key_index(key, key_schema);
-        return key_index.map(|index| self.array[index].1);
+        key_index.map(|index| self.array[index].1)
     }
 
     fn key_index(&self, key: &Tuple, key_schema: &Schema) -> Option<usize> {
@@ -433,7 +431,7 @@ impl BPlusTreeLeafPage {
         None
     }
 
-    pub fn print_page(&self, page_id: PageId, key_schema: &Schema) {
+    pub fn print_page(&self, page_id: PageId, _key_schema: &Schema) {
         println!(
             "{:?}, page_id: {}, size: {}/{}, , next_page_id: {}",
             self.header.page_type,

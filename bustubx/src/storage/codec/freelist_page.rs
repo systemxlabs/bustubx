@@ -80,7 +80,7 @@ mod tests {
             header: FreelistPageHeader {
                 next_page_id: 1,
                 current_size: 3,
-                max_size: FREELIST_PAGE_MAX_SIZE.clone() as u32,
+                max_size: *FREELIST_PAGE_MAX_SIZE as u32,
             },
             array: vec![5, 6, 8],
         };

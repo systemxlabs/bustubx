@@ -17,8 +17,8 @@ impl DynamicBitmap {
         let mut byte = self.map[byte_idx];
 
         let curval = (byte >> (7 - offset)) & 1;
-        let mask = if value { 1 ^ curval } else { 0 ^ curval };
-        byte = byte ^ (mask << (7 - offset)); // Bit flipping
+        let mask = if value { 1 ^ curval } else { curval };
+        byte ^= mask << (7 - offset); // Bit flipping
         self.map[byte_idx] = byte;
     }
 

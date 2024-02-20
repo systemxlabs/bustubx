@@ -24,7 +24,7 @@ pub struct Database {
 }
 impl Database {
     pub fn new_on_disk(db_path: &str) -> BustubxResult<Self> {
-        let disk_manager = Arc::new(DiskManager::try_new(&db_path)?);
+        let disk_manager = Arc::new(DiskManager::try_new(db_path)?);
         let buffer_pool = BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
 
         // TODO load catalog from disk
@@ -96,6 +96,6 @@ impl Database {
             },
         };
         // ast -> logical plan
-        planner.plan(&stmt)
+        planner.plan(stmt)
     }
 }

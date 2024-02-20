@@ -41,7 +41,7 @@ impl VolcanoExecutor for PhysicalSeqScan {
         let table_info = context.catalog.table_mut(&self.table)?;
         let mut iterator = self.iterator.lock().unwrap();
         let full_tuple = iterator.next(&mut table_info.table);
-        return Ok(full_tuple.map(|t| t.1));
+        Ok(full_tuple.map(|t| t.1))
     }
 
     fn output_schema(&self) -> SchemaRef {

@@ -72,19 +72,14 @@ impl VolcanoExecutor for PhysicalSort {
         Ok(())
     }
 
-    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
+    fn next(&self, _context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         let cursor = self
             .cursor
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst) as usize;
         if cursor >= self.all_tuples.lock().unwrap().len() {
             return Ok(None);
         }
-        return Ok(self
-            .all_tuples
-            .lock()
-            .unwrap()
-            .get(cursor)
-            .map(|t| t.clone()));
+        return Ok(self.all_tuples.lock().unwrap().get(cursor).cloned());
     }
 
     fn output_schema(&self) -> SchemaRef {

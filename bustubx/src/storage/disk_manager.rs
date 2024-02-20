@@ -234,7 +234,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = super::DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = super::DiskManager::try_new(temp_path).unwrap();
 
         let page_id1 = disk_manager.allocate_page().unwrap();
         assert_eq!(page_id1, 4);
@@ -264,11 +264,11 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = super::DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = super::DiskManager::try_new(temp_path).unwrap();
 
         let page_id1 = disk_manager.allocate_page().unwrap();
-        let page_id2 = disk_manager.allocate_page().unwrap();
-        let page_id3 = disk_manager.allocate_page().unwrap();
+        let _page_id2 = disk_manager.allocate_page().unwrap();
+        let _page_id3 = disk_manager.allocate_page().unwrap();
 
         disk_manager.deallocate_page(page_id1).unwrap();
 

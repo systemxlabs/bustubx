@@ -12,7 +12,7 @@ pub fn columnize_expr(e: &Expr, input_schema: &SchemaRef) -> BustubxResult<Expr>
         })),
         Expr::Cast(Cast { expr, data_type }) => Ok(Expr::Cast(Cast {
             expr: Box::new(columnize_expr(expr, input_schema)?),
-            data_type: data_type.clone(),
+            data_type: *data_type,
         })),
         _ => {
             let name = e.to_string();

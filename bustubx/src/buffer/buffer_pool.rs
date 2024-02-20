@@ -93,24 +93,22 @@ impl BufferPoolManager {
             let page = self.pool[frame_id].clone();
             page.write().unwrap().pin_count += 1;
             self.replacer.set_evictable(frame_id, false)?;
-            return Ok(page);
+            Ok(page)
         } else {
             // 分配一个frame
             let frame_id = if !self.free_list.is_empty() {
                 self.free_list.pop_front().unwrap()
-            } else {
-                if let Some(frame_id) = self.replacer.evict() {
-                    let evicted_page = self.pool[frame_id].clone();
-                    let evicted_page_id = evicted_page.read().unwrap().page_id;
-                    let is_dirty = evicted_page.read().unwrap().is_dirty;
-                    if is_dirty {
-                        self.flush_page(evicted_page_id)?;
-                    }
-                    self.page_table.remove(&evicted_page_id);
-                    frame_id
-                } else {
-                    return Err(BustubxError::Storage("Failed to evict page".to_string()));
+            } else if let Some(frame_id) = self.replacer.evict() {
+                let evicted_page = self.pool[frame_id].clone();
+                let evicted_page_id = evicted_page.read().unwrap().page_id;
+                let is_dirty = evicted_page.read().unwrap().is_dirty;
+                if is_dirty {
+                    self.flush_page(evicted_page_id)?;
                 }
+                self.page_table.remove(&evicted_page_id);
+                frame_id
+            } else {
+                return Err(BustubxError::Storage("Failed to evict page".to_string()));
             };
             // 从磁盘读取页
             self.page_table.insert(page_id, frame_id);
@@ -171,7 +169,7 @@ impl BufferPoolManager {
 
     // 将缓冲池中的所有页写回磁盘
     pub fn flush_all_pages(&mut self) -> BustubxResult<()> {
-        let page_ids: Vec<PageId> = self.page_table.keys().into_iter().copied().collect();
+        let page_ids: Vec<PageId> = self.page_table.keys().copied().collect();
         for page_id in page_ids {
             self.flush_page(page_id)?;
         }
@@ -213,7 +211,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let mut buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
         let page1 = buffer_pool.new_page().unwrap().clone();
         let page1_id = page1.read().unwrap().page_id;
@@ -244,13 +242,13 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let mut buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page1 = buffer_pool.new_page().unwrap();
         let page1_id = page1.read().unwrap().page_id;
-        let page2 = buffer_pool.new_page().unwrap();
-        let page3 = buffer_pool.new_page().unwrap();
+        let _page2 = buffer_pool.new_page().unwrap();
+        let _page3 = buffer_pool.new_page().unwrap();
         let page4 = buffer_pool.new_page();
         assert!(page4.is_err());
 
@@ -264,7 +262,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let mut buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page1 = buffer_pool.new_page().unwrap();
@@ -295,7 +293,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let mut buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page1 = buffer_pool.new_page().unwrap();

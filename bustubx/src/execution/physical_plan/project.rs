@@ -34,7 +34,7 @@ impl VolcanoExecutor for PhysicalProject {
         for expr in &self.exprs {
             new_values.push(expr.evaluate(&next_tuple)?);
         }
-        return Ok(Some(Tuple::new(self.output_schema(), new_values)));
+        Ok(Some(Tuple::new(self.output_schema(), new_values)))
     }
 
     fn output_schema(&self) -> SchemaRef {

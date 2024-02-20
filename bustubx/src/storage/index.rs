@@ -174,7 +174,7 @@ impl BPlusTreeIndex {
             page_bytes_to_array(&BPlusTreePageCodec::encode(&curr_page)),
         );
         self.buffer_pool.unpin_page(curr_page_id, true).unwrap();
-        return true;
+        true
     }
 
     pub fn delete(&mut self, key: &Tuple) {
@@ -578,7 +578,7 @@ impl BPlusTreeIndex {
         self.buffer_pool.unpin_page(curr_page_id, true).unwrap();
     }
 
-    pub fn scan(&self, key: &Tuple) -> Vec<Rid> {
+    pub fn scan(&self, _key: &Tuple) -> Vec<Rid> {
         unimplemented!()
     }
 
@@ -624,7 +624,7 @@ impl BPlusTreeIndex {
         .unwrap();
         let result = leaf_page.look_up(key, &self.index_metadata.key_schema);
         self.buffer_pool.unpin_page(leaf_page_id, false).unwrap();
-        return result;
+        result
     }
 
     fn find_leaf_page(&mut self, key: &Tuple, context: &mut Context) -> PageId {
@@ -660,7 +660,7 @@ impl BPlusTreeIndex {
                     curr_page_id = next_page_id;
                     curr_page = next_page;
                 }
-                BPlusTreePage::Leaf(leaf_page) => {
+                BPlusTreePage::Leaf(_leaf_page) => {
                     self.buffer_pool.unpin_page(curr_page_id, false).unwrap();
                     return curr_page_id;
                 }
@@ -720,12 +720,12 @@ impl BPlusTreeIndex {
                 self.buffer_pool.unpin_page(new_page_id, true).unwrap();
 
                 let min_leafkv = self.find_subtree_min_leafkv(new_page_id).unwrap();
-                return (min_leafkv.0, new_page_id);
+                (min_leafkv.0, new_page_id)
             }
         }
     }
 
-    fn borrow(&mut self, page: &mut BPlusTreePage, context: &mut Context) {
+    fn borrow(&mut self, _page: &mut BPlusTreePage, _context: &mut Context) {
         unimplemented!()
     }
 
@@ -743,7 +743,7 @@ impl BPlusTreeIndex {
         Ok(parent_page.sibling_page_ids(child_page_id))
     }
 
-    fn merge(&mut self, page: &BPlusTreePage, context: &mut Context) {
+    fn merge(&mut self, _page: &BPlusTreePage, _context: &mut Context) {
         unimplemented!()
     }
 
@@ -870,7 +870,7 @@ mod tests {
             schema.clone(),
             vec![0, 1],
         );
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut index = BPlusTreeIndex::new(index_metadata, buffer_pool, 2, 3);
 
@@ -956,7 +956,7 @@ mod tests {
             schema.clone(),
             vec![0, 1],
         );
-        let disk_manager = DiskManager::try_new(&temp_path).unwrap();
+        let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
         let mut index = BPlusTreeIndex::new(index_metadata, buffer_pool, 4, 5);
 

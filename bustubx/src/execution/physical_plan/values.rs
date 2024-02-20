@@ -27,11 +27,11 @@ impl PhysicalValues {
     }
 }
 impl VolcanoExecutor for PhysicalValues {
-    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
+    fn next(&self, _context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         let cursor = self
             .cursor
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst) as usize;
-        return if cursor < self.values.len() {
+        if cursor < self.values.len() {
             let values = self.values[cursor].clone();
             Ok(Some(Tuple::new(
                 self.output_schema(),
@@ -45,7 +45,7 @@ impl VolcanoExecutor for PhysicalValues {
             )))
         } else {
             Ok(None)
-        };
+        }
     }
 
     fn output_schema(&self) -> SchemaRef {
