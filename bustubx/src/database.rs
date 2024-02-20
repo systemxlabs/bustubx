@@ -2,6 +2,7 @@ use std::sync::Arc;
 use tempfile::TempDir;
 
 use crate::buffer::TABLE_HEAP_BUFFER_POOL_SIZE;
+use crate::catalog::load_catalog_data;
 use crate::common::util::{pretty_format_logical_plan, pretty_format_physical_plan};
 use crate::error::{BustubxError, BustubxResult};
 use crate::optimizer::LogicalOptimizer;
@@ -25,8 +26,11 @@ impl Database {
         let disk_manager = Arc::new(DiskManager::try_new(&db_path)?);
         let buffer_pool_manager =
             BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
+
         // TODO load catalog from disk
-        let catalog = Catalog::new(buffer_pool_manager);
+        let mut catalog = Catalog::new(buffer_pool_manager);
+        load_catalog_data(&mut catalog)?;
+
         Ok(Self {
             disk_manager,
             catalog,
@@ -43,7 +47,10 @@ impl Database {
             )?)?);
         let buffer_pool_manager =
             BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
-        let catalog = Catalog::new(buffer_pool_manager);
+
+        let mut catalog = Catalog::new(buffer_pool_manager);
+        load_catalog_data(&mut catalog)?;
+
         Ok(Self {
             disk_manager,
             catalog,

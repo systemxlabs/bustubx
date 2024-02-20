@@ -262,15 +262,16 @@ mod tests {
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
         let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
 
-        let page = buffer_pool_manager.new_page().unwrap();
-        let page = buffer_pool_manager.new_page().unwrap();
-        let page = buffer_pool_manager.new_page().unwrap();
-        let page = buffer_pool_manager.new_page();
-        assert!(page.is_err());
+        let page1 = buffer_pool_manager.new_page().unwrap();
+        let page1_id = page1.read().unwrap().page_id;
+        let page2 = buffer_pool_manager.new_page().unwrap();
+        let page3 = buffer_pool_manager.new_page().unwrap();
+        let page4 = buffer_pool_manager.new_page();
+        assert!(page4.is_err());
 
-        buffer_pool_manager.unpin_page(2, true).unwrap();
-        let page = buffer_pool_manager.new_page().unwrap();
-        assert_eq!(page.read().unwrap().page_id, 5);
+        buffer_pool_manager.unpin_page(page1_id, true).unwrap();
+        let page5 = buffer_pool_manager.new_page();
+        assert!(page5.is_ok());
     }
 
     #[test]

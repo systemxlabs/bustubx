@@ -905,6 +905,7 @@ mod tests {
     use super::{BPlusTreeIndex, IndexMetadata};
 
     #[test]
+    // TODO remove page id number
     pub fn test_index_insert() {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
@@ -933,7 +934,7 @@ mod tests {
                 .unwrap(),
             Rid::new(1, 1)
         );
-        assert_eq!(index.root_page_id, 2);
+        assert_eq!(index.root_page_id, 6);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
         index.insert(
@@ -946,7 +947,7 @@ mod tests {
                 .unwrap(),
             Rid::new(2, 2)
         );
-        assert_eq!(index.root_page_id, 2);
+        assert_eq!(index.root_page_id, 6);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
         index.insert(
@@ -959,7 +960,7 @@ mod tests {
                 .unwrap(),
             Rid::new(3, 3)
         );
-        assert_eq!(index.root_page_id, 4);
+        assert_eq!(index.root_page_id, 8);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 3);
 
         index.insert(
@@ -972,7 +973,7 @@ mod tests {
                 .unwrap(),
             Rid::new(4, 4)
         );
-        assert_eq!(index.root_page_id, 4);
+        assert_eq!(index.root_page_id, 8);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
 
         index.insert(
@@ -985,7 +986,7 @@ mod tests {
                 .unwrap(),
             Rid::new(5, 5)
         );
-        assert_eq!(index.root_page_id, 8);
+        assert_eq!(index.root_page_id, 12);
         assert_eq!(index.buffer_pool_manager.replacer.size(), 7);
     }
 
@@ -1049,11 +1050,11 @@ mod tests {
             Rid::new(10, 10),
         );
         assert_eq!(index.buffer_pool_manager.replacer.size(), 5);
-        assert_eq!(index.root_page_id, 4);
+        assert_eq!(index.root_page_id, 8);
         index.print_tree();
 
         index.delete(&Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]));
-        assert_eq!(index.root_page_id, 4);
+        assert_eq!(index.root_page_id, 8);
         assert_eq!(
             index.get(&Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()])),
             None
@@ -1061,7 +1062,7 @@ mod tests {
         assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
 
         index.delete(&Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]));
-        assert_eq!(index.root_page_id, 4);
+        assert_eq!(index.root_page_id, 8);
         assert_eq!(
             index.get(&Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()])),
             None
@@ -1069,7 +1070,7 @@ mod tests {
         assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
 
         index.delete(&Tuple::new(schema.clone(), vec![5i8.into(), 5i16.into()]));
-        assert_eq!(index.root_page_id, 4);
+        assert_eq!(index.root_page_id, 8);
         assert_eq!(
             index.get(&Tuple::new(schema.clone(), vec![5i8.into(), 5i16.into()])),
             None
@@ -1077,7 +1078,7 @@ mod tests {
         assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
 
         index.delete(&Tuple::new(schema.clone(), vec![7i8.into(), 7i16.into()]));
-        assert_eq!(index.root_page_id, 4);
+        assert_eq!(index.root_page_id, 8);
         assert_eq!(
             index.get(&Tuple::new(schema.clone(), vec![7i8.into(), 7i16.into()])),
             None
@@ -1085,7 +1086,7 @@ mod tests {
         assert_eq!(index.buffer_pool_manager.replacer.size(), 4);
 
         index.delete(&Tuple::new(schema.clone(), vec![9i8.into(), 9i16.into()]));
-        assert_eq!(index.root_page_id, 4);
+        assert_eq!(index.root_page_id, 8);
         assert_eq!(
             index.get(&Tuple::new(schema.clone(), vec![9i8.into(), 9i16.into()])),
             None
@@ -1093,7 +1094,7 @@ mod tests {
         assert_eq!(index.buffer_pool_manager.replacer.size(), 3);
 
         index.delete(&Tuple::new(schema.clone(), vec![10i8.into(), 10i16.into()]));
-        assert_eq!(index.root_page_id, 4);
+        assert_eq!(index.root_page_id, 8);
         assert_eq!(
             index.get(&Tuple::new(schema.clone(), vec![10i8.into(), 10i16.into()])),
             None
@@ -1101,7 +1102,7 @@ mod tests {
         assert_eq!(index.buffer_pool_manager.replacer.size(), 3);
 
         index.delete(&Tuple::new(schema.clone(), vec![8i8.into(), 8i16.into()]));
-        assert_eq!(index.root_page_id, 2);
+        assert_eq!(index.root_page_id, 6);
         assert_eq!(
             index.get(&Tuple::new(schema.clone(), vec![8i8.into(), 8i16.into()])),
             None
@@ -1109,7 +1110,7 @@ mod tests {
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
         index.delete(&Tuple::new(schema.clone(), vec![6i8.into(), 6i16.into()]));
-        assert_eq!(index.root_page_id, 2);
+        assert_eq!(index.root_page_id, 6);
         assert_eq!(
             index.get(&Tuple::new(schema.clone(), vec![6i8.into(), 6i16.into()])),
             None
@@ -1117,7 +1118,7 @@ mod tests {
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
         index.delete(&Tuple::new(schema.clone(), vec![4i8.into(), 4i16.into()]));
-        assert_eq!(index.root_page_id, 2);
+        assert_eq!(index.root_page_id, 6);
         assert_eq!(
             index.get(&Tuple::new(schema.clone(), vec![4i8.into(), 4i16.into()])),
             None
@@ -1125,7 +1126,7 @@ mod tests {
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
         index.delete(&Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]));
-        assert_eq!(index.root_page_id, 2);
+        assert_eq!(index.root_page_id, 6);
         assert_eq!(
             index.get(&Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()])),
             None
@@ -1133,7 +1134,7 @@ mod tests {
         assert_eq!(index.buffer_pool_manager.replacer.size(), 1);
 
         index.delete(&Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]));
-        assert_eq!(index.root_page_id, 2);
+        assert_eq!(index.root_page_id, 6);
         assert_eq!(
             index.get(&Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()])),
             None

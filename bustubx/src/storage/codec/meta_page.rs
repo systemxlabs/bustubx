@@ -10,6 +10,18 @@ impl MetaPageCodec {
         bytes.extend(CommonCodec::encode_u32(page.major_version));
         bytes.extend(CommonCodec::encode_u32(page.minor_version));
         bytes.extend(CommonCodec::encode_u32(page.freelist_page_id));
+        bytes.extend(CommonCodec::encode_u32(
+            page.information_schema_tables_first_page_id,
+        ));
+        bytes.extend(CommonCodec::encode_u32(
+            page.information_schema_tables_last_page_id,
+        ));
+        bytes.extend(CommonCodec::encode_u32(
+            page.information_schema_columns_first_page_id,
+        ));
+        bytes.extend(CommonCodec::encode_u32(
+            page.information_schema_columns_last_page_id,
+        ));
         bytes
     }
 
@@ -22,12 +34,27 @@ impl MetaPageCodec {
         left_bytes = &left_bytes[offset..];
         let (freelist_page_id, offset) = CommonCodec::decode_u32(left_bytes)?;
         left_bytes = &left_bytes[offset..];
+        let (information_schema_tables_first_page_id, offset) =
+            CommonCodec::decode_u32(left_bytes)?;
+        left_bytes = &left_bytes[offset..];
+        let (information_schema_tables_last_page_id, offset) = CommonCodec::decode_u32(left_bytes)?;
+        left_bytes = &left_bytes[offset..];
+        let (information_schema_columns_first_page_id, offset) =
+            CommonCodec::decode_u32(left_bytes)?;
+        left_bytes = &left_bytes[offset..];
+        let (information_schema_columns_last_page_id, offset) =
+            CommonCodec::decode_u32(left_bytes)?;
+        left_bytes = &left_bytes[offset..];
 
         Ok((
             MetaPage {
                 major_version,
                 minor_version,
                 freelist_page_id,
+                information_schema_tables_first_page_id,
+                information_schema_tables_last_page_id,
+                information_schema_columns_first_page_id,
+                information_schema_columns_last_page_id,
             },
             bytes.len() - left_bytes.len(),
         ))
