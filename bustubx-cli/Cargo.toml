@@ -10,7 +10,7 @@ repository.workspace = true
 homepage.workspace = true
 
 [dependencies]
-bustubx = { path = "../bustubx" }
+bustubx = { path = "../bustubx", version = "0.2.0" }
 log = "0.4.19"
 env_logger = "0.10.0"
 rustyline = "13.0.0"
