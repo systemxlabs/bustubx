@@ -28,6 +28,6 @@ impl VolcanoExecutor for PhysicalCreateTable {
 
 impl std::fmt::Display for PhysicalCreateTable {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "CreateTable")
+        write!(f, "CreateTable: {}", self.table)
     }
 }

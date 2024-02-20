@@ -307,7 +307,7 @@ impl BPlusTreeInternalPage {
                 }
             );
         }
-        println!("");
+        println!();
     }
 }
 

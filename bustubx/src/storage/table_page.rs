@@ -174,6 +174,7 @@ impl TablePage {
     }
 }
 
+// TODO do we need pre_page_id?
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TablePageHeader {
     pub next_page_id: PageId,

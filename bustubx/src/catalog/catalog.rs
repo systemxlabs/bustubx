@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::buffer::TABLE_HEAP_BUFFER_POOL_SIZE;
 use crate::catalog::SchemaRef;
-use crate::common::TableReference;
+use crate::common::{FullTableRef, TableReference};
 use crate::{
     buffer::BufferPoolManager,
     storage::{
@@ -14,6 +14,9 @@ use crate::{
 
 pub static DEFAULT_CATALOG_NAME: &str = "bustubx";
 pub static DEFAULT_SCHEMA_NAME: &str = "public";
+
+/// catalog, schema, table, index
+pub type FullIndexRef = (String, String, String, String);
 
 // table元信息
 #[derive(Debug)]
@@ -32,8 +35,8 @@ pub struct IndexInfo {
 }
 
 pub struct Catalog {
-    pub tables: HashMap<String, TableInfo>,
-    pub indexes: HashMap<String, IndexInfo>,
+    pub tables: HashMap<FullTableRef, TableInfo>,
+    pub indexes: HashMap<FullIndexRef, IndexInfo>,
     pub buffer_pool_manager: BufferPoolManager,
 }
 
@@ -51,7 +54,8 @@ impl Catalog {
         table_ref: TableReference,
         schema: SchemaRef,
     ) -> BustubxResult<&TableInfo> {
-        if !self.tables.contains_key(table_ref.table()) {
+        let full_table_ref = table_ref.extend_to_full();
+        if !self.tables.contains_key(&full_table_ref) {
             // 一个table对应一个buffer pool manager
             let buffer_pool_manager = BufferPoolManager::new(
                 TABLE_HEAP_BUFFER_POOL_SIZE,
@@ -64,18 +68,17 @@ impl Catalog {
                 table: table_heap,
             };
 
-            self.tables
-                .insert(table_ref.table().to_string(), table_info);
+            self.tables.insert(full_table_ref.clone(), table_info);
         }
 
         self.tables
-            .get(table_ref.table())
+            .get(&full_table_ref)
             .ok_or(BustubxError::Internal("Failed to create table".to_string()))
     }
 
     pub fn table(&self, table_ref: &TableReference) -> BustubxResult<&TableInfo> {
         self.tables
-            .get(table_ref.table())
+            .get(&table_ref.extend_to_full())
             .ok_or(BustubxError::Internal(format!(
                 "Not found the table {}",
                 table_ref
@@ -84,7 +87,7 @@ impl Catalog {
 
     pub fn table_mut(&mut self, table_ref: &TableReference) -> BustubxResult<&mut TableInfo> {
         self.tables
-            .get_mut(table_ref.table())
+            .get_mut(&table_ref.extend_to_full())
             .ok_or(BustubxError::Internal(format!(
                 "Not found the table {}",
                 table_ref
@@ -97,6 +100,9 @@ impl Catalog {
         table_ref: &TableReference,
         key_attrs: Vec<usize>,
     ) -> BustubxResult<&IndexInfo> {
+        let (catalog, schema, table) = table_ref.extend_to_full();
+        let full_index_ref = (catalog, schema, table, index_name.clone());
+
         let table_info = self.table(table_ref)?;
         let tuple_schema = table_info.schema.clone();
         let key_schema = tuple_schema.project(&key_attrs)?;
@@ -121,14 +127,20 @@ impl Catalog {
             index: b_plus_tree_index,
             table_name: table_ref.table().to_string(),
         };
-        self.indexes.insert(index_name.clone(), index_info);
+        self.indexes.insert(full_index_ref.clone(), index_info);
         self.indexes
-            .get(&index_name)
+            .get(&full_index_ref)
             .ok_or(BustubxError::Internal("Failed to create table".to_string()))
     }
 
-    pub fn get_index_by_name(&self, index_name: &str) -> Option<&IndexInfo> {
-        self.indexes.get(index_name)
+    pub fn get_index_by_name(
+        &self,
+        table_ref: &TableReference,
+        index_name: &str,
+    ) -> Option<&IndexInfo> {
+        let (catalog, schema, table) = table_ref.extend_to_full();
+        let full_index_ref = (catalog, schema, table, index_name.to_string());
+        self.indexes.get(&full_index_ref)
     }
 }
 
@@ -257,7 +269,7 @@ mod tests {
             DataType::Int16
         );
 
-        let index_info = catalog.get_index_by_name(index_name1.as_str());
+        let index_info = catalog.get_index_by_name(&table_ref, index_name1.as_str());
         assert!(index_info.is_some());
         let index_info = index_info.unwrap();
         assert_eq!(index_info.name, index_name1);
