@@ -188,6 +188,16 @@ impl CommonCodec {
         ];
         Ok((f64::from_be_bytes(data), 8))
     }
+
+    pub fn encode_string(data: &String) -> Vec<u8> {
+        data.as_bytes().to_vec()
+    }
+
+    pub fn decode_string(bytes: &[u8]) -> BustubxResult<DecodedData<String>> {
+        let data = String::from_utf8(bytes.to_vec())
+            .map_err(|e| BustubxError::Storage(format!("Failed to decode string {}", e)))?;
+        Ok((data, bytes.len()))
+    }
 }
 
 #[cfg(test)]
@@ -266,6 +276,12 @@ mod tests {
         assert_eq!(
             5.0f64,
             CommonCodec::decode_f64(&CommonCodec::encode_f64(5.0f64))
+                .unwrap()
+                .0
+        );
+        assert_eq!(
+            "abc".to_string(),
+            CommonCodec::decode_string(&CommonCodec::encode_string(&"abc".to_string()))
                 .unwrap()
                 .0
         );

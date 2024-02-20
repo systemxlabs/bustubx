@@ -10,6 +10,7 @@ pub enum DataType {
     UInt64,
     Float32,
     Float64,
+    Varchar(Option<usize>),
 }
 
 impl TryFrom<&sqlparser::ast::DataType> for DataType {
@@ -25,6 +26,15 @@ impl TryFrom<&sqlparser::ast::DataType> for DataType {
             sqlparser::ast::DataType::UnsignedBigInt(_) => Ok(DataType::UInt64),
             sqlparser::ast::DataType::Float(_) => Ok(DataType::Float32),
             sqlparser::ast::DataType::Double => Ok(DataType::Float32),
+            sqlparser::ast::DataType::Varchar(len) => {
+                Ok(DataType::Varchar(len.map(|l| l.length as usize)))
+            }
+            sqlparser::ast::DataType::CharVarying(len) => {
+                Ok(DataType::Varchar(len.map(|l| l.length as usize)))
+            }
+            sqlparser::ast::DataType::CharacterVarying(len) => {
+                Ok(DataType::Varchar(len.map(|l| l.length as usize)))
+            }
             _ => Err(BustubxError::NotSupport(format!(
                 "Not support datatype {}",
                 value

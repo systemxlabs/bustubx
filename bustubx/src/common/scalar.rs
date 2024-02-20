@@ -12,6 +12,7 @@ pub enum ScalarValue {
     UInt64(Option<u64>),
     Float32(Option<f32>),
     Float64(Option<f64>),
+    Varchar(Option<String>),
 }
 
 impl ScalarValue {
@@ -25,6 +26,7 @@ impl ScalarValue {
             DataType::UInt64 => Self::UInt64(None),
             DataType::Float32 => Self::Float32(None),
             DataType::Float64 => Self::Float64(None),
+            DataType::Varchar(_) => Self::Varchar(None),
         }
     }
 
@@ -38,6 +40,7 @@ impl ScalarValue {
             ScalarValue::UInt64(_) => DataType::UInt64,
             ScalarValue::Float32(_) => DataType::Float32,
             ScalarValue::Float64(_) => DataType::Float64,
+            ScalarValue::Varchar(_) => DataType::Varchar(None),
         }
     }
 
@@ -51,6 +54,7 @@ impl ScalarValue {
             ScalarValue::UInt64(v) => v.is_none(),
             ScalarValue::Float32(v) => v.is_none(),
             ScalarValue::Float64(v) => v.is_none(),
+            ScalarValue::Varchar(v) => v.is_none(),
         }
     }
 
@@ -134,6 +138,8 @@ impl PartialEq for ScalarValue {
                 _ => v1.eq(v2),
             },
             (Float64(_), _) => false,
+            (Varchar(v1), Varchar(v2)) => v1.eq(v2),
+            (Varchar(_), _) => false,
         }
     }
 }
@@ -166,6 +172,8 @@ impl PartialOrd for ScalarValue {
                 _ => v1.partial_cmp(v2),
             },
             (Float64(_), _) => None,
+            (Varchar(v1), Varchar(v2)) => v1.partial_cmp(v2),
+            (Varchar(_), _) => None,
         }
     }
 }
@@ -189,6 +197,8 @@ impl std::fmt::Display for ScalarValue {
             ScalarValue::Float32(Some(v)) => write!(f, "{v}"),
             ScalarValue::Float64(None) => write!(f, "NULL"),
             ScalarValue::Float64(Some(v)) => write!(f, "{v}"),
+            ScalarValue::Varchar(None) => write!(f, "NULL"),
+            ScalarValue::Varchar(Some(v)) => write!(f, "{v}"),
         }
     }
 }
@@ -217,3 +227,4 @@ impl_from_for_scalar!(i64, Int64);
 impl_from_for_scalar!(u64, UInt64);
 impl_from_for_scalar!(f32, Float32);
 impl_from_for_scalar!(f64, Float64);
+impl_from_for_scalar!(String, Varchar);

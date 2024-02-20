@@ -16,6 +16,12 @@ impl ScalarValueCodec {
             ScalarValue::UInt64(Some(v)) => CommonCodec::encode_u64(*v),
             ScalarValue::Float32(Some(v)) => CommonCodec::encode_f32(*v),
             ScalarValue::Float64(Some(v)) => CommonCodec::encode_f64(*v),
+            ScalarValue::Varchar(Some(v)) => {
+                let mut bytes = vec![];
+                bytes.extend(CommonCodec::encode_u16(v.len() as u16));
+                bytes.extend(CommonCodec::encode_string(v));
+                bytes
+            }
             // null
             ScalarValue::Boolean(None)
             | ScalarValue::Int8(None)
@@ -24,7 +30,8 @@ impl ScalarValueCodec {
             | ScalarValue::Int64(None)
             | ScalarValue::UInt64(None)
             | ScalarValue::Float32(None)
-            | ScalarValue::Float64(None) => vec![],
+            | ScalarValue::Float64(None)
+            | ScalarValue::Varchar(None) => vec![],
         }
     }
 
@@ -61,6 +68,20 @@ impl ScalarValueCodec {
             DataType::Float64 => {
                 let (value, offset) = CommonCodec::decode_f64(bytes)?;
                 Ok((ScalarValue::Float64(Some(value)), offset))
+            }
+            DataType::Varchar(_) => {
+                let mut left_bytes = bytes;
+
+                let (length, offset) = CommonCodec::decode_u16(left_bytes)?;
+                left_bytes = &left_bytes[offset..];
+
+                let (value, offset) = CommonCodec::decode_string(&left_bytes[0..length as usize])?;
+                left_bytes = &left_bytes[offset..];
+
+                Ok((
+                    ScalarValue::Varchar(Some(value)),
+                    bytes.len() - left_bytes.len(),
+                ))
             }
         }
     }

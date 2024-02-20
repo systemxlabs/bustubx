@@ -76,6 +76,9 @@ impl LogicalPlanner<'_> {
             sqlparser::ast::Value::Null => Ok(Expr::Literal(Literal {
                 value: ScalarValue::Int8(None),
             })),
+            sqlparser::ast::Value::SingleQuotedString(s) => Ok(Expr::Literal(Literal {
+                value: s.clone().into(),
+            })),
             _ => Err(BustubxError::NotSupport(format!(
                 "sqlparser value {} not supported",
                 value

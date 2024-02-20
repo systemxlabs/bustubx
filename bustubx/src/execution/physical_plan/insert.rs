@@ -67,8 +67,12 @@ impl VolcanoExecutor for PhysicalInsert {
             // cast values
             let mut casted_data = vec![];
             for (idx, value) in tuple.data.iter().enumerate() {
-                casted_data
-                    .push(value.cast_to(&self.projected_schema.column_with_index(idx)?.data_type)?);
+                let target_type = self.projected_schema.column_with_index(idx)?.data_type;
+                if target_type == value.data_type() {
+                    casted_data.push(value.clone());
+                } else {
+                    casted_data.push(value.cast_to(&target_type)?);
+                }
             }
             let tuple = Tuple {
                 schema: self.projected_schema.clone(),
