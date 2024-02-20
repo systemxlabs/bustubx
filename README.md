@@ -18,7 +18,7 @@
 ## Get started
 Install rust toolchain first.
 ```
-cargo run --bin bustubx-cli
+RUST_LOG=info,bustubx=debug cargo run --bin bustubx-cli
 ```
 
 ![demo](./docs/bustubx-demo.png)

@@ -1,5 +1,5 @@
+use log::debug;
 use std::sync::{atomic::AtomicU32, Arc, Mutex};
-use tracing::debug;
 
 use crate::catalog::SchemaRef;
 use crate::expression::ExprTrait;

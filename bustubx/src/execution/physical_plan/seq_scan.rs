@@ -1,5 +1,5 @@
+use log::debug;
 use std::sync::Mutex;
-use tracing::debug;
 
 use crate::catalog::SchemaRef;
 use crate::common::TableReference;

@@ -1,3 +1,4 @@
+use log::debug;
 use std::sync::Arc;
 use tempfile::TempDir;
 
@@ -60,7 +61,7 @@ impl Database {
 
     pub fn run(&mut self, sql: &str) -> BustubxResult<Vec<Tuple>> {
         let logical_plan = self.create_logical_plan(sql)?;
-        println!(
+        debug!(
             "Logical Plan: \n{}",
             pretty_format_logical_plan(&logical_plan)
         );
@@ -69,7 +70,7 @@ impl Database {
 
         // logical plan -> physical plan
         let physical_plan = PhysicalPlanner::new().create_physical_plan(optimized_logical_plan);
-        println!(
+        debug!(
             "Physical Plan: \n{}",
             pretty_format_physical_plan(&physical_plan)
         );
@@ -79,7 +80,6 @@ impl Database {
             context: execution_ctx,
         };
         let tuples = execution_engine.execute(Arc::new(physical_plan))?;
-        // println!("execution result: {:?}", tuples);
         Ok(tuples)
     }
 

@@ -1,6 +1,6 @@
+use log::debug;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
-use tracing::debug;
 
 use crate::catalog::SchemaRef;
 use crate::{

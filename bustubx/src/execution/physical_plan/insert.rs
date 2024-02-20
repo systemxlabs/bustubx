@@ -1,5 +1,5 @@
+use log::debug;
 use std::sync::{atomic::AtomicU32, Arc};
-use tracing::debug;
 
 use crate::catalog::{SchemaRef, INSERT_OUTPUT_SCHEMA_REF};
 use crate::common::TableReference;

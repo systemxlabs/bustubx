@@ -1,3 +1,4 @@
+use log::debug;
 use std::fs::File;
 use std::path::Path;
 use std::sync::atomic::Ordering;
@@ -6,14 +7,13 @@ use std::{
     io::{Read, Seek, Write},
     sync::{atomic::AtomicU32, Mutex, MutexGuard},
 };
-use tracing::info;
 
 use crate::error::{BustubxError, BustubxResult};
 
 use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
 use crate::storage::codec::{FreelistPageCodec, MetaPageCodec};
 use crate::storage::meta_page::MetaPage;
-use crate::storage::{disk_manager, FreelistPage, TablePage, META_PAGE_SIZE};
+use crate::storage::{FreelistPage, META_PAGE_SIZE};
 
 static EMPTY_PAGE: [u8; BUSTUBX_PAGE_SIZE] = [0; BUSTUBX_PAGE_SIZE];
 
@@ -56,7 +56,7 @@ impl DiskManager {
         }
         let next_page_id =
             (((db_file_len - *META_PAGE_SIZE as u64) / BUSTUBX_PAGE_SIZE as u64) + 1) as PageId;
-        info!("Initialized disk_manager next_page_id: {}", next_page_id);
+        debug!("Initialized disk_manager next_page_id: {}", next_page_id);
 
         let disk_manager = Self {
             next_page_id: AtomicU32::new(next_page_id),

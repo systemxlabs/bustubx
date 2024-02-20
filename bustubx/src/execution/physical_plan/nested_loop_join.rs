@@ -1,10 +1,9 @@
+use log::debug;
 use std::sync::{Arc, Mutex};
-use tracing::debug;
 
 use crate::catalog::SchemaRef;
 use crate::expression::{Expr, ExprTrait};
 use crate::{
-    catalog::Schema,
     common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     planner::logical_plan::JoinType,

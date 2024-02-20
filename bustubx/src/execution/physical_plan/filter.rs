@@ -1,5 +1,5 @@
+use log::debug;
 use std::sync::Arc;
-use tracing::debug;
 
 use crate::catalog::SchemaRef;
 use crate::expression::{Expr, ExprTrait};
