@@ -37,15 +37,15 @@ pub struct IndexInfo {
 pub struct Catalog {
     pub tables: HashMap<FullTableRef, TableInfo>,
     pub indexes: HashMap<FullIndexRef, IndexInfo>,
-    pub buffer_pool_manager: BufferPoolManager,
+    pub buffer_pool: BufferPoolManager,
 }
 
 impl Catalog {
-    pub fn new(buffer_pool_manager: BufferPoolManager) -> Self {
+    pub fn new(buffer_pool: BufferPoolManager) -> Self {
         Self {
             tables: HashMap::new(),
             indexes: HashMap::new(),
-            buffer_pool_manager,
+            buffer_pool,
         }
     }
 
@@ -57,11 +57,11 @@ impl Catalog {
         let full_table_ref = table_ref.extend_to_full();
         if !self.tables.contains_key(&full_table_ref) {
             // 一个table对应一个buffer pool manager
-            let buffer_pool_manager = BufferPoolManager::new(
+            let buffer_pool = BufferPoolManager::new(
                 TABLE_HEAP_BUFFER_POOL_SIZE,
-                self.buffer_pool_manager.disk_manager.clone(),
+                self.buffer_pool.disk_manager.clone(),
             );
-            let table_heap = TableHeap::try_new(schema.clone(), buffer_pool_manager)?;
+            let table_heap = TableHeap::try_new(schema.clone(), buffer_pool)?;
             let table_info = TableInfo {
                 schema,
                 name: table_ref.table().to_string(),
@@ -114,12 +114,12 @@ impl Catalog {
             key_attrs,
         );
         // one buffer pool manager for one index
-        let buffer_pool_manager = BufferPoolManager::new(
+        let buffer_pool = BufferPoolManager::new(
             TABLE_HEAP_BUFFER_POOL_SIZE,
-            self.buffer_pool_manager.disk_manager.clone(),
+            self.buffer_pool.disk_manager.clone(),
         );
         // TODO compute leaf_max_size and internal_max_size
-        let b_plus_tree_index = BPlusTreeIndex::new(index_metadata, buffer_pool_manager, 10, 10);
+        let b_plus_tree_index = BPlusTreeIndex::new(index_metadata, buffer_pool, 10, 10);
 
         let index_info = IndexInfo {
             key_schema,
@@ -162,8 +162,8 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
-        let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
-        let mut catalog = super::Catalog::new(buffer_pool_manager);
+        let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
+        let mut catalog = super::Catalog::new(buffer_pool);
 
         let table_ref1 = TableReference::bare("test_table1".to_string());
         let schema = Arc::new(Schema::new(vec![
@@ -204,8 +204,8 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
-        let buffer_pool_manager = BufferPoolManager::new(1000, Arc::new(disk_manager));
-        let mut catalog = super::Catalog::new(buffer_pool_manager);
+        let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
+        let mut catalog = super::Catalog::new(buffer_pool);
 
         let table_ref = TableReference::bare("test_table1".to_string());
         let schema = Arc::new(Schema::new(vec![

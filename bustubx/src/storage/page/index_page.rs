@@ -1,7 +1,6 @@
-use super::Tuple;
 use crate::buffer::{PageId, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
-use crate::{catalog::Schema, common::rid::Rid};
+use crate::{catalog::Schema, common::rid::Rid, Tuple};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum BPlusTreePage {
@@ -464,13 +463,11 @@ impl BPlusTreeLeafPage {
 #[cfg(test)]
 mod tests {
     use crate::common::ScalarValue;
+    use crate::storage::{BPlusTreeInternalPage, BPlusTreeLeafPage};
     use crate::{
         catalog::{Column, DataType, Schema},
         common::rid::Rid,
-        storage::{
-            index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage},
-            Tuple,
-        },
+        storage::Tuple,
     };
     use std::sync::Arc;
 

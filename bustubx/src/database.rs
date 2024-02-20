@@ -25,11 +25,10 @@ pub struct Database {
 impl Database {
     pub fn new_on_disk(db_path: &str) -> BustubxResult<Self> {
         let disk_manager = Arc::new(DiskManager::try_new(&db_path)?);
-        let buffer_pool_manager =
-            BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
+        let buffer_pool = BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
 
         // TODO load catalog from disk
-        let mut catalog = Catalog::new(buffer_pool_manager);
+        let mut catalog = Catalog::new(buffer_pool);
         load_catalog_data(&mut catalog)?;
 
         Ok(Self {
@@ -46,10 +45,9 @@ impl Database {
             Arc::new(DiskManager::try_new(temp_path.to_str().ok_or(
                 BustubxError::Internal("Invalid temp path".to_string()),
             )?)?);
-        let buffer_pool_manager =
-            BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
+        let buffer_pool = BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
 
-        let mut catalog = Catalog::new(buffer_pool_manager);
+        let mut catalog = Catalog::new(buffer_pool);
         load_catalog_data(&mut catalog)?;
 
         Ok(Self {

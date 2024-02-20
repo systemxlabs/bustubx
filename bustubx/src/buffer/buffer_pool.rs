@@ -214,44 +214,29 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
-        let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
-        let page1 = buffer_pool_manager.new_page().unwrap().clone();
+        let mut buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
+        let page1 = buffer_pool.new_page().unwrap().clone();
         let page1_id = page1.read().unwrap().page_id;
-        assert_eq!(
-            buffer_pool_manager.pool[0].read().unwrap().page_id,
-            page1_id,
-        );
-        assert_eq!(
-            buffer_pool_manager.page_table[&page1.read().unwrap().page_id],
-            0
-        );
-        assert_eq!(buffer_pool_manager.free_list.len(), 2);
-        assert_eq!(buffer_pool_manager.replacer.size(), 0);
+        assert_eq!(buffer_pool.pool[0].read().unwrap().page_id, page1_id,);
+        assert_eq!(buffer_pool.page_table[&page1.read().unwrap().page_id], 0);
+        assert_eq!(buffer_pool.free_list.len(), 2);
+        assert_eq!(buffer_pool.replacer.size(), 0);
 
-        let page2 = buffer_pool_manager.new_page().unwrap();
+        let page2 = buffer_pool.new_page().unwrap();
         let page2_id = page2.read().unwrap().page_id;
-        assert_eq!(
-            buffer_pool_manager.pool[1].read().unwrap().page_id,
-            page2_id,
-        );
+        assert_eq!(buffer_pool.pool[1].read().unwrap().page_id, page2_id,);
 
-        let page3 = buffer_pool_manager.new_page().unwrap();
+        let page3 = buffer_pool.new_page().unwrap();
         let page3_id = page3.read().unwrap().page_id;
-        assert_eq!(
-            buffer_pool_manager.pool[2].read().unwrap().page_id,
-            page3_id,
-        );
+        assert_eq!(buffer_pool.pool[2].read().unwrap().page_id, page3_id,);
 
-        let page4 = buffer_pool_manager.new_page();
+        let page4 = buffer_pool.new_page();
         assert!(page4.is_err());
 
-        buffer_pool_manager.unpin_page(page1_id, false).unwrap();
-        let page5 = buffer_pool_manager.new_page().unwrap();
+        buffer_pool.unpin_page(page1_id, false).unwrap();
+        let page5 = buffer_pool.new_page().unwrap();
         let page5_id = page5.read().unwrap().page_id;
-        assert_eq!(
-            buffer_pool_manager.pool[0].read().unwrap().page_id,
-            page5_id,
-        );
+        assert_eq!(buffer_pool.pool[0].read().unwrap().page_id, page5_id,);
     }
 
     #[test]
@@ -260,17 +245,17 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
-        let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
+        let mut buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
 
-        let page1 = buffer_pool_manager.new_page().unwrap();
+        let page1 = buffer_pool.new_page().unwrap();
         let page1_id = page1.read().unwrap().page_id;
-        let page2 = buffer_pool_manager.new_page().unwrap();
-        let page3 = buffer_pool_manager.new_page().unwrap();
-        let page4 = buffer_pool_manager.new_page();
+        let page2 = buffer_pool.new_page().unwrap();
+        let page3 = buffer_pool.new_page().unwrap();
+        let page4 = buffer_pool.new_page();
         assert!(page4.is_err());
 
-        buffer_pool_manager.unpin_page(page1_id, true).unwrap();
-        let page5 = buffer_pool_manager.new_page();
+        buffer_pool.unpin_page(page1_id, true).unwrap();
+        let page5 = buffer_pool.new_page();
         assert!(page5.is_ok());
     }
 
@@ -280,29 +265,29 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
-        let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
+        let mut buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
 
-        let page1 = buffer_pool_manager.new_page().unwrap();
+        let page1 = buffer_pool.new_page().unwrap();
         let page1_id = page1.read().unwrap().page_id;
-        buffer_pool_manager.unpin_page(page1_id, true).unwrap();
+        buffer_pool.unpin_page(page1_id, true).unwrap();
 
-        let page2 = buffer_pool_manager.new_page().unwrap();
+        let page2 = buffer_pool.new_page().unwrap();
         let page2_id = page2.read().unwrap().page_id;
-        buffer_pool_manager.unpin_page(page2_id, false).unwrap();
+        buffer_pool.unpin_page(page2_id, false).unwrap();
 
-        let page3 = buffer_pool_manager.new_page().unwrap();
+        let page3 = buffer_pool.new_page().unwrap();
         let page3_id = page3.read().unwrap().page_id;
-        buffer_pool_manager.unpin_page(page3_id, false).unwrap();
+        buffer_pool.unpin_page(page3_id, false).unwrap();
 
-        let page = buffer_pool_manager.fetch_page(page1_id).unwrap();
+        let page = buffer_pool.fetch_page(page1_id).unwrap();
         assert_eq!(page.read().unwrap().page_id, page1_id);
-        buffer_pool_manager.unpin_page(page1_id, false).unwrap();
+        buffer_pool.unpin_page(page1_id, false).unwrap();
 
-        let page = buffer_pool_manager.fetch_page(page2_id).unwrap();
+        let page = buffer_pool.fetch_page(page2_id).unwrap();
         assert_eq!(page.read().unwrap().page_id, page2_id);
-        buffer_pool_manager.unpin_page(page2_id, false).unwrap();
+        buffer_pool.unpin_page(page2_id, false).unwrap();
 
-        assert_eq!(buffer_pool_manager.replacer.size(), 3);
+        assert_eq!(buffer_pool.replacer.size(), 3);
     }
 
     #[test]
@@ -311,28 +296,28 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let disk_manager = DiskManager::try_new(&temp_path).unwrap();
-        let mut buffer_pool_manager = BufferPoolManager::new(3, Arc::new(disk_manager));
+        let mut buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
 
-        let page1 = buffer_pool_manager.new_page().unwrap();
+        let page1 = buffer_pool.new_page().unwrap();
         let page1_id = page1.read().unwrap().page_id;
-        buffer_pool_manager.unpin_page(page1_id, true).unwrap();
+        buffer_pool.unpin_page(page1_id, true).unwrap();
 
-        let page2 = buffer_pool_manager.new_page().unwrap();
+        let page2 = buffer_pool.new_page().unwrap();
         let page2_id = page2.read().unwrap().page_id;
-        buffer_pool_manager.unpin_page(page2_id, true).unwrap();
+        buffer_pool.unpin_page(page2_id, true).unwrap();
 
-        let page3 = buffer_pool_manager.new_page().unwrap();
+        let page3 = buffer_pool.new_page().unwrap();
         let page3_id = page3.read().unwrap().page_id;
-        buffer_pool_manager.unpin_page(page3_id, false).unwrap();
+        buffer_pool.unpin_page(page3_id, false).unwrap();
 
-        let res = buffer_pool_manager.delete_page(page1_id).unwrap();
+        let res = buffer_pool.delete_page(page1_id).unwrap();
         assert!(res);
-        assert_eq!(buffer_pool_manager.pool.len(), 3);
-        assert_eq!(buffer_pool_manager.free_list.len(), 1);
-        assert_eq!(buffer_pool_manager.replacer.size(), 2);
-        assert_eq!(buffer_pool_manager.page_table.len(), 2);
+        assert_eq!(buffer_pool.pool.len(), 3);
+        assert_eq!(buffer_pool.free_list.len(), 1);
+        assert_eq!(buffer_pool.replacer.size(), 2);
+        assert_eq!(buffer_pool.page_table.len(), 2);
 
-        let page = buffer_pool_manager.fetch_page(page1_id).unwrap();
+        let page = buffer_pool.fetch_page(page1_id).unwrap();
         assert_eq!(page.read().unwrap().page_id, page1_id);
     }
 }

@@ -3,8 +3,7 @@ use crate::catalog::SchemaRef;
 use crate::common::rid::Rid;
 use crate::common::util::page_bytes_to_array;
 use crate::storage::codec::{CommonCodec, DecodedData};
-use crate::storage::table_page::{TablePageHeader, TupleInfo};
-use crate::storage::{TablePage, TupleMeta};
+use crate::storage::{TablePage, TablePageHeader, TupleInfo, TupleMeta};
 use crate::{BustubxError, BustubxResult};
 
 pub struct TablePageCodec;

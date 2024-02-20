@@ -1,10 +1,9 @@
 use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE};
 use crate::catalog::SchemaRef;
 use crate::common::rid::Rid;
+use crate::common::TransactionId;
 use crate::storage::codec::{TablePageHeaderCodec, TablePageHeaderTupleInfoCodec, TupleCodec};
-use crate::{BustubxError, BustubxResult};
-
-use super::tuple::{Tuple, TupleMeta};
+use crate::{BustubxError, BustubxResult, Tuple};
 
 lazy_static::lazy_static! {
     pub static ref EMPTY_TUPLE_INFO: TupleInfo = TupleInfo {
@@ -41,6 +40,29 @@ pub struct TablePage {
     pub header: TablePageHeader,
     // 整个页原始数据
     pub data: [u8; BUSTUBX_PAGE_SIZE],
+}
+
+// TODO do we need pre_page_id?
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct TablePageHeader {
+    pub next_page_id: PageId,
+    pub num_tuples: u16,
+    pub num_deleted_tuples: u16,
+    pub tuple_infos: Vec<TupleInfo>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct TupleInfo {
+    pub offset: u16,
+    pub size: u16,
+    pub meta: TupleMeta,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TupleMeta {
+    pub insert_txn_id: TransactionId,
+    pub delete_txn_id: TransactionId,
+    pub is_deleted: bool,
 }
 
 impl TablePage {
@@ -172,22 +194,6 @@ impl TablePage {
 
         return Some(Rid::new(rid.page_id, tuple_id + 1));
     }
-}
-
-// TODO do we need pre_page_id?
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct TablePageHeader {
-    pub next_page_id: PageId,
-    pub num_tuples: u16,
-    pub num_deleted_tuples: u16,
-    pub tuple_infos: Vec<TupleInfo>,
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct TupleInfo {
-    pub offset: u16,
-    pub size: u16,
-    pub meta: TupleMeta,
 }
 
 #[cfg(test)]

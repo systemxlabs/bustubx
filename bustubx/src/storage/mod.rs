@@ -1,16 +1,11 @@
 mod codec;
 mod disk_manager;
-mod freelist_page;
 pub mod index;
-pub mod index_page;
-mod meta_page;
+mod page;
 mod table_heap;
-mod table_page;
 mod tuple;
 
 pub use disk_manager::DiskManager;
-pub use freelist_page::*;
-pub use meta_page::{MetaPage, EMPTY_META_PAGE, META_PAGE_SIZE};
+pub use page::*;
 pub use table_heap::{TableHeap, TableIterator};
-pub use table_page::TablePage;
-pub use tuple::{Tuple, TupleMeta};
+pub use tuple::Tuple;

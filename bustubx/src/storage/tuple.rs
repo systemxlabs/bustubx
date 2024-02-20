@@ -1,14 +1,7 @@
-use crate::catalog::{ColumnRef, SchemaRef};
+use crate::catalog::SchemaRef;
 use crate::common::{TableReference, TransactionId};
 use crate::{catalog::Schema, common::ScalarValue, BustubxError, BustubxResult};
 use std::sync::Arc;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct TupleMeta {
-    pub insert_txn_id: TransactionId,
-    pub delete_txn_id: TransactionId,
-    pub is_deleted: bool,
-}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Tuple {

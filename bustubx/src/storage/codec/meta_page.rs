@@ -1,5 +1,5 @@
 use crate::storage::codec::{CommonCodec, DecodedData};
-use crate::storage::meta_page::MetaPage;
+use crate::storage::MetaPage;
 use crate::BustubxResult;
 
 pub struct MetaPageCodec;

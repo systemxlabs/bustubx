@@ -1,4 +1,4 @@
-use crate::{BustubxError, BustubxResult};
+use crate::BustubxResult;
 use std::sync::Arc;
 
 use crate::planner::logical_plan::{Insert, LogicalPlan};

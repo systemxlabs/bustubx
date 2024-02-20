@@ -8,6 +8,7 @@ keywords.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
+readme = "../README.md"
 
 [dependencies]
 bustubx = { path = "../bustubx", version = "0.2.0" }

@@ -2,7 +2,6 @@ use crate::catalog::DataType;
 use crate::common::ScalarValue;
 use crate::expression::Accumulator;
 use crate::{BustubxError, BustubxResult};
-use std::fs::read;
 
 #[derive(Debug)]
 pub struct AvgAccumulator {

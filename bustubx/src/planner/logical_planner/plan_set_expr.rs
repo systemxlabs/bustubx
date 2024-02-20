@@ -64,7 +64,7 @@ impl LogicalPlanner<'_> {
                     .collect::<BustubxResult<Vec<Column>>>()?,
             );
             Ok(LogicalPlan::Aggregate(Aggregate {
-                input: Arc::new((input)),
+                input: Arc::new(input),
                 group_exprs,
                 aggr_exprs,
                 schema: Arc::new(Schema::new(columns)),

@@ -72,8 +72,7 @@ impl FreelistPageCodec {
 #[cfg(test)]
 mod tests {
     use crate::storage::codec::FreelistPageCodec;
-    use crate::storage::freelist_page::FREELIST_PAGE_MAX_SIZE;
-    use crate::storage::{FreelistPage, FreelistPageHeader};
+    use crate::storage::{FreelistPage, FreelistPageHeader, FREELIST_PAGE_MAX_SIZE};
 
     #[test]
     fn freelist_page_codec() {

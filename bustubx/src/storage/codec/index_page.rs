@@ -1,7 +1,7 @@
 use crate::buffer::BUSTUBX_PAGE_SIZE;
 use crate::catalog::SchemaRef;
 use crate::storage::codec::{CommonCodec, DecodedData, RidCodec, TupleCodec};
-use crate::storage::index_page::{
+use crate::storage::{
     BPlusTreeInternalPage, BPlusTreeInternalPageHeader, BPlusTreeLeafPage, BPlusTreeLeafPageHeader,
     BPlusTreePage, BPlusTreePageType,
 };
@@ -266,7 +266,7 @@ mod tests {
     use crate::catalog::{Column, DataType, Schema};
     use crate::common::rid::Rid;
     use crate::storage::codec::index_page::BPlusTreePageCodec;
-    use crate::storage::index_page::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePage};
+    use crate::storage::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePage};
     use crate::Tuple;
     use std::sync::Arc;
 

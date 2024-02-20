@@ -1,7 +1,7 @@
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
-use crate::catalog::{ColumnRef, SchemaRef};
+use crate::catalog::SchemaRef;
 use crate::expression::{Expr, ExprTrait};
 use crate::{
     catalog::Schema,
