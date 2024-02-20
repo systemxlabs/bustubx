@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::buffer::TABLE_HEAP_BUFFER_POOL_SIZE;
 use crate::catalog::SchemaRef;
 use crate::common::{FullTableRef, TableReference};
+use crate::storage::{BPLUS_INTERNAL_PAGE_MAX_SIZE, BPLUS_LEAF_PAGE_MAX_SIZE};
 use crate::{
     buffer::BufferPoolManager,
     storage::{
@@ -118,8 +119,12 @@ impl Catalog {
             TABLE_HEAP_BUFFER_POOL_SIZE,
             self.buffer_pool.disk_manager.clone(),
         );
-        // TODO compute leaf_max_size and internal_max_size
-        let b_plus_tree_index = BPlusTreeIndex::new(index_metadata, buffer_pool, 10, 10);
+        let b_plus_tree_index = BPlusTreeIndex::new(
+            index_metadata,
+            buffer_pool,
+            BPLUS_LEAF_PAGE_MAX_SIZE as u32,
+            BPLUS_INTERNAL_PAGE_MAX_SIZE as u32,
+        );
 
         let index_info = IndexInfo {
             key_schema,

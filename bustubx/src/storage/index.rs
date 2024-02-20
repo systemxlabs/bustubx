@@ -65,6 +65,7 @@ pub struct BPlusTreeIndex {
     pub internal_max_size: u32,
     pub root_page_id: PageId,
 }
+
 impl BPlusTreeIndex {
     pub fn new(
         index_metadata: IndexMetadata,
@@ -72,7 +73,6 @@ impl BPlusTreeIndex {
         leaf_max_size: u32,
         internal_max_size: u32,
     ) -> Self {
-        // TODO 计算页容量是否能存放下这么多的kv对
         Self {
             index_metadata,
             buffer_pool,
@@ -103,7 +103,7 @@ impl BPlusTreeIndex {
             self.index_metadata.key_schema.clone(),
         )
         .unwrap();
-        leaf_page.insert(key.clone(), rid, &self.index_metadata.key_schema);
+        leaf_page.insert(key.clone(), rid);
 
         let mut curr_page = BPlusTreePage::Leaf(leaf_page);
         let mut curr_page_id = leaf_page_id;
@@ -132,7 +132,7 @@ impl BPlusTreeIndex {
                 )
                 .unwrap();
                 self.buffer_pool.unpin_page(page_id, false).unwrap();
-                tree_page.insert_internalkv(internalkv, &self.index_metadata.key_schema);
+                tree_page.insert_internalkv(internalkv);
 
                 curr_page = tree_page;
                 curr_page_id = page_id;
@@ -149,13 +149,8 @@ impl BPlusTreeIndex {
                 new_internal_page.insert(
                     Tuple::empty(self.index_metadata.key_schema.clone()),
                     self.root_page_id,
-                    &self.index_metadata.key_schema,
                 );
-                new_internal_page.insert(
-                    internalkv.0,
-                    internalkv.1,
-                    &self.index_metadata.key_schema,
-                );
+                new_internal_page.insert(internalkv.0, internalkv.1);
 
                 new_root_page.write().unwrap().data =
                     page_bytes_to_array(&BPlusTreeInternalPageCodec::encode(&new_internal_page));
@@ -193,7 +188,7 @@ impl BPlusTreeIndex {
             self.index_metadata.key_schema.clone(),
         )
         .unwrap();
-        leaf_page.delete(key, &self.index_metadata.key_schema);
+        leaf_page.delete(key);
 
         let mut curr_page = BPlusTreePage::Leaf(leaf_page);
         let mut curr_page_id = leaf_page_id;
@@ -228,11 +223,7 @@ impl BPlusTreeIndex {
                                 if let BPlusTreePage::Internal(ref mut curr_internal_page) =
                                     curr_page
                                 {
-                                    curr_internal_page.insert(
-                                        kv.0.clone(),
-                                        kv.1,
-                                        &self.index_metadata.key_schema,
-                                    );
+                                    curr_internal_page.insert(kv.0.clone(), kv.1);
                                     let max_leaf_kv = self
                                         .find_subtree_max_leafkv(
                                             left_sibling_internal_page.value_at(
@@ -254,11 +245,7 @@ impl BPlusTreeIndex {
                                     )
                                     .remove(0);
                                 if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_page {
-                                    curr_leaf_page.insert(
-                                        kv.0.clone(),
-                                        kv.1,
-                                        &self.index_metadata.key_schema,
-                                    );
+                                    curr_leaf_page.insert(kv.0.clone(), kv.1);
                                     (
                                         kv.0,
                                         left_sibling_leaf_page
@@ -294,11 +281,7 @@ impl BPlusTreeIndex {
                             self.index_metadata.key_schema.clone(),
                         )
                         .unwrap();
-                        parent_internal_page.replace_key(
-                            &old_internal_key,
-                            new_internal_key,
-                            &self.index_metadata.key_schema,
-                        );
+                        parent_internal_page.replace_key(&old_internal_key, new_internal_key);
 
                         parent_page.write().unwrap().data = page_bytes_to_array(
                             &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
@@ -331,11 +314,7 @@ impl BPlusTreeIndex {
                                 if let BPlusTreePage::Internal(ref mut curr_internal_page) =
                                     curr_page
                                 {
-                                    curr_internal_page.insert(
-                                        kv.0.clone(),
-                                        kv.1,
-                                        &self.index_metadata.key_schema,
-                                    );
+                                    curr_internal_page.insert(kv.0.clone(), kv.1);
                                     let min_leaf_kv = self
                                         .find_subtree_min_leafkv(
                                             right_sibling_internal_page.value_at(0),
@@ -349,11 +328,7 @@ impl BPlusTreeIndex {
                             BPlusTreePage::Leaf(ref mut right_sibling_leaf_page) => {
                                 let kv = right_sibling_leaf_page.reverse_split_off(0).remove(0);
                                 if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_page {
-                                    curr_leaf_page.insert(
-                                        kv.0.clone(),
-                                        kv.1,
-                                        &self.index_metadata.key_schema,
-                                    );
+                                    curr_leaf_page.insert(kv.0.clone(), kv.1);
                                     (kv.0, right_sibling_leaf_page.key_at(0).clone())
                                 } else {
                                     panic!("Internal page can not borrow from leaf page");
@@ -381,11 +356,7 @@ impl BPlusTreeIndex {
                             self.index_metadata.key_schema.clone(),
                         )
                         .unwrap();
-                        parent_internal_page.replace_key(
-                            &old_internal_key,
-                            new_internal_key,
-                            &self.index_metadata.key_schema,
-                        );
+                        parent_internal_page.replace_key(&old_internal_key, new_internal_key);
 
                         parent_page.write().unwrap().data = page_bytes_to_array(
                             &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
@@ -420,18 +391,14 @@ impl BPlusTreeIndex {
                                     .find_subtree_min_leafkv(curr_internal_page.value_at(0))
                                     .unwrap();
                                 kvs[0].0 = min_leaf_kv.0;
-                                left_sibling_internal_page
-                                    .batch_insert(kvs, &self.index_metadata.key_schema);
+                                left_sibling_internal_page.batch_insert(kvs);
                             } else {
                                 panic!("Leaf page can not merge from internal page");
                             }
                         }
                         BPlusTreePage::Leaf(ref mut left_sibling_leaf_page) => {
                             if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_page {
-                                left_sibling_leaf_page.batch_insert(
-                                    curr_leaf_page.array.clone(),
-                                    &self.index_metadata.key_schema,
-                                );
+                                left_sibling_leaf_page.batch_insert(curr_leaf_page.array.clone());
                                 // 更新next page id
                                 left_sibling_leaf_page.header.next_page_id =
                                     curr_leaf_page.header.next_page_id;
@@ -508,18 +475,14 @@ impl BPlusTreeIndex {
                                     )
                                     .unwrap();
                                 kvs[0].0 = min_leaf_kv.0;
-                                curr_internal_page
-                                    .batch_insert(kvs, &self.index_metadata.key_schema);
+                                curr_internal_page.batch_insert(kvs);
                             } else {
                                 panic!("Leaf page can not merge from internal page");
                             }
                         }
                         BPlusTreePage::Leaf(ref mut right_sibling_leaf_page) => {
                             if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_page {
-                                curr_leaf_page.batch_insert(
-                                    right_sibling_leaf_page.array.clone(),
-                                    &self.index_metadata.key_schema,
-                                );
+                                curr_leaf_page.batch_insert(right_sibling_leaf_page.array.clone());
                                 // 更新next page id
                                 curr_leaf_page.header.next_page_id =
                                     right_sibling_leaf_page.header.next_page_id;
@@ -588,7 +551,7 @@ impl BPlusTreeIndex {
 
         let mut leaf_page =
             BPlusTreeLeafPage::new(self.index_metadata.key_schema.clone(), self.leaf_max_size);
-        leaf_page.insert(key.clone(), rid, &self.index_metadata.key_schema);
+        leaf_page.insert(key.clone(), rid);
 
         new_page.write().unwrap().data =
             page_bytes_to_array(&BPlusTreeLeafPageCodec::encode(&leaf_page));
@@ -622,7 +585,7 @@ impl BPlusTreeIndex {
             self.index_metadata.key_schema.clone(),
         )
         .unwrap();
-        let result = leaf_page.look_up(key, &self.index_metadata.key_schema);
+        let result = leaf_page.look_up(key);
         self.buffer_pool.unpin_page(leaf_page_id, false).unwrap();
         result
     }
@@ -647,7 +610,7 @@ impl BPlusTreeIndex {
                     // 释放上一页
                     self.buffer_pool.unpin_page(curr_page_id, false).unwrap();
                     // 查找下一页
-                    let next_page_id = internal_page.look_up(key, &self.index_metadata.key_schema);
+                    let next_page_id = internal_page.look_up(key);
                     let next_page = self
                         .buffer_pool
                         .fetch_page(next_page_id)
@@ -683,10 +646,8 @@ impl BPlusTreeIndex {
                     self.index_metadata.key_schema.clone(),
                     self.leaf_max_size,
                 );
-                new_leaf_page.batch_insert(
-                    leaf_page.split_off(leaf_page.header.current_size as usize / 2),
-                    &self.index_metadata.key_schema,
-                );
+                new_leaf_page
+                    .batch_insert(leaf_page.split_off(leaf_page.header.current_size as usize / 2));
 
                 // 更新next page id
                 new_leaf_page.header.next_page_id = leaf_page.header.next_page_id;
@@ -712,7 +673,6 @@ impl BPlusTreeIndex {
                 );
                 new_internal_page.batch_insert(
                     internal_page.split_off(internal_page.header.current_size as usize / 2),
-                    &self.index_metadata.key_schema,
                 );
 
                 new_page.write().unwrap().data =
@@ -823,12 +783,12 @@ impl BPlusTreeIndex {
                 self.buffer_pool.unpin_page(page_id, false).unwrap();
                 match curr_page {
                     BPlusTreePage::Internal(internal_page) => {
-                        internal_page.print_page(page_id, &self.index_metadata.key_schema);
+                        internal_page.print_page(page_id);
                         println!();
                         next_queue.extend(internal_page.values());
                     }
                     BPlusTreePage::Leaf(leaf_page) => {
-                        leaf_page.print_page(page_id, &self.index_metadata.key_schema);
+                        leaf_page.print_page(page_id);
                         println!();
                     }
                 }

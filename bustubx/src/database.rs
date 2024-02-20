@@ -27,7 +27,6 @@ impl Database {
         let disk_manager = Arc::new(DiskManager::try_new(db_path)?);
         let buffer_pool = BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
 
-        // TODO load catalog from disk
         let mut catalog = Catalog::new(buffer_pool);
         load_catalog_data(&mut catalog)?;
 
@@ -65,6 +64,10 @@ impl Database {
         );
 
         let optimized_logical_plan = LogicalOptimizer::new().optimize(&logical_plan)?;
+        debug!(
+            "Optimized Logical Plan: \n{}",
+            pretty_format_logical_plan(&logical_plan)
+        );
 
         // logical plan -> physical plan
         let physical_plan = PhysicalPlanner::new().create_physical_plan(optimized_logical_plan);

@@ -1,21 +1,17 @@
 use crate::buffer::{PageId, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
-use crate::{catalog::Schema, common::rid::Rid, Tuple};
+use crate::{common::rid::Rid, Tuple};
+
+pub const BPLUS_INTERNAL_PAGE_MAX_SIZE: usize = 10;
+pub const BPLUS_LEAF_PAGE_MAX_SIZE: usize = 10;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum BPlusTreePage {
-    // B+树内部节点页
     Internal(BPlusTreeInternalPage),
-    // B+树叶子节点页
     Leaf(BPlusTreeLeafPage),
 }
+
 impl BPlusTreePage {
-    pub fn is_leaf(&self) -> bool {
-        match self {
-            Self::Internal(_) => false,
-            Self::Leaf(_) => true,
-        }
-    }
     pub fn is_full(&self) -> bool {
         match self {
             Self::Internal(page) => page.is_full(),
@@ -31,9 +27,9 @@ impl BPlusTreePage {
             Self::Leaf(page) => page.header.current_size < page.min_size(),
         }
     }
-    pub fn insert_internalkv(&mut self, internalkv: InternalKV, key_schema: &Schema) {
+    pub fn insert_internalkv(&mut self, internalkv: InternalKV) {
         match self {
-            Self::Internal(page) => page.insert(internalkv.0, internalkv.1, key_schema),
+            Self::Internal(page) => page.insert(internalkv.0, internalkv.1),
             Self::Leaf(_) => panic!("Leaf page cannot insert InternalKV"),
         }
     }
@@ -126,7 +122,7 @@ impl BPlusTreeInternalPage {
     }
 
     // TODO 可以通过二分查找来插入
-    pub fn insert(&mut self, key: Tuple, page_id: PageId, key_schema: &Schema) {
+    pub fn insert(&mut self, key: Tuple, page_id: PageId) {
         if self.header.current_size == 0 && !key.is_null() {
             panic!("First key must be zero");
         }
@@ -134,17 +130,17 @@ impl BPlusTreeInternalPage {
         self.header.current_size += 1;
         // 跳过第一个空key
         let null_kv = self.array.remove(0);
-        self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
+        self.array.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
         self.array.insert(0, null_kv);
     }
-    pub fn batch_insert(&mut self, kvs: Vec<InternalKV>, key_schema: &Schema) {
+    pub fn batch_insert(&mut self, kvs: Vec<InternalKV>) {
         let kvs_len = kvs.len();
         self.array.extend(kvs);
         self.header.current_size += kvs_len as u32;
-        self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
+        self.array.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
     }
 
-    pub fn delete(&mut self, key: &Tuple, key_schema: &Schema) {
+    pub fn delete(&mut self, key: &Tuple) {
         if self.header.current_size == 0 {
             return;
         }
@@ -153,7 +149,7 @@ impl BPlusTreeInternalPage {
         let mut end: i32 = self.header.current_size as i32 - 1;
         while start < end {
             let mid = (start + end) / 2;
-            let compare_res = key.compare(&self.array[mid as usize].0, key_schema);
+            let compare_res = key.partial_cmp(&self.array[mid as usize].0).unwrap();
             if compare_res == std::cmp::Ordering::Equal {
                 self.array.remove(mid as usize);
                 self.header.current_size -= 1;
@@ -169,7 +165,7 @@ impl BPlusTreeInternalPage {
                 start = mid + 1;
             }
         }
-        if key.compare(&self.array[start as usize].0, key_schema) == std::cmp::Ordering::Equal {
+        if key.partial_cmp(&self.array[start as usize].0).unwrap() == std::cmp::Ordering::Equal {
             self.array.remove(start as usize);
             self.header.current_size -= 1;
             // 删除后，如果只剩下一个空key，那么删除
@@ -224,14 +220,14 @@ impl BPlusTreeInternalPage {
         new_array
     }
 
-    pub fn replace_key(&mut self, old_key: &Tuple, new_key: Tuple, key_schema: &Schema) {
-        let key_index = self.key_index(old_key, key_schema);
+    pub fn replace_key(&mut self, old_key: &Tuple, new_key: Tuple) {
+        let key_index = self.key_index(old_key);
         if let Some(index) = key_index {
             self.array[index].0 = new_key;
         }
     }
 
-    pub fn key_index(&self, key: &Tuple, key_schema: &Schema) -> Option<usize> {
+    pub fn key_index(&self, key: &Tuple) -> Option<usize> {
         if self.header.current_size == 0 {
             return None;
         }
@@ -240,7 +236,7 @@ impl BPlusTreeInternalPage {
         let mut end: i32 = self.header.current_size as i32 - 1;
         while start < end {
             let mid = (start + end) / 2;
-            let compare_res = key.compare(&self.array[mid as usize].0, key_schema);
+            let compare_res = key.partial_cmp(&self.array[mid as usize].0).unwrap();
             if compare_res == std::cmp::Ordering::Equal {
                 return Some(mid as usize);
             } else if compare_res == std::cmp::Ordering::Less {
@@ -249,14 +245,14 @@ impl BPlusTreeInternalPage {
                 start = mid + 1;
             }
         }
-        if key.compare(&self.array[start as usize].0, key_schema) == std::cmp::Ordering::Equal {
+        if key.partial_cmp(&self.array[start as usize].0).unwrap() == std::cmp::Ordering::Equal {
             return Some(start as usize);
         }
         None
     }
 
     // 查找key对应的page_id
-    pub fn look_up(&self, key: &Tuple, key_schema: &Schema) -> PageId {
+    pub fn look_up(&self, key: &Tuple) -> PageId {
         // 第一个key为空，所以从1开始
         let mut start = 1;
         if self.header.current_size == 0 {
@@ -265,7 +261,7 @@ impl BPlusTreeInternalPage {
         let mut end = self.header.current_size - 1;
         while start < end {
             let mid = (start + end) / 2;
-            let compare_res = key.compare(&self.array[mid as usize].0, key_schema);
+            let compare_res = key.partial_cmp(&self.array[mid as usize].0).unwrap();
             if compare_res == std::cmp::Ordering::Equal {
                 return self.array[mid as usize].1;
             } else if compare_res == std::cmp::Ordering::Less {
@@ -274,7 +270,7 @@ impl BPlusTreeInternalPage {
                 start = mid + 1;
             }
         }
-        let compare_res = key.compare(&self.array[start as usize].0, key_schema);
+        let compare_res = key.partial_cmp(&self.array[start as usize].0).unwrap();
         if compare_res == std::cmp::Ordering::Less {
             self.array[start as usize - 1].1
         } else {
@@ -282,7 +278,7 @@ impl BPlusTreeInternalPage {
         }
     }
 
-    pub fn print_page(&self, page_id: PageId, _key_schema: &Schema) {
+    pub fn print_page(&self, page_id: PageId) {
         println!(
             "{:?}, page_id: {}, size: {}/{}",
             self.header.page_type, page_id, self.header.current_size, self.header.max_size
@@ -366,17 +362,17 @@ impl BPlusTreeLeafPage {
     }
 
     // TODO 可以通过二分查找来插入
-    pub fn insert(&mut self, key: Tuple, rid: Rid, key_schema: &Schema) {
+    pub fn insert(&mut self, key: Tuple, rid: Rid) {
         self.array.push((key, rid));
         self.header.current_size += 1;
-        self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
+        self.array.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
     }
 
-    pub fn batch_insert(&mut self, kvs: Vec<LeafKV>, key_schema: &Schema) {
+    pub fn batch_insert(&mut self, kvs: Vec<LeafKV>) {
         let kvs_len = kvs.len();
         self.array.extend(kvs);
         self.header.current_size += kvs_len as u32;
-        self.array.sort_by(|a, b| a.0.compare(&b.0, key_schema));
+        self.array.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
     }
 
     pub fn split_off(&mut self, at: usize) -> Vec<LeafKV> {
@@ -394,8 +390,8 @@ impl BPlusTreeLeafPage {
         new_array
     }
 
-    pub fn delete(&mut self, key: &Tuple, key_schema: &Schema) {
-        let key_index = self.key_index(key, key_schema);
+    pub fn delete(&mut self, key: &Tuple) {
+        let key_index = self.key_index(key);
         if let Some(index) = key_index {
             self.array.remove(index);
             self.header.current_size -= 1;
@@ -403,12 +399,12 @@ impl BPlusTreeLeafPage {
     }
 
     // 查找key对应的rid
-    pub fn look_up(&self, key: &Tuple, key_schema: &Schema) -> Option<Rid> {
-        let key_index = self.key_index(key, key_schema);
+    pub fn look_up(&self, key: &Tuple) -> Option<Rid> {
+        let key_index = self.key_index(key);
         key_index.map(|index| self.array[index].1)
     }
 
-    fn key_index(&self, key: &Tuple, key_schema: &Schema) -> Option<usize> {
+    fn key_index(&self, key: &Tuple) -> Option<usize> {
         if self.header.current_size == 0 {
             return None;
         }
@@ -416,7 +412,7 @@ impl BPlusTreeLeafPage {
         let mut end: i32 = self.header.current_size as i32 - 1;
         while start < end {
             let mid = (start + end) / 2;
-            let compare_res = key.compare(&self.array[mid as usize].0, key_schema);
+            let compare_res = key.partial_cmp(&self.array[mid as usize].0).unwrap();
             if compare_res == std::cmp::Ordering::Equal {
                 return Some(mid as usize);
             } else if compare_res == std::cmp::Ordering::Less {
@@ -425,13 +421,13 @@ impl BPlusTreeLeafPage {
                 start = mid + 1;
             }
         }
-        if key.compare(&self.array[start as usize].0, key_schema) == std::cmp::Ordering::Equal {
+        if key.partial_cmp(&self.array[start as usize].0).unwrap() == std::cmp::Ordering::Equal {
             return Some(start as usize);
         }
         None
     }
 
-    pub fn print_page(&self, page_id: PageId, _key_schema: &Schema) {
+    pub fn print_page(&self, page_id: PageId) {
         println!(
             "{:?}, page_id: {}, size: {}/{}, , next_page_id: {}",
             self.header.page_type,
@@ -476,16 +472,14 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 3);
-        internal_page.insert(Tuple::empty(key_schema.clone()), 0, &key_schema);
+        internal_page.insert(Tuple::empty(key_schema.clone()), 0);
         internal_page.insert(
             Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
             2,
-            &key_schema,
         );
         internal_page.insert(
             Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
             1,
-            &key_schema,
         );
         assert_eq!(internal_page.header.current_size, 3);
         assert_eq!(
@@ -509,17 +503,14 @@ mod tests {
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
             Rid::new(2, 2),
-            &key_schema,
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
             Rid::new(1, 1),
-            &key_schema,
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
             Rid::new(3, 3),
-            &key_schema,
         );
         assert_eq!(leaf_page.header.current_size, 3);
         assert_eq!(leaf_page.array[0].0.data, vec![1i8.into(), 1i16.into()]);
@@ -537,77 +528,72 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 5);
-        internal_page.insert(Tuple::empty(key_schema.clone()), 0, &key_schema);
+        internal_page.insert(Tuple::empty(key_schema.clone()), 0);
         internal_page.insert(
             Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
             2,
-            &key_schema,
         );
         internal_page.insert(
             Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
             1,
-            &key_schema,
         );
         internal_page.insert(
             Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
             3,
-            &key_schema,
         );
         internal_page.insert(
             Tuple::new(key_schema.clone(), vec![4i8.into(), 4i16.into()]),
             4,
-            &key_schema,
         );
 
         assert_eq!(
-            internal_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![0i8.into(), 0i16.into()]),
-                &key_schema
-            ),
+            internal_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![0i8.into(), 0i16.into()]
+            ),),
             0
         );
         assert_eq!(
-            internal_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
-                &key_schema
-            ),
+            internal_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![3i8.into(), 3i16.into()]
+            ),),
             3
         );
         assert_eq!(
-            internal_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![5i8.into(), 5i16.into()]),
-                &key_schema
-            ),
+            internal_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![5i8.into(), 5i16.into()]
+            ),),
             4
         );
 
         let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 2);
-        internal_page.insert(Tuple::empty(key_schema.clone()), 0, &key_schema);
+        internal_page.insert(Tuple::empty(key_schema.clone()), 0);
         internal_page.insert(
             Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
             1,
-            &key_schema,
         );
 
         assert_eq!(
-            internal_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![0i8.into(), 0i16.into()]),
-                &key_schema
-            ),
+            internal_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![0i8.into(), 0i16.into()]
+            ),),
             0
         );
         assert_eq!(
-            internal_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
-                &key_schema
-            ),
+            internal_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![1i8.into(), 1i16.into()]
+            ),),
             1
         );
         assert_eq!(
-            internal_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
-                &key_schema
-            ),
+            internal_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![2i8.into(), 2i16.into()]
+            ),),
             1
         );
     }
@@ -622,54 +608,49 @@ mod tests {
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
             Rid::new(2, 2),
-            &key_schema,
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
             Rid::new(1, 1),
-            &key_schema,
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
             Rid::new(3, 3),
-            &key_schema,
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![5i8.into(), 5i16.into()]),
             Rid::new(5, 5),
-            &key_schema,
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![4i8.into(), 4i16.into()]),
             Rid::new(4, 4),
-            &key_schema,
         );
         assert_eq!(
-            leaf_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![0i8.into(), 0i16.into()]),
-                &key_schema
-            ),
+            leaf_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![0i8.into(), 0i16.into()]
+            ),),
             None
         );
         assert_eq!(
-            leaf_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
-                &key_schema
-            ),
+            leaf_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![2i8.into(), 2i16.into()]
+            ),),
             Some(Rid::new(2, 2))
         );
         assert_eq!(
-            leaf_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
-                &key_schema
-            ),
+            leaf_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![3i8.into(), 3i16.into()]
+            ),),
             Some(Rid::new(3, 3))
         );
         assert_eq!(
-            leaf_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![6i8.into(), 6i16.into()]),
-                &key_schema
-            ),
+            leaf_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![6i8.into(), 6i16.into()]
+            ),),
             None
         );
 
@@ -677,42 +658,37 @@ mod tests {
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
             Rid::new(2, 2),
-            &key_schema,
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
             Rid::new(1, 1),
-            &key_schema,
         );
         assert_eq!(
-            leaf_page.look_up(
-                &Tuple::new(
-                    key_schema.clone(),
-                    vec![ScalarValue::Int8(None), ScalarValue::Int16(None)]
-                ),
-                &key_schema
-            ),
+            leaf_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![ScalarValue::Int8(None), ScalarValue::Int16(None)]
+            ),),
             None
         );
         assert_eq!(
-            leaf_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
-                &key_schema
-            ),
+            leaf_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![1i8.into(), 1i16.into()]
+            ),),
             Some(Rid::new(1, 1))
         );
         assert_eq!(
-            leaf_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
-                &key_schema
-            ),
+            leaf_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![2i8.into(), 2i16.into()]
+            ),),
             Some(Rid::new(2, 2))
         );
         assert_eq!(
-            leaf_page.look_up(
-                &Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
-                &key_schema
-            ),
+            leaf_page.look_up(&Tuple::new(
+                key_schema.clone(),
+                vec![3i8.into(), 3i16.into()]
+            ),),
             None
         );
     }
@@ -724,32 +700,28 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let mut internal_page = BPlusTreeInternalPage::new(key_schema.clone(), 5);
-        internal_page.insert(Tuple::empty(key_schema.clone()), 0, &key_schema);
+        internal_page.insert(Tuple::empty(key_schema.clone()), 0);
         internal_page.insert(
             Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
             2,
-            &key_schema,
         );
         internal_page.insert(
             Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
             1,
-            &key_schema,
         );
         internal_page.insert(
             Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
             3,
-            &key_schema,
         );
         internal_page.insert(
             Tuple::new(key_schema.clone(), vec![4i8.into(), 4i16.into()]),
             4,
-            &key_schema,
         );
 
-        internal_page.delete(
-            &Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
-            &key_schema,
-        );
+        internal_page.delete(&Tuple::new(
+            key_schema.clone(),
+            vec![2i8.into(), 2i16.into()],
+        ));
         assert_eq!(internal_page.header.current_size, 4);
         assert_eq!(
             internal_page.array[0].0.data,
@@ -762,25 +734,25 @@ mod tests {
         assert_eq!(internal_page.array[2].1, 3);
         assert_eq!(internal_page.array[3].0.data, vec![4i8.into(), 4i16.into()]);
         assert_eq!(internal_page.array[3].1, 4);
-        internal_page.delete(
-            &Tuple::new(key_schema.clone(), vec![4i8.into(), 4i16.into()]),
-            &key_schema,
-        );
+        internal_page.delete(&Tuple::new(
+            key_schema.clone(),
+            vec![4i8.into(), 4i16.into()],
+        ));
         assert_eq!(internal_page.header.current_size, 3);
-        internal_page.delete(
-            &Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
-            &key_schema,
-        );
+        internal_page.delete(&Tuple::new(
+            key_schema.clone(),
+            vec![3i8.into(), 3i16.into()],
+        ));
         assert_eq!(internal_page.header.current_size, 2);
-        internal_page.delete(
-            &Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
-            &key_schema,
-        );
+        internal_page.delete(&Tuple::new(
+            key_schema.clone(),
+            vec![1i8.into(), 1i16.into()],
+        ));
         assert_eq!(internal_page.header.current_size, 0);
-        internal_page.delete(
-            &Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
-            &key_schema,
-        );
+        internal_page.delete(&Tuple::new(
+            key_schema.clone(),
+            vec![1i8.into(), 1i16.into()],
+        ));
         assert_eq!(internal_page.header.current_size, 0);
     }
 
@@ -794,33 +766,28 @@ mod tests {
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
             Rid::new(2, 2),
-            &key_schema,
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
             Rid::new(1, 1),
-            &key_schema,
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
             Rid::new(3, 3),
-            &key_schema,
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![5i8.into(), 5i16.into()]),
             Rid::new(5, 5),
-            &key_schema,
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![4i8.into(), 4i16.into()]),
             Rid::new(4, 4),
-            &key_schema,
         );
 
-        leaf_page.delete(
-            &Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
-            &key_schema,
-        );
+        leaf_page.delete(&Tuple::new(
+            key_schema.clone(),
+            vec![2i8.into(), 2i16.into()],
+        ));
         assert_eq!(leaf_page.header.current_size, 4);
         assert_eq!(leaf_page.array[0].0.data, vec![1i8.into(), 1i16.into()]);
         assert_eq!(leaf_page.array[0].1, Rid::new(1, 1));
@@ -830,32 +797,32 @@ mod tests {
         assert_eq!(leaf_page.array[2].1, Rid::new(4, 4));
         assert_eq!(leaf_page.array[3].0.data, vec![5i8.into(), 5i16.into()]);
         assert_eq!(leaf_page.array[3].1, Rid::new(5, 5));
-        leaf_page.delete(
-            &Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
-            &key_schema,
-        );
+        leaf_page.delete(&Tuple::new(
+            key_schema.clone(),
+            vec![3i8.into(), 3i16.into()],
+        ));
         assert_eq!(leaf_page.header.current_size, 3);
-        leaf_page.delete(
-            &Tuple::new(key_schema.clone(), vec![5i8.into(), 5i16.into()]),
-            &key_schema,
-        );
+        leaf_page.delete(&Tuple::new(
+            key_schema.clone(),
+            vec![5i8.into(), 5i16.into()],
+        ));
         assert_eq!(leaf_page.header.current_size, 2);
-        leaf_page.delete(
-            &Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
-            &key_schema,
-        );
+        leaf_page.delete(&Tuple::new(
+            key_schema.clone(),
+            vec![1i8.into(), 1i16.into()],
+        ));
         assert_eq!(leaf_page.header.current_size, 1);
         assert_eq!(leaf_page.array[0].0.data, vec![4i8.into(), 4i16.into()]);
         assert_eq!(leaf_page.array[0].1, Rid::new(4, 4));
-        leaf_page.delete(
-            &Tuple::new(key_schema.clone(), vec![4i8.into(), 4i16.into()]),
-            &key_schema,
-        );
+        leaf_page.delete(&Tuple::new(
+            key_schema.clone(),
+            vec![4i8.into(), 4i16.into()],
+        ));
         assert_eq!(leaf_page.header.current_size, 0);
-        leaf_page.delete(
-            &Tuple::new(key_schema.clone(), vec![4i8.into(), 4i16.into()]),
-            &key_schema,
-        );
+        leaf_page.delete(&Tuple::new(
+            key_schema.clone(),
+            vec![4i8.into(), 4i16.into()],
+        ));
         assert_eq!(leaf_page.header.current_size, 0);
     }
 }

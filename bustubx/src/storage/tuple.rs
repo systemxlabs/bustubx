@@ -1,6 +1,7 @@
 use crate::catalog::SchemaRef;
 use crate::common::TableReference;
 use crate::{catalog::Schema, common::ScalarValue, BustubxError, BustubxResult};
+use std::cmp::Ordering;
 use std::sync::Arc;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -53,37 +54,31 @@ impl Tuple {
         let idx = self.schema.index_of(relation, name)?;
         self.value(idx)
     }
+}
 
-    // TODO 比较索引key大小
-    pub fn compare(&self, other: &Self, schema: &Schema) -> std::cmp::Ordering {
-        let column_count = schema.column_count();
-        for column_index in 0..column_count {
-            let compare_res = self
-                .value(column_index)
-                .unwrap()
-                .partial_cmp(other.value(column_index).unwrap())
-                .unwrap();
-            if compare_res == std::cmp::Ordering::Equal {
+impl PartialOrd for Tuple {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let column_count = self.schema.column_count();
+        for idx in 0..column_count {
+            let order = self.value(idx).ok()?.partial_cmp(other.value(idx).ok()?)?;
+            if order == Ordering::Equal {
                 continue;
-            }
-            if compare_res == std::cmp::Ordering::Less {
-                return std::cmp::Ordering::Less;
-            }
-            if compare_res == std::cmp::Ordering::Greater {
-                return std::cmp::Ordering::Greater;
+            } else {
+                return Some(order);
             }
         }
-        std::cmp::Ordering::Equal
+        Some(Ordering::Equal)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::catalog::{Column, DataType, Schema};
+    use std::cmp::Ordering;
     use std::sync::Arc;
 
     #[test]
-    pub fn test_compare() {
+    pub fn tuple_compare() {
         let schema = Arc::new(Schema::new(vec![
             Column::new("a".to_string(), DataType::Int8, false),
             Column::new("b".to_string(), DataType::Int16, false),
@@ -94,12 +89,9 @@ mod tests {
         let tuple4 = super::Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]);
         let tuple5 = super::Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]);
 
-        assert_eq!(tuple1.compare(&tuple2, &schema), std::cmp::Ordering::Equal);
-        assert_eq!(tuple1.compare(&tuple3, &schema), std::cmp::Ordering::Less);
-        assert_eq!(tuple1.compare(&tuple4, &schema), std::cmp::Ordering::Less);
-        assert_eq!(
-            tuple1.compare(&tuple5, &schema),
-            std::cmp::Ordering::Greater
-        );
+        assert_eq!(tuple1.partial_cmp(&tuple2).unwrap(), Ordering::Equal);
+        assert_eq!(tuple1.partial_cmp(&tuple3).unwrap(), Ordering::Less);
+        assert_eq!(tuple1.partial_cmp(&tuple4).unwrap(), Ordering::Less);
+        assert_eq!(tuple1.partial_cmp(&tuple5).unwrap(), Ordering::Greater);
     }
 }

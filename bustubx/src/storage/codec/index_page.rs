@@ -282,17 +282,17 @@ mod tests {
         let rid2 = Rid::new(2, 2);
 
         let mut leaf_page = BPlusTreeLeafPage::new(schema.clone(), 100);
-        leaf_page.insert(tuple1.clone(), rid1, &schema);
-        leaf_page.insert(tuple2.clone(), rid2, &schema);
+        leaf_page.insert(tuple1.clone(), rid1);
+        leaf_page.insert(tuple2.clone(), rid2);
         let page = BPlusTreePage::Leaf(leaf_page);
         let (new_page, _) =
             BPlusTreePageCodec::decode(&BPlusTreePageCodec::encode(&page), schema.clone()).unwrap();
         assert_eq!(new_page, page);
 
         let mut internal_page = BPlusTreeInternalPage::new(schema.clone(), 100);
-        internal_page.insert(Tuple::empty(schema.clone()), 1, &schema);
-        internal_page.insert(tuple1, 2, &schema);
-        internal_page.insert(tuple2, 3, &schema);
+        internal_page.insert(Tuple::empty(schema.clone()), 1);
+        internal_page.insert(tuple1, 2);
+        internal_page.insert(tuple2, 3);
         let page = BPlusTreePage::Internal(internal_page);
         let (new_page, _) =
             BPlusTreePageCodec::decode(&BPlusTreePageCodec::encode(&page), schema.clone()).unwrap();
