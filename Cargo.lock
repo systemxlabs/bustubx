@@ -99,7 +99,7 @@ dependencies = [
 
 [[package]]
 name = "bustubx"
-version = "0.1.0-alpha.2"
+version = "0.2.0"
 dependencies = [
  "comfy-table",
  "derive-new",
@@ -115,9 +115,10 @@ dependencies = [
 
 [[package]]
 name = "bustubx-cli"
-version = "0.1.0-alpha.2"
+version = "0.2.0"
 dependencies = [
  "bustubx",
+ "clap",
  "env_logger",
  "log",
  "rustyline",

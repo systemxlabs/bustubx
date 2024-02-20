@@ -3,4 +3,4 @@
 .vscode
 .DS_Store
 test.db
-trace-*.json
+.history

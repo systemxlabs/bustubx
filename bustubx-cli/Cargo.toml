@@ -7,9 +7,11 @@ description.workspace = true
 keywords.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
 
 [dependencies]
 bustubx = { path = "../bustubx" }
 log = "0.4.19"
 env_logger = "0.10.0"
 rustyline = "13.0.0"
+clap = { version = "4.3.19", features = ["derive", "cargo"] }
