@@ -1,4 +1,4 @@
-mod aggr;
+mod aggregate;
 mod alias;
 mod binary;
 mod cast;
@@ -6,7 +6,7 @@ mod column;
 mod literal;
 mod util;
 
-pub use aggr::*;
+pub use aggregate::AggregateFunction;
 pub use alias::Alias;
 pub use binary::BinaryExpr;
 pub use cast::Cast;
@@ -43,7 +43,7 @@ pub enum Expr {
     /// A constant value.
     Literal(Literal),
     /// A binary expression such as "age > 21"
-    BinaryExpr(BinaryExpr),
+    Binary(BinaryExpr),
     /// Casts the expression to a given type and will return a runtime error if the expression cannot be cast.
     /// This expression is guaranteed to have a fixed type.
     Cast(Cast),
@@ -57,7 +57,7 @@ impl ExprTrait for Expr {
             Expr::Alias(alias) => alias.data_type(input_schema),
             Expr::Column(column) => column.data_type(input_schema),
             Expr::Literal(literal) => literal.data_type(input_schema),
-            Expr::BinaryExpr(binary) => binary.data_type(input_schema),
+            Expr::Binary(binary) => binary.data_type(input_schema),
             Expr::Cast(cast) => cast.data_type(input_schema),
             Expr::AggregateFunction(aggr) => aggr.data_type(input_schema),
         }
@@ -68,7 +68,7 @@ impl ExprTrait for Expr {
             Expr::Alias(alias) => alias.nullable(input_schema),
             Expr::Column(column) => column.nullable(input_schema),
             Expr::Literal(literal) => literal.nullable(input_schema),
-            Expr::BinaryExpr(binary) => binary.nullable(input_schema),
+            Expr::Binary(binary) => binary.nullable(input_schema),
             Expr::Cast(cast) => cast.nullable(input_schema),
             Expr::AggregateFunction(aggr) => aggr.nullable(input_schema),
         }
@@ -79,7 +79,7 @@ impl ExprTrait for Expr {
             Expr::Alias(alias) => alias.evaluate(tuple),
             Expr::Column(column) => column.evaluate(tuple),
             Expr::Literal(literal) => literal.evaluate(tuple),
-            Expr::BinaryExpr(binary) => binary.evaluate(tuple),
+            Expr::Binary(binary) => binary.evaluate(tuple),
             Expr::Cast(cast) => cast.evaluate(tuple),
             Expr::AggregateFunction(aggr) => aggr.evaluate(tuple),
         }
@@ -90,7 +90,7 @@ impl ExprTrait for Expr {
             Expr::Alias(alias) => alias.to_column(input_schema),
             Expr::Column(column) => column.to_column(input_schema),
             Expr::Literal(literal) => literal.to_column(input_schema),
-            Expr::BinaryExpr(binary) => binary.to_column(input_schema),
+            Expr::Binary(binary) => binary.to_column(input_schema),
             Expr::Cast(cast) => cast.to_column(input_schema),
             Expr::AggregateFunction(aggr) => aggr.to_column(input_schema),
         }
@@ -103,7 +103,7 @@ impl std::fmt::Display for Expr {
             Expr::Alias(e) => write!(f, "{e}"),
             Expr::Column(e) => write!(f, "{e}"),
             Expr::Literal(e) => write!(f, "{e}"),
-            Expr::BinaryExpr(e) => write!(f, "{e}"),
+            Expr::Binary(e) => write!(f, "{e}"),
             Expr::Cast(e) => write!(f, "{e}"),
             Expr::AggregateFunction(e) => write!(f, "{e}"),
         }

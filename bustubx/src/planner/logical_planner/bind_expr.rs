@@ -1,7 +1,6 @@
 use crate::common::{ScalarValue, TableReference};
-use crate::expression::{
-    AggregateFunction, AggregateFunctionKind, BinaryExpr, ColumnExpr, Expr, Literal,
-};
+use crate::expression::{AggregateFunction, BinaryExpr, ColumnExpr, Expr, Literal};
+use crate::function::AggregateFunctionKind;
 use crate::planner::LogicalPlanner;
 use crate::{BustubxError, BustubxResult};
 
@@ -15,7 +14,7 @@ impl LogicalPlanner<'_> {
             sqlparser::ast::Expr::BinaryOp { left, op, right } => {
                 let left = Box::new(self.bind_expr(left)?);
                 let right = Box::new(self.bind_expr(right)?);
-                Ok(Expr::BinaryExpr(BinaryExpr {
+                Ok(Expr::Binary(BinaryExpr {
                     left,
                     op: op.try_into()?,
                     right,

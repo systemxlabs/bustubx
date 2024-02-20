@@ -1,6 +1,6 @@
 use crate::catalog::DataType;
 use crate::common::ScalarValue;
-use crate::expression::Accumulator;
+use crate::function::Accumulator;
 use crate::{BustubxError, BustubxResult};
 
 #[derive(Debug)]

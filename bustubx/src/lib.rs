@@ -5,6 +5,7 @@ mod database;
 mod error;
 mod execution;
 mod expression;
+mod function;
 mod optimizer;
 mod parser;
 mod planner;

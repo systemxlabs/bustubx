@@ -1,5 +1,5 @@
 use crate::common::ScalarValue;
-use crate::expression::Accumulator;
+use crate::function::Accumulator;
 use crate::BustubxResult;
 
 #[derive(Debug)]
