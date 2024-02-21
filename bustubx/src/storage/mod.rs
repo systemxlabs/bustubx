@@ -1,4 +1,4 @@
-mod codec;
+pub mod codec;
 mod disk_manager;
 pub mod index;
 mod page;

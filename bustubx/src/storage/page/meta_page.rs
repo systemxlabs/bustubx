@@ -7,9 +7,7 @@ pub static EMPTY_META_PAGE: MetaPage = MetaPage {
     minor_version: 0,
     freelist_page_id: 0,
     information_schema_tables_first_page_id: 0,
-    information_schema_tables_last_page_id: 0,
     information_schema_columns_first_page_id: 0,
-    information_schema_columns_last_page_id: 0,
 };
 
 lazy_static::lazy_static! {
@@ -22,9 +20,7 @@ pub struct MetaPage {
     pub minor_version: u32,
     pub freelist_page_id: PageId,
     pub information_schema_tables_first_page_id: PageId,
-    pub information_schema_tables_last_page_id: PageId,
     pub information_schema_columns_first_page_id: PageId,
-    pub information_schema_columns_last_page_id: PageId,
 }
 
 impl MetaPage {
@@ -49,9 +45,7 @@ impl MetaPage {
             minor_version,
             freelist_page_id: INVALID_PAGE_ID,
             information_schema_tables_first_page_id: INVALID_PAGE_ID,
-            information_schema_tables_last_page_id: INVALID_PAGE_ID,
             information_schema_columns_first_page_id: INVALID_PAGE_ID,
-            information_schema_columns_last_page_id: INVALID_PAGE_ID,
         })
     }
 }

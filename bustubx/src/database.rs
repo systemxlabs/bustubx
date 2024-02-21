@@ -19,7 +19,7 @@ use crate::{
 
 pub struct Database {
     disk_manager: Arc<DiskManager>,
-    catalog: Catalog,
+    pub(crate) catalog: Catalog,
     temp_dir: Option<TempDir>,
 }
 impl Database {
@@ -28,13 +28,14 @@ impl Database {
         let buffer_pool = BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
 
         let mut catalog = Catalog::new(buffer_pool);
-        load_catalog_data(&mut catalog)?;
 
-        Ok(Self {
+        let mut db = Self {
             disk_manager,
             catalog,
             temp_dir: None,
-        })
+        };
+        load_catalog_data(&mut db)?;
+        Ok(db)
     }
 
     pub fn new_temp() -> BustubxResult<Self> {
@@ -47,13 +48,14 @@ impl Database {
         let buffer_pool = BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
 
         let mut catalog = Catalog::new(buffer_pool);
-        load_catalog_data(&mut catalog)?;
 
-        Ok(Self {
+        let mut db = Self {
             disk_manager,
             catalog,
             temp_dir: Some(temp_dir),
-        })
+        };
+        load_catalog_data(&mut db)?;
+        Ok(db)
     }
 
     pub fn run(&mut self, sql: &str) -> BustubxResult<Vec<Tuple>> {
@@ -100,5 +102,10 @@ impl Database {
         };
         // ast -> logical plan
         planner.plan(stmt)
+    }
+
+    pub fn flush(&mut self) -> BustubxResult<()> {
+        // TODO flush buffer pool
+        todo!()
     }
 }

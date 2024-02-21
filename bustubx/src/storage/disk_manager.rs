@@ -73,9 +73,7 @@ impl DiskManager {
         let mut meta = disk_manager.meta.write().unwrap();
         meta.freelist_page_id = freelist_page_id;
         meta.information_schema_tables_first_page_id = information_schema_tables_first_page_id;
-        meta.information_schema_tables_last_page_id = information_schema_tables_first_page_id;
         meta.information_schema_columns_first_page_id = information_schema_columns_first_page_id;
-        meta.information_schema_columns_last_page_id = information_schema_columns_first_page_id;
         drop(meta);
         disk_manager.write_meta_page()?;
 

@@ -1,16 +1,18 @@
 use std::collections::HashMap;
 
 use crate::buffer::TABLE_HEAP_BUFFER_POOL_SIZE;
-use crate::catalog::SchemaRef;
+use crate::catalog::{
+    SchemaRef, COLUMNS_SCHMEA, COLUMNS_TABLE_REF, TABLES_SCHMEA, TABLES_TABLE_REF,
+};
 use crate::common::{FullTableRef, TableReference};
-use crate::storage::{BPLUS_INTERNAL_PAGE_MAX_SIZE, BPLUS_LEAF_PAGE_MAX_SIZE};
+use crate::storage::{TupleMeta, BPLUS_INTERNAL_PAGE_MAX_SIZE, BPLUS_LEAF_PAGE_MAX_SIZE};
 use crate::{
     buffer::BufferPoolManager,
     storage::{
         index::{BPlusTreeIndex, IndexMetadata},
         TableHeap,
     },
-    BustubxError, BustubxResult,
+    BustubxError, BustubxResult, Tuple,
 };
 
 pub static DEFAULT_CATALOG_NAME: &str = "bustubx";
@@ -63,13 +65,64 @@ impl Catalog {
                 self.buffer_pool.disk_manager.clone(),
             );
             let table_heap = TableHeap::try_new(schema.clone(), buffer_pool)?;
+            let first_page_id = table_heap.first_page_id;
+            let last_page_id = table_heap.last_page_id;
             let table_info = TableInfo {
-                schema,
+                schema: schema.clone(),
                 name: table_ref.table().to_string(),
                 table: table_heap,
             };
 
             self.tables.insert(full_table_ref.clone(), table_info);
+
+            // update system table
+            let tables_table = self
+                .tables
+                .get_mut(&TABLES_TABLE_REF.extend_to_full())
+                .ok_or(BustubxError::Internal(
+                    "Cannot find tables table".to_string(),
+                ))?;
+            let tuple_meta = TupleMeta {
+                insert_txn_id: 0,
+                delete_txn_id: 0,
+                is_deleted: false,
+            };
+            let tuple = Tuple::new(
+                TABLES_SCHMEA.clone(),
+                vec![
+                    full_table_ref.0.clone().into(),
+                    full_table_ref.1.clone().into(),
+                    full_table_ref.2.clone().into(),
+                    // FIXME
+                    (first_page_id as u64).into(),
+                    (last_page_id as u64).into(),
+                ],
+            );
+            println!("LWZTEST insert user table meta: {:?}", tuple);
+            tables_table.table.insert_tuple(&tuple_meta, &tuple)?;
+
+            let columns_table = self
+                .tables
+                .get_mut(&COLUMNS_TABLE_REF.extend_to_full())
+                .ok_or(BustubxError::Internal(
+                    "Cannot find columns table".to_string(),
+                ))?;
+            for col in schema.columns.iter() {
+                let sql_type: sqlparser::ast::DataType = (&col.data_type).into();
+                let tuple = Tuple::new(
+                    COLUMNS_SCHMEA.clone(),
+                    vec![
+                        full_table_ref.0.clone().into(),
+                        full_table_ref.1.clone().into(),
+                        full_table_ref.2.clone().into(),
+                        col.name.clone().into(),
+                        format!("{sql_type}").into(),
+                        col.nullable.into(),
+                    ],
+                );
+                println!("LWZTEST insert user table column meta: {:?}", tuple);
+                columns_table.table.insert_tuple(&tuple_meta, &tuple)?;
+            }
         }
 
         self.tables
@@ -159,16 +212,12 @@ mod tests {
         buffer::BufferPoolManager,
         catalog::{Column, DataType, Schema},
         storage::DiskManager,
+        Database,
     };
 
     #[test]
     pub fn test_catalog_create_table() {
-        let temp_dir = TempDir::new().unwrap();
-        let temp_path = temp_dir.path().join("test.db");
-
-        let disk_manager = DiskManager::try_new(temp_path).unwrap();
-        let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
-        let mut catalog = super::Catalog::new(buffer_pool);
+        let mut db = Database::new_temp().unwrap();
 
         let table_ref1 = TableReference::bare("test_table1".to_string());
         let schema = Arc::new(Schema::new(vec![
@@ -176,7 +225,8 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16, true),
             Column::new("c".to_string(), DataType::Int32, true),
         ]));
-        let table_info = catalog
+        let table_info = db
+            .catalog
             .create_table(table_ref1.clone(), schema.clone())
             .unwrap();
         assert_eq!(table_info.name, table_ref1.table());
@@ -188,17 +238,18 @@ mod tests {
             Column::new("e".to_string(), DataType::Int16, true),
             Column::new("f".to_string(), DataType::Int8, true),
         ]));
-        let table_info = catalog
+        let table_info = db
+            .catalog
             .create_table(table_ref2.clone(), schema.clone())
             .unwrap();
         assert_eq!(table_info.name, table_ref2.table());
         assert_eq!(table_info.schema, schema);
 
-        let table_info = catalog.table(&table_ref1).unwrap();
+        let table_info = db.catalog.table(&table_ref1).unwrap();
         assert_eq!(table_info.name, table_ref1.table());
         assert_eq!(table_info.schema.column_count(), 3);
 
-        let table_info = catalog.table(&table_ref2).unwrap();
+        let table_info = db.catalog.table(&table_ref2).unwrap();
         assert_eq!(table_info.name, table_ref2.table());
         assert_eq!(table_info.schema.column_count(), 3);
     }

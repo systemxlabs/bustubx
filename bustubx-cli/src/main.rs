@@ -16,7 +16,7 @@ fn main() {
 
     let mut db = if let Some(path) = args.file {
         Database::new_on_disk(path.as_str())
-            .unwrap_or_else(|_| panic!("fail to open {} file", path))
+            .unwrap_or_else(|e| panic!("fail to open {} file, err: {}", path, e))
     } else {
         Database::new_temp().expect("fail to open temp database")
     };

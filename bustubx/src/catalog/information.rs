@@ -1,10 +1,11 @@
-use crate::buffer::{BufferPoolManager, TABLE_HEAP_BUFFER_POOL_SIZE};
+use crate::buffer::{BufferPoolManager, PageId, INVALID_PAGE_ID, TABLE_HEAP_BUFFER_POOL_SIZE};
 use crate::catalog::{
     Catalog, Column, DataType, Schema, SchemaRef, TableInfo, DEFAULT_CATALOG_NAME,
 };
-use crate::common::TableReference;
+use crate::common::{ScalarValue, TableReference};
+use crate::storage::codec::TablePageCodec;
 use crate::storage::TableHeap;
-use crate::BustubxResult;
+use crate::{BustubxError, BustubxResult, Database};
 use std::sync::Arc;
 
 pub static INFORMATION_SCHEMA_NAME: &str = "information_schema";
@@ -42,14 +43,99 @@ lazy_static::lazy_static! {
     );
 }
 
-pub fn load_catalog_data(catalog: &mut Catalog) -> BustubxResult<()> {
-    load_information_schema(catalog)?;
-    // TODO load tables
+pub fn load_catalog_data(db: &mut Database) -> BustubxResult<()> {
+    load_information_schema(&mut db.catalog)?;
+    load_user_tables(db)?;
+    Ok(())
+}
+
+fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
+    let table_tuples = db.run(&format!(
+        "select * from {}.{}",
+        INFORMATION_SCHEMA_NAME, INFORMATION_SCHEMA_TABLES
+    ))?;
+    println!("LWZTEST user tables count: {}", table_tuples.len());
+    for table_tuple in table_tuples.into_iter() {
+        let error = Err(BustubxError::Internal(format!(
+            "Failed to decode table tuple: {:?}",
+            table_tuple
+        )));
+        let ScalarValue::Varchar(Some(catalog)) = table_tuple.value(0)? else {
+            return error;
+        };
+        let ScalarValue::Varchar(Some(schema)) = table_tuple.value(1)? else {
+            return error;
+        };
+        let ScalarValue::Varchar(Some(table_name)) = table_tuple.value(2)? else {
+            return error;
+        };
+        let ScalarValue::UInt64(Some(first_page_id)) = table_tuple.value(3)? else {
+            return error;
+        };
+        let ScalarValue::UInt64(Some(last_page_id)) = table_tuple.value(4)? else {
+            return error;
+        };
+
+        let column_tuples = db.run(&format!("select * from {}.{} where table_catalog = {} and table_schema = {} and table_name = {}",
+                                            INFORMATION_SCHEMA_NAME, INFORMATION_SCHEMA_COLUMNS, catalog, schema, table_name))?;
+        let mut columns = vec![];
+        for column_tuple in column_tuples.into_iter() {
+            let error = Err(BustubxError::Internal(format!(
+                "Failed to decode column tuple: {:?}",
+                column_tuple
+            )));
+            let ScalarValue::Varchar(Some(column_name)) = column_tuple.value(3)? else {
+                return error;
+            };
+            let ScalarValue::Varchar(Some(data_type_str)) = column_tuple.value(4)? else {
+                return error;
+            };
+            let ScalarValue::Boolean(Some(nullable)) = column_tuple.value(5)? else {
+                return error;
+            };
+            let data_type: DataType = data_type_str.as_str().try_into()?;
+            columns.push(Column::new(column_name.clone(), data_type, *nullable));
+        }
+        let schema = Arc::new(Schema::new(columns));
+
+        let table_info = TableInfo {
+            schema: schema.clone(),
+            name: table_name.to_string(),
+            table: TableHeap {
+                schema: schema.clone(),
+                buffer_pool: BufferPoolManager::new(
+                    TABLE_HEAP_BUFFER_POOL_SIZE,
+                    db.catalog.buffer_pool.disk_manager.clone(),
+                ),
+                first_page_id: *first_page_id as u32,
+                last_page_id: *last_page_id as u32,
+            },
+        };
+        db.catalog
+            .tables
+            .insert(TABLES_TABLE_REF.extend_to_full(), table_info);
+    }
     Ok(())
 }
 
 fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
     let meta = catalog.buffer_pool.disk_manager.meta.read().unwrap();
+    let information_schema_tables_first_page_id = meta.information_schema_tables_first_page_id;
+    let information_schema_columns_first_page_id = meta.information_schema_columns_first_page_id;
+    drop(meta);
+
+    // load last page id
+    let information_schema_tables_last_page_id = load_table_last_page_id(
+        catalog,
+        information_schema_tables_first_page_id,
+        TABLES_SCHMEA.clone(),
+    )?;
+    let information_schema_columns_last_page_id = load_table_last_page_id(
+        catalog,
+        information_schema_columns_first_page_id,
+        COLUMNS_SCHMEA.clone(),
+    )?;
+
     let tables_table = TableInfo {
         schema: TABLES_SCHMEA.clone(),
         name: INFORMATION_SCHEMA_TABLES.to_string(),
@@ -59,8 +145,8 @@ fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
                 TABLE_HEAP_BUFFER_POOL_SIZE,
                 catalog.buffer_pool.disk_manager.clone(),
             ),
-            first_page_id: meta.information_schema_tables_first_page_id,
-            last_page_id: meta.information_schema_tables_last_page_id,
+            first_page_id: information_schema_tables_first_page_id,
+            last_page_id: information_schema_tables_last_page_id,
         },
     };
     catalog
@@ -76,12 +162,31 @@ fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
                 TABLE_HEAP_BUFFER_POOL_SIZE,
                 catalog.buffer_pool.disk_manager.clone(),
             ),
-            first_page_id: meta.information_schema_columns_first_page_id,
-            last_page_id: meta.information_schema_columns_last_page_id,
+            first_page_id: information_schema_columns_first_page_id,
+            last_page_id: information_schema_columns_last_page_id,
         },
     };
     catalog
         .tables
         .insert(COLUMNS_TABLE_REF.extend_to_full(), columns_table);
     Ok(())
+}
+
+fn load_table_last_page_id(
+    catalog: &mut Catalog,
+    first_page_id: PageId,
+    schema: SchemaRef,
+) -> BustubxResult<PageId> {
+    let mut page_id = first_page_id;
+    loop {
+        let page = catalog.buffer_pool.fetch_page(page_id)?;
+        let (table_page, _) = TablePageCodec::decode(&page.read().unwrap().data, schema.clone())?;
+        catalog.buffer_pool.unpin_page(page_id, false)?;
+
+        if table_page.header.next_page_id == INVALID_PAGE_ID {
+            return Ok(page_id);
+        } else {
+            page_id = table_page.header.next_page_id;
+        }
+    }
 }
