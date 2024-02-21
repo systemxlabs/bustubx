@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::buffer::TABLE_HEAP_BUFFER_POOL_SIZE;
 use crate::catalog::{
@@ -40,11 +41,11 @@ pub struct IndexInfo {
 pub struct Catalog {
     pub tables: HashMap<FullTableRef, TableInfo>,
     pub indexes: HashMap<FullIndexRef, IndexInfo>,
-    pub buffer_pool: BufferPoolManager,
+    pub buffer_pool: Arc<BufferPoolManager>,
 }
 
 impl Catalog {
-    pub fn new(buffer_pool: BufferPoolManager) -> Self {
+    pub fn new(buffer_pool: Arc<BufferPoolManager>) -> Self {
         Self {
             tables: HashMap::new(),
             indexes: HashMap::new(),
@@ -59,12 +60,7 @@ impl Catalog {
     ) -> BustubxResult<&TableInfo> {
         let full_table_ref = table_ref.extend_to_full();
         if !self.tables.contains_key(&full_table_ref) {
-            // 一个table对应一个buffer pool manager
-            let buffer_pool = BufferPoolManager::new(
-                TABLE_HEAP_BUFFER_POOL_SIZE,
-                self.buffer_pool.disk_manager.clone(),
-            );
-            let table_heap = TableHeap::try_new(schema.clone(), buffer_pool)?;
+            let table_heap = TableHeap::try_new(schema.clone(), self.buffer_pool.clone())?;
             let first_page_id = table_heap.first_page_id;
             let last_page_id = table_heap.last_page_id;
             let table_info = TableInfo {
@@ -167,14 +163,9 @@ impl Catalog {
             tuple_schema.clone(),
             key_attrs,
         );
-        // one buffer pool manager for one index
-        let buffer_pool = BufferPoolManager::new(
-            TABLE_HEAP_BUFFER_POOL_SIZE,
-            self.buffer_pool.disk_manager.clone(),
-        );
         let b_plus_tree_index = BPlusTreeIndex::new(
             index_metadata,
-            buffer_pool,
+            self.buffer_pool.clone(),
             BPLUS_LEAF_PAGE_MAX_SIZE as u32,
             BPLUS_INTERNAL_PAGE_MAX_SIZE as u32,
         );
@@ -260,7 +251,7 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
-        let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
+        let buffer_pool = Arc::new(BufferPoolManager::new(1000, Arc::new(disk_manager)));
         let mut catalog = super::Catalog::new(buffer_pool);
 
         let table_ref = TableReference::bare("test_table1".to_string());

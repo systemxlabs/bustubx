@@ -19,18 +19,23 @@ use crate::{
 
 pub struct Database {
     disk_manager: Arc<DiskManager>,
+    pub(crate) buffer_pool: Arc<BufferPoolManager>,
     pub(crate) catalog: Catalog,
     temp_dir: Option<TempDir>,
 }
 impl Database {
     pub fn new_on_disk(db_path: &str) -> BustubxResult<Self> {
         let disk_manager = Arc::new(DiskManager::try_new(db_path)?);
-        let buffer_pool = BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
+        let buffer_pool = Arc::new(BufferPoolManager::new(
+            TABLE_HEAP_BUFFER_POOL_SIZE,
+            disk_manager.clone(),
+        ));
 
-        let mut catalog = Catalog::new(buffer_pool);
+        let mut catalog = Catalog::new(buffer_pool.clone());
 
         let mut db = Self {
             disk_manager,
+            buffer_pool,
             catalog,
             temp_dir: None,
         };
@@ -45,12 +50,16 @@ impl Database {
             Arc::new(DiskManager::try_new(temp_path.to_str().ok_or(
                 BustubxError::Internal("Invalid temp path".to_string()),
             )?)?);
-        let buffer_pool = BufferPoolManager::new(TABLE_HEAP_BUFFER_POOL_SIZE, disk_manager.clone());
+        let buffer_pool = Arc::new(BufferPoolManager::new(
+            TABLE_HEAP_BUFFER_POOL_SIZE,
+            disk_manager.clone(),
+        ));
 
-        let mut catalog = Catalog::new(buffer_pool);
+        let mut catalog = Catalog::new(buffer_pool.clone());
 
         let mut db = Self {
             disk_manager,
+            buffer_pool,
             catalog,
             temp_dir: Some(temp_dir),
         };
@@ -104,8 +113,7 @@ impl Database {
         planner.plan(stmt)
     }
 
-    pub fn flush(&mut self) -> BustubxResult<()> {
-        // TODO flush buffer pool
-        todo!()
+    pub fn flush(&self) -> BustubxResult<()> {
+        self.buffer_pool.flush_all_pages()
     }
 }

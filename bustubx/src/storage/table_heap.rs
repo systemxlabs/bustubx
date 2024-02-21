@@ -4,19 +4,20 @@ use crate::common::util::page_bytes_to_array;
 use crate::storage::codec::TablePageCodec;
 use crate::storage::{TablePage, TupleMeta};
 use crate::{buffer::BufferPoolManager, common::rid::Rid, BustubxResult};
+use std::sync::Arc;
 
 use super::tuple::Tuple;
 
 #[derive(Debug)]
 pub struct TableHeap {
     pub schema: SchemaRef,
-    pub buffer_pool: BufferPoolManager,
+    pub buffer_pool: Arc<BufferPoolManager>,
     pub first_page_id: PageId,
     pub last_page_id: PageId,
 }
 
 impl TableHeap {
-    pub fn try_new(schema: SchemaRef, mut buffer_pool: BufferPoolManager) -> BustubxResult<Self> {
+    pub fn try_new(schema: SchemaRef, buffer_pool: Arc<BufferPoolManager>) -> BustubxResult<Self> {
         // new a page and initialize
         let first_page = buffer_pool.new_page()?;
         let first_page_id = first_page.read().unwrap().page_id;
@@ -227,7 +228,7 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
-        let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
+        let buffer_pool = Arc::new(BufferPoolManager::new(1000, Arc::new(disk_manager)));
         let mut table_heap = TableHeap::try_new(schema.clone(), buffer_pool).unwrap();
         let meta = super::TupleMeta {
             insert_txn_id: 0,
@@ -276,7 +277,7 @@ mod tests {
             Column::new("b".to_string(), DataType::Int16, false),
         ]));
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
-        let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
+        let buffer_pool = Arc::new(BufferPoolManager::new(1000, Arc::new(disk_manager)));
         let mut table_heap = TableHeap::try_new(schema.clone(), buffer_pool).unwrap();
 
         let meta1 = super::TupleMeta {
@@ -337,7 +338,7 @@ mod tests {
         ]));
 
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
-        let buffer_pool = BufferPoolManager::new(1000, Arc::new(disk_manager));
+        let buffer_pool = Arc::new(BufferPoolManager::new(1000, Arc::new(disk_manager)));
         let mut table_heap = TableHeap::try_new(schema.clone(), buffer_pool).unwrap();
 
         let meta1 = super::TupleMeta {

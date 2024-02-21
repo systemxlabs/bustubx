@@ -45,14 +45,17 @@ fn main() {
                 }
             }
             Err(ReadlineError::Interrupted) => {
+                db.flush().unwrap();
                 println!("CTRL-C");
                 break;
             }
             Err(ReadlineError::Eof) => {
+                db.flush().unwrap();
                 println!("CTRL-D");
                 break;
             }
             Err(err) => {
+                db.flush().unwrap();
                 println!("Error: {:?}", err);
                 break;
             }

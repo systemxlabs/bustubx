@@ -103,10 +103,7 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
             name: table_name.to_string(),
             table: TableHeap {
                 schema: schema.clone(),
-                buffer_pool: BufferPoolManager::new(
-                    TABLE_HEAP_BUFFER_POOL_SIZE,
-                    db.catalog.buffer_pool.disk_manager.clone(),
-                ),
+                buffer_pool: db.buffer_pool.clone(),
                 first_page_id: *first_page_id as u32,
                 last_page_id: *last_page_id as u32,
             },
@@ -141,10 +138,7 @@ fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
         name: INFORMATION_SCHEMA_TABLES.to_string(),
         table: TableHeap {
             schema: TABLES_SCHMEA.clone(),
-            buffer_pool: BufferPoolManager::new(
-                TABLE_HEAP_BUFFER_POOL_SIZE,
-                catalog.buffer_pool.disk_manager.clone(),
-            ),
+            buffer_pool: catalog.buffer_pool.clone(),
             first_page_id: information_schema_tables_first_page_id,
             last_page_id: information_schema_tables_last_page_id,
         },
@@ -158,10 +152,7 @@ fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
         name: INFORMATION_SCHEMA_COLUMNS.to_string(),
         table: TableHeap {
             schema: COLUMNS_SCHMEA.clone(),
-            buffer_pool: BufferPoolManager::new(
-                TABLE_HEAP_BUFFER_POOL_SIZE,
-                catalog.buffer_pool.disk_manager.clone(),
-            ),
+            buffer_pool: catalog.buffer_pool.clone(),
             first_page_id: information_schema_columns_first_page_id,
             last_page_id: information_schema_columns_last_page_id,
         },

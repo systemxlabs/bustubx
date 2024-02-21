@@ -28,4 +28,11 @@ impl Page {
         self.pin_count = 0;
         self.is_dirty = false;
     }
+
+    pub fn replace(&mut self, other: Page) {
+        self.page_id = other.page_id;
+        self.data = other.data;
+        self.pin_count = other.pin_count;
+        self.is_dirty = other.is_dirty;
+    }
 }

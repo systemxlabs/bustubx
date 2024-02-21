@@ -24,3 +24,4 @@ thiserror = "1.0.56"
 tempfile = "3"
 derive-with = "0.5.0"
 strum = { version = "0.26", features = ["derive"]}
+dashmap = "5.5.3"
