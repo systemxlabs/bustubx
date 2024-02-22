@@ -2,14 +2,21 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 [![Crates.io](https://img.shields.io/crates/v/bustubx.svg)](https://crates.io/crates/bustubx)
 
-- [ ] DDL
-- [ ] DML
+- [x] Planner
+- [x] Expression
+- [x] Functions
 - [x] Rule-based Optimizer
 - [x] Volcano Executor
+- [x] Disk Management
+- [x] Buffer Pool
+- [x] Table Heap
+- [x] System Metadata (information_schema)
 - [ ] Parallel Execution
 - [ ] B+ Tree Index
 - [ ] Multi-Version Concurrency Control
 - [ ] Crash Recovery
+
+P.S. See [here](tests/sqllogictest/slt) to know which sql statements are supported already.
 
 ## Architecture
 ![architecture](./docs/bustubx-architecture.png)
