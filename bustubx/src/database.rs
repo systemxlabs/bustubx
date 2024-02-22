@@ -2,7 +2,7 @@ use log::debug;
 use std::sync::Arc;
 use tempfile::TempDir;
 
-use crate::buffer::TABLE_HEAP_BUFFER_POOL_SIZE;
+use crate::buffer::BUFFER_POOL_SIZE;
 use crate::catalog::load_catalog_data;
 use crate::common::util::{pretty_format_logical_plan, pretty_format_physical_plan};
 use crate::error::{BustubxError, BustubxResult};
@@ -27,11 +27,11 @@ impl Database {
     pub fn new_on_disk(db_path: &str) -> BustubxResult<Self> {
         let disk_manager = Arc::new(DiskManager::try_new(db_path)?);
         let buffer_pool = Arc::new(BufferPoolManager::new(
-            TABLE_HEAP_BUFFER_POOL_SIZE,
+            BUFFER_POOL_SIZE,
             disk_manager.clone(),
         ));
 
-        let mut catalog = Catalog::new(buffer_pool.clone());
+        let catalog = Catalog::new(buffer_pool.clone());
 
         let mut db = Self {
             disk_manager,
@@ -51,11 +51,11 @@ impl Database {
                 BustubxError::Internal("Invalid temp path".to_string()),
             )?)?);
         let buffer_pool = Arc::new(BufferPoolManager::new(
-            TABLE_HEAP_BUFFER_POOL_SIZE,
+            BUFFER_POOL_SIZE,
             disk_manager.clone(),
         ));
 
-        let mut catalog = Catalog::new(buffer_pool.clone());
+        let catalog = Catalog::new(buffer_pool.clone());
 
         let mut db = Self {
             disk_manager,

@@ -103,6 +103,16 @@ impl ScalarValue {
         }
     }
 
+    pub fn as_boolean(&self) -> BustubxResult<Option<bool>> {
+        match self {
+            ScalarValue::Boolean(v) => Ok(*v),
+            _ => Err(BustubxError::Internal(format!(
+                "Cannot treat {} as boolean",
+                self
+            ))),
+        }
+    }
+
     pub fn wrapping_add(&self, _other: Self) -> BustubxResult<Self> {
         todo!()
     }

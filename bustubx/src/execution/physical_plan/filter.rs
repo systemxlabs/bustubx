@@ -7,7 +7,7 @@ use crate::{
     common::ScalarValue,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
-    BustubxResult,
+    BustubxError, BustubxResult,
 };
 
 use super::PhysicalPlan;
@@ -26,18 +26,19 @@ impl VolcanoExecutor for PhysicalFilter {
 
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         loop {
-            let next_tuple = self.input.next(context)?;
-            if next_tuple.is_none() {
-                return Ok(None);
-            }
-            let tuple = next_tuple.unwrap();
-            let compare_res = self.predicate.evaluate(&tuple)?;
-            if let ScalarValue::Boolean(Some(v)) = compare_res {
-                if v {
-                    return Ok(Some(tuple));
+            if let Some(tuple) = self.input.next(context)? {
+                let compare_res = self.predicate.evaluate(&tuple)?;
+                if let ScalarValue::Boolean(Some(v)) = compare_res {
+                    if v {
+                        return Ok(Some(tuple));
+                    }
+                } else {
+                    return Err(BustubxError::Execution(
+                        "filter predicate value should be boolean".to_string(),
+                    ));
                 }
             } else {
-                panic!("filter predicate should be boolean")
+                return Ok(None);
             }
         }
     }

@@ -1,4 +1,4 @@
-use crate::buffer::{BufferPoolManager, PageId, INVALID_PAGE_ID, TABLE_HEAP_BUFFER_POOL_SIZE};
+use crate::buffer::{PageId, INVALID_PAGE_ID};
 use crate::catalog::{
     Catalog, Column, DataType, Schema, SchemaRef, TableInfo, DEFAULT_CATALOG_NAME,
 };
@@ -54,7 +54,6 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
         "select * from {}.{}",
         INFORMATION_SCHEMA_NAME, INFORMATION_SCHEMA_TABLES
     ))?;
-    println!("LWZTEST user tables count: {}", table_tuples.len());
     for table_tuple in table_tuples.into_iter() {
         let error = Err(BustubxError::Internal(format!(
             "Failed to decode table tuple: {:?}",
@@ -63,7 +62,7 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
         let ScalarValue::Varchar(Some(catalog)) = table_tuple.value(0)? else {
             return error;
         };
-        let ScalarValue::Varchar(Some(schema)) = table_tuple.value(1)? else {
+        let ScalarValue::Varchar(Some(table_schema)) = table_tuple.value(1)? else {
             return error;
         };
         let ScalarValue::Varchar(Some(table_name)) = table_tuple.value(2)? else {
@@ -76,8 +75,8 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
             return error;
         };
 
-        let column_tuples = db.run(&format!("select * from {}.{} where table_catalog = {} and table_schema = {} and table_name = {}",
-                                            INFORMATION_SCHEMA_NAME, INFORMATION_SCHEMA_COLUMNS, catalog, schema, table_name))?;
+        let column_tuples = db.run(&format!("select * from {}.{} where table_catalog = '{}' and table_schema = '{}' and table_name = '{}'",
+                                            INFORMATION_SCHEMA_NAME, INFORMATION_SCHEMA_COLUMNS, catalog, table_schema, table_name))?;
         let mut columns = vec![];
         for column_tuple in column_tuples.into_iter() {
             let error = Err(BustubxError::Internal(format!(
@@ -108,9 +107,14 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
                 last_page_id: *last_page_id as u32,
             },
         };
+        let table_ref = TableReference::full(
+            catalog.to_string(),
+            table_schema.to_string(),
+            table_name.to_string(),
+        );
         db.catalog
             .tables
-            .insert(TABLES_TABLE_REF.extend_to_full(), table_info);
+            .insert(table_ref.extend_to_full(), table_info);
     }
     Ok(())
 }

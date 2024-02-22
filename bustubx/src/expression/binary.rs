@@ -52,6 +52,16 @@ impl ExprTrait for BinaryExpr {
             BinaryOp::LtEq => evaluate_comparison(l, r, &[Ordering::Less, Ordering::Equal]),
             BinaryOp::Eq => evaluate_comparison(l, r, &[Ordering::Equal]),
             BinaryOp::NotEq => evaluate_comparison(l, r, &[Ordering::Greater, Ordering::Less]),
+            BinaryOp::And => {
+                let l_bool = l.as_boolean()?;
+                let r_bool = r.as_boolean()?;
+                match (l_bool, r_bool) {
+                    (Some(v1), Some(v2)) => Ok((v1 && v2).into()),
+                    (Some(_), None) | (None, Some(_)) | (None, None) => {
+                        Ok(ScalarValue::Boolean(Some(false)))
+                    }
+                }
+            }
             _ => Err(BustubxError::NotSupport(format!(
                 "binary operator {:?} not support evaluating yet",
                 self.op

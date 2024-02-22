@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::buffer::TABLE_HEAP_BUFFER_POOL_SIZE;
 use crate::catalog::{
     SchemaRef, COLUMNS_SCHMEA, COLUMNS_TABLE_REF, TABLES_SCHMEA, TABLES_TABLE_REF,
 };
@@ -94,7 +93,6 @@ impl Catalog {
                     (last_page_id as u64).into(),
                 ],
             );
-            println!("LWZTEST insert user table meta: {:?}", tuple);
             tables_table.table.insert_tuple(&tuple_meta, &tuple)?;
 
             let columns_table = self
@@ -116,7 +114,6 @@ impl Catalog {
                         col.nullable.into(),
                     ],
                 );
-                println!("LWZTEST insert user table column meta: {:?}", tuple);
                 columns_table.table.insert_tuple(&tuple_meta, &tuple)?;
             }
         }

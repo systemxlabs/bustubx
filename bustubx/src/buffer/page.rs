@@ -14,6 +14,9 @@ pub struct Page {
 }
 
 impl Page {
+    pub fn empty() -> Self {
+        Self::new(INVALID_PAGE_ID)
+    }
     pub fn new(page_id: PageId) -> Self {
         Self {
             page_id,

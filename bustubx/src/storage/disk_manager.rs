@@ -25,6 +25,7 @@ pub struct DiskManager {
 
 impl DiskManager {
     pub fn try_new(db_path: impl AsRef<Path>) -> BustubxResult<Self> {
+        let mut is_new_file = false;
         let (db_file, meta) = if db_path.as_ref().exists() {
             let mut db_file = std::fs::OpenOptions::new()
                 .read(true)
@@ -35,6 +36,7 @@ impl DiskManager {
             let (meta_page, _) = MetaPageCodec::decode(&buf)?;
             (db_file, meta_page)
         } else {
+            is_new_file = true;
             let mut db_file = std::fs::OpenOptions::new()
                 .read(true)
                 .write(true)
@@ -66,16 +68,23 @@ impl DiskManager {
         };
 
         // new pages
-        let freelist_page_id = disk_manager.allocate_freelist_page()?;
-        let information_schema_tables_first_page_id = disk_manager.allocate_page()?;
-        let information_schema_columns_first_page_id = disk_manager.allocate_page()?;
+        if is_new_file {
+            let freelist_page_id = disk_manager.allocate_freelist_page()?;
+            let information_schema_tables_first_page_id = disk_manager.allocate_page()?;
+            let information_schema_columns_first_page_id = disk_manager.allocate_page()?;
 
-        let mut meta = disk_manager.meta.write().unwrap();
-        meta.freelist_page_id = freelist_page_id;
-        meta.information_schema_tables_first_page_id = information_schema_tables_first_page_id;
-        meta.information_schema_columns_first_page_id = information_schema_columns_first_page_id;
-        drop(meta);
-        disk_manager.write_meta_page()?;
+            let mut meta = disk_manager.meta.write().unwrap();
+            meta.freelist_page_id = freelist_page_id;
+            meta.information_schema_tables_first_page_id = information_schema_tables_first_page_id;
+            meta.information_schema_columns_first_page_id =
+                information_schema_columns_first_page_id;
+            drop(meta);
+            disk_manager.write_meta_page()?;
+        }
+        debug!(
+            "disk_manager meta page: {:?}",
+            disk_manager.meta.read().unwrap()
+        );
 
         Ok(disk_manager)
     }
@@ -194,6 +203,7 @@ impl DiskManager {
 
     fn write_meta_page(&self) -> BustubxResult<()> {
         let mut guard = self.db_file.lock().unwrap();
+        guard.seek(std::io::SeekFrom::Start(0))?;
         guard.write_all(&MetaPageCodec::encode(&self.meta.read().unwrap()))?;
         guard.flush()?;
         Ok(())

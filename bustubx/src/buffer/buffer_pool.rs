@@ -1,9 +1,6 @@
 use dashmap::DashMap;
 use std::sync::RwLock;
-use std::{
-    collections::{HashMap, VecDeque},
-    sync::Arc,
-};
+use std::{collections::VecDeque, sync::Arc};
 
 use crate::buffer::page::{Page, PageId};
 use crate::buffer::BUSTUBX_PAGE_SIZE;
@@ -14,7 +11,7 @@ use super::replacer::LRUKReplacer;
 
 pub type FrameId = usize;
 
-pub const TABLE_HEAP_BUFFER_POOL_SIZE: usize = 100;
+pub const BUFFER_POOL_SIZE: usize = 1000;
 
 #[derive(Debug)]
 pub struct BufferPoolManager {
@@ -33,7 +30,7 @@ impl BufferPoolManager {
         let mut pool = vec![];
         for i in 0..num_pages {
             free_list.push_back(i);
-            pool.push(Arc::new(RwLock::new(Page::new(0))));
+            pool.push(Arc::new(RwLock::new(Page::empty())));
         }
 
         Self {
@@ -55,24 +52,7 @@ impl BufferPoolManager {
         }
 
         // 分配一个frame
-        let frame_id = if let Some(frame_id) = self.free_list.write().unwrap().pop_front() {
-            frame_id
-        } else {
-            // 无空闲frame，从缓冲池中替换一个页
-            if let Some(frame_id) = self.replacer.write().unwrap().evict() {
-                let evicted_page = self.pool[frame_id].clone();
-                let evicted_page_id = evicted_page.read().unwrap().page_id;
-                // 如果页被修改过，则将其写回磁盘
-                let is_dirty = evicted_page.read().unwrap().is_dirty;
-                if is_dirty {
-                    self.flush_page(evicted_page_id)?;
-                }
-                self.page_table.remove(&evicted_page_id);
-                frame_id
-            } else {
-                return Err(BustubxError::Storage("Failed to evict page".to_string()));
-            }
-        };
+        let frame_id = self.allocate_frame()?;
 
         // 从磁盘分配一个页
         let new_page_id = self.disk_manager.allocate_page().unwrap();
@@ -92,7 +72,6 @@ impl BufferPoolManager {
 
     pub fn fetch_page(&self, page_id: PageId) -> BustubxResult<Arc<RwLock<Page>>> {
         if let Some(frame_id) = self.page_table.get(&page_id) {
-            println!("LWZTEST frame_id: {}", *frame_id);
             let page = self.pool[*frame_id].clone();
             page.write().unwrap().pin_count += 1;
             self.replacer
@@ -102,20 +81,7 @@ impl BufferPoolManager {
             Ok(page)
         } else {
             // 分配一个frame
-            let frame_id = if let Some(frame_id) = self.free_list.write().unwrap().pop_front() {
-                frame_id
-            } else if let Some(frame_id) = self.replacer.write().unwrap().evict() {
-                let evicted_page = self.pool[frame_id].clone();
-                let evicted_page_id = evicted_page.read().unwrap().page_id;
-                let is_dirty = evicted_page.read().unwrap().is_dirty;
-                if is_dirty {
-                    self.flush_page(evicted_page_id)?;
-                }
-                self.page_table.remove(&evicted_page_id);
-                frame_id
-            } else {
-                return Err(BustubxError::Storage("Failed to evict page".to_string()));
-            };
+            let frame_id = self.allocate_frame()?;
 
             // 从磁盘读取页
             self.page_table.insert(page_id, frame_id);
@@ -211,6 +177,25 @@ impl BufferPoolManager {
             Ok(true)
         }
     }
+
+    fn allocate_frame(&self) -> BustubxResult<FrameId> {
+        if let Some(frame_id) = self.free_list.write().unwrap().pop_front() {
+            Ok(frame_id)
+        } else if let Some(frame_id) = self.replacer.write().unwrap().evict() {
+            let evicted_page = self.pool[frame_id].clone();
+            let evicted_page_id = evicted_page.read().unwrap().page_id;
+            let is_dirty = evicted_page.read().unwrap().is_dirty;
+            if is_dirty {
+                self.flush_page(evicted_page_id)?;
+            }
+            self.page_table.remove(&evicted_page_id);
+            Ok(frame_id)
+        } else {
+            Err(BustubxError::Storage(
+                "Cannot allocate free frame".to_string(),
+            ))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -225,7 +210,7 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
-        let mut buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
+        let buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
         let page1 = buffer_pool.new_page().unwrap().clone();
         let page1_id = page1.read().unwrap().page_id;
         assert_eq!(buffer_pool.pool[0].read().unwrap().page_id, page1_id,);
@@ -262,7 +247,7 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
-        let mut buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
+        let buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page1 = buffer_pool.new_page().unwrap();
         let page1_id = page1.read().unwrap().page_id;
@@ -282,7 +267,7 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
-        let mut buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
+        let buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page1 = buffer_pool.new_page().unwrap();
         let page1_id = page1.read().unwrap().page_id;
@@ -313,7 +298,7 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
-        let mut buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
+        let buffer_pool = BufferPoolManager::new(3, Arc::new(disk_manager));
 
         let page1 = buffer_pool.new_page().unwrap();
         let page1_id = page1.read().unwrap().page_id;
