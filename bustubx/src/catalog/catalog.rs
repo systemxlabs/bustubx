@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use crate::catalog::{
@@ -25,20 +26,18 @@ pub type FullIndexRef = (String, String, String, String);
 #[derive(Debug)]
 pub struct TableInfo {
     pub schema: SchemaRef,
-    pub name: String,
     pub table: TableHeap,
 }
 
 // index元信息
 pub struct IndexInfo {
     pub key_schema: SchemaRef,
-    pub name: String,
     pub index: BPlusTreeIndex,
     pub table_name: String,
 }
 
 pub struct Catalog {
-    pub tables: HashMap<FullTableRef, TableInfo>,
+    pub tables: HashMap<FullTableRef, Arc<TableHeap>>,
     pub indexes: HashMap<FullIndexRef, IndexInfo>,
     pub buffer_pool: Arc<BufferPoolManager>,
 }
@@ -56,19 +55,16 @@ impl Catalog {
         &mut self,
         table_ref: TableReference,
         schema: SchemaRef,
-    ) -> BustubxResult<&TableInfo> {
+    ) -> BustubxResult<Arc<TableHeap>> {
+        // TODO fail if database not created
         let full_table_ref = table_ref.extend_to_full();
         if !self.tables.contains_key(&full_table_ref) {
             let table_heap = TableHeap::try_new(schema.clone(), self.buffer_pool.clone())?;
-            let first_page_id = table_heap.first_page_id;
-            let last_page_id = table_heap.last_page_id;
-            let table_info = TableInfo {
-                schema: schema.clone(),
-                name: table_ref.table().to_string(),
-                table: table_heap,
-            };
+            let first_page_id = table_heap.first_page_id.load(Ordering::SeqCst);
+            let last_page_id = table_heap.last_page_id.load(Ordering::SeqCst);
 
-            self.tables.insert(full_table_ref.clone(), table_info);
+            self.tables
+                .insert(full_table_ref.clone(), Arc::new(table_heap));
 
             // update system table
             let tables_table = self
@@ -93,7 +89,7 @@ impl Catalog {
                     (last_page_id as u64).into(),
                 ],
             );
-            tables_table.table.insert_tuple(&tuple_meta, &tuple)?;
+            tables_table.insert_tuple(&tuple_meta, &tuple)?;
 
             let columns_table = self
                 .tables
@@ -114,27 +110,20 @@ impl Catalog {
                         col.nullable.into(),
                     ],
                 );
-                columns_table.table.insert_tuple(&tuple_meta, &tuple)?;
+                columns_table.insert_tuple(&tuple_meta, &tuple)?;
             }
         }
 
         self.tables
             .get(&full_table_ref)
+            .cloned()
             .ok_or(BustubxError::Internal("Failed to create table".to_string()))
     }
 
-    pub fn table(&self, table_ref: &TableReference) -> BustubxResult<&TableInfo> {
+    pub fn table(&self, table_ref: &TableReference) -> BustubxResult<Arc<TableHeap>> {
         self.tables
             .get(&table_ref.extend_to_full())
-            .ok_or(BustubxError::Internal(format!(
-                "Not found the table {}",
-                table_ref
-            )))
-    }
-
-    pub fn table_mut(&mut self, table_ref: &TableReference) -> BustubxResult<&mut TableInfo> {
-        self.tables
-            .get_mut(&table_ref.extend_to_full())
+            .cloned()
             .ok_or(BustubxError::Internal(format!(
                 "Not found the table {}",
                 table_ref
@@ -169,7 +158,6 @@ impl Catalog {
 
         let index_info = IndexInfo {
             key_schema,
-            name: index_name.clone(),
             index: b_plus_tree_index,
             table_name: table_ref.table().to_string(),
         };
@@ -217,7 +205,6 @@ mod tests {
             .catalog
             .create_table(table_ref1.clone(), schema.clone())
             .unwrap();
-        assert_eq!(table_info.name, table_ref1.table());
         assert_eq!(table_info.schema, schema);
 
         let table_ref2 = TableReference::bare("test_table2".to_string());
@@ -230,15 +217,12 @@ mod tests {
             .catalog
             .create_table(table_ref2.clone(), schema.clone())
             .unwrap();
-        assert_eq!(table_info.name, table_ref2.table());
         assert_eq!(table_info.schema, schema);
 
         let table_info = db.catalog.table(&table_ref1).unwrap();
-        assert_eq!(table_info.name, table_ref1.table());
         assert_eq!(table_info.schema.column_count(), 3);
 
         let table_info = db.catalog.table(&table_ref2).unwrap();
-        assert_eq!(table_info.name, table_ref2.table());
         assert_eq!(table_info.schema.column_count(), 3);
     }
 
@@ -264,7 +248,6 @@ mod tests {
         let index_info = catalog
             .create_index(index_name1.clone(), &table_ref, key_attrs)
             .unwrap();
-        assert_eq!(index_info.name, index_name1);
         assert_eq!(index_info.table_name, table_ref.table());
         assert_eq!(index_info.key_schema.column_count(), 2);
         assert_eq!(
@@ -297,7 +280,6 @@ mod tests {
         let index_info = catalog
             .create_index(index_name2.clone(), &table_ref, key_attrs)
             .unwrap();
-        assert_eq!(index_info.name, index_name2);
         assert_eq!(index_info.table_name, table_ref.table());
         assert_eq!(index_info.key_schema.column_count(), 1);
         assert_eq!(
@@ -316,6 +298,5 @@ mod tests {
         let index_info = catalog.get_index_by_name(&table_ref, index_name1.as_str());
         assert!(index_info.is_some());
         let index_info = index_info.unwrap();
-        assert_eq!(index_info.name, index_name1);
     }
 }

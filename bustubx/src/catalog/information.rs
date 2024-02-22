@@ -1,4 +1,4 @@
-use crate::buffer::{PageId, INVALID_PAGE_ID};
+use crate::buffer::{AtomicPageId, PageId, INVALID_PAGE_ID};
 use crate::catalog::{
     Catalog, Column, DataType, Schema, SchemaRef, TableInfo, DEFAULT_CATALOG_NAME,
 };
@@ -6,6 +6,7 @@ use crate::common::{ScalarValue, TableReference};
 use crate::storage::codec::TablePageCodec;
 use crate::storage::TableHeap;
 use crate::{BustubxError, BustubxResult, Database};
+use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
 pub static INFORMATION_SCHEMA_NAME: &str = "information_schema";
@@ -97,15 +98,11 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
         }
         let schema = Arc::new(Schema::new(columns));
 
-        let table_info = TableInfo {
+        let table_heap = TableHeap {
             schema: schema.clone(),
-            name: table_name.to_string(),
-            table: TableHeap {
-                schema: schema.clone(),
-                buffer_pool: db.buffer_pool.clone(),
-                first_page_id: *first_page_id as u32,
-                last_page_id: *last_page_id as u32,
-            },
+            buffer_pool: db.buffer_pool.clone(),
+            first_page_id: AtomicPageId::new(*first_page_id as u32),
+            last_page_id: AtomicPageId::new(*last_page_id as u32),
         };
         let table_ref = TableReference::full(
             catalog.to_string(),
@@ -114,7 +111,7 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
         );
         db.catalog
             .tables
-            .insert(table_ref.extend_to_full(), table_info);
+            .insert(table_ref.extend_to_full(), Arc::new(table_heap));
     }
     Ok(())
 }
@@ -137,33 +134,25 @@ fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
         COLUMNS_SCHMEA.clone(),
     )?;
 
-    let tables_table = TableInfo {
+    let tables_table = TableHeap {
         schema: TABLES_SCHMEA.clone(),
-        name: INFORMATION_SCHEMA_TABLES.to_string(),
-        table: TableHeap {
-            schema: TABLES_SCHMEA.clone(),
-            buffer_pool: catalog.buffer_pool.clone(),
-            first_page_id: information_schema_tables_first_page_id,
-            last_page_id: information_schema_tables_last_page_id,
-        },
+        buffer_pool: catalog.buffer_pool.clone(),
+        first_page_id: AtomicPageId::new(information_schema_tables_first_page_id),
+        last_page_id: AtomicPageId::new(information_schema_tables_last_page_id),
     };
     catalog
         .tables
-        .insert(TABLES_TABLE_REF.extend_to_full(), tables_table);
+        .insert(TABLES_TABLE_REF.extend_to_full(), Arc::new(tables_table));
 
-    let columns_table = TableInfo {
+    let columns_table = TableHeap {
         schema: COLUMNS_SCHMEA.clone(),
-        name: INFORMATION_SCHEMA_COLUMNS.to_string(),
-        table: TableHeap {
-            schema: COLUMNS_SCHMEA.clone(),
-            buffer_pool: catalog.buffer_pool.clone(),
-            first_page_id: information_schema_columns_first_page_id,
-            last_page_id: information_schema_columns_last_page_id,
-        },
+        buffer_pool: catalog.buffer_pool.clone(),
+        first_page_id: AtomicPageId::new(information_schema_columns_first_page_id),
+        last_page_id: AtomicPageId::new(information_schema_columns_last_page_id),
     };
     catalog
         .tables
-        .insert(COLUMNS_TABLE_REF.extend_to_full(), columns_table);
+        .insert(COLUMNS_TABLE_REF.extend_to_full(), Arc::new(columns_table));
     Ok(())
 }
 

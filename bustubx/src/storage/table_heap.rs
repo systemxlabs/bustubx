@@ -1,9 +1,10 @@
-use crate::buffer::{PageId, INVALID_PAGE_ID};
+use crate::buffer::{AtomicPageId, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
 use crate::common::util::page_bytes_to_array;
 use crate::storage::codec::TablePageCodec;
 use crate::storage::{TablePage, TupleMeta};
 use crate::{buffer::BufferPoolManager, common::rid::Rid, BustubxResult};
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use super::tuple::Tuple;
@@ -12,8 +13,8 @@ use super::tuple::Tuple;
 pub struct TableHeap {
     pub schema: SchemaRef,
     pub buffer_pool: Arc<BufferPoolManager>,
-    pub first_page_id: PageId,
-    pub last_page_id: PageId,
+    pub first_page_id: AtomicPageId,
+    pub last_page_id: AtomicPageId,
 }
 
 impl TableHeap {
@@ -29,8 +30,8 @@ impl TableHeap {
         Ok(Self {
             schema,
             buffer_pool,
-            first_page_id,
-            last_page_id: first_page_id,
+            first_page_id: AtomicPageId::new(first_page_id),
+            last_page_id: AtomicPageId::new(first_page_id),
         })
     }
 
@@ -46,9 +47,9 @@ impl TableHeap {
     ///
     /// Returns:
     /// An `Option` containing the `Rid` of the inserted tuple if successful, otherwise `None`.
-    pub fn insert_tuple(&mut self, meta: &TupleMeta, tuple: &Tuple) -> BustubxResult<Rid> {
-        let mut last_page_id = self.last_page_id;
-        let last_page = self.buffer_pool.fetch_page(self.last_page_id)?;
+    pub fn insert_tuple(&self, meta: &TupleMeta, tuple: &Tuple) -> BustubxResult<Rid> {
+        let mut last_page_id = self.last_page_id.load(Ordering::SeqCst);
+        let last_page = self.buffer_pool.fetch_page(last_page_id)?;
 
         // Loop until a suitable page is found for inserting the tuple
         let (mut last_table_page, _) =
@@ -84,7 +85,7 @@ impl TableHeap {
             // Update last_page_id.
             last_page_id = next_page_id;
             last_table_page = next_table_page;
-            self.last_page_id = last_page_id;
+            self.last_page_id.store(last_page_id, Ordering::SeqCst);
         }
 
         // Insert the tuple into the chosen page
@@ -100,7 +101,7 @@ impl TableHeap {
         Ok(Rid::new(last_page_id, slot_id as u32))
     }
 
-    pub fn update_tuple_meta(&mut self, meta: &TupleMeta, rid: Rid) -> BustubxResult<()> {
+    pub fn update_tuple_meta(&self, meta: &TupleMeta, rid: Rid) -> BustubxResult<()> {
         let page = self.buffer_pool.fetch_page(rid.page_id)?;
         let (mut table_page, _) =
             TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone())?;
@@ -111,7 +112,7 @@ impl TableHeap {
         Ok(())
     }
 
-    pub fn tuple(&mut self, rid: Rid) -> BustubxResult<(TupleMeta, Tuple)> {
+    pub fn tuple(&self, rid: Rid) -> BustubxResult<(TupleMeta, Tuple)> {
         let page = self.buffer_pool.fetch_page(rid.page_id)?;
         let (table_page, _) =
             TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone())?;
@@ -120,7 +121,7 @@ impl TableHeap {
         Ok(result)
     }
 
-    pub fn tuple_meta(&mut self, rid: Rid) -> BustubxResult<TupleMeta> {
+    pub fn tuple_meta(&self, rid: Rid) -> BustubxResult<TupleMeta> {
         let page = self.buffer_pool.fetch_page(rid.page_id)?;
         let (table_page, _) =
             TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone())?;
@@ -129,25 +130,24 @@ impl TableHeap {
         Ok(result)
     }
 
-    pub fn get_first_rid(&mut self) -> Option<Rid> {
+    pub fn get_first_rid(&self) -> Option<Rid> {
+        let first_page_id = self.first_page_id.load(Ordering::SeqCst);
         let page = self
             .buffer_pool
-            .fetch_page(self.first_page_id)
+            .fetch_page(first_page_id)
             .expect("Can not fetch page");
         let (table_page, _) =
             TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone()).unwrap();
-        self.buffer_pool
-            .unpin_page(self.first_page_id, false)
-            .unwrap();
+        self.buffer_pool.unpin_page(first_page_id, false).unwrap();
         if table_page.header.num_tuples == 0 {
             // TODO 忽略删除的tuple
             None
         } else {
-            Some(Rid::new(self.first_page_id, 0))
+            Some(Rid::new(first_page_id, 0))
         }
     }
 
-    pub fn get_next_rid(&mut self, rid: Rid) -> Option<Rid> {
+    pub fn get_next_rid(&self, rid: Rid) -> Option<Rid> {
         let page = self
             .buffer_pool
             .fetch_page(rid.page_id)
@@ -180,7 +180,7 @@ impl TableHeap {
         }
     }
 
-    pub fn iter(&mut self, start_at: Option<Rid>, stop_at: Option<Rid>) -> TableIterator {
+    pub fn iter(&self, start_at: Option<Rid>, stop_at: Option<Rid>) -> TableIterator {
         TableIterator {
             rid: start_at.or(self.get_first_rid()),
             stop_at,
@@ -195,7 +195,7 @@ pub struct TableIterator {
 }
 
 impl TableIterator {
-    pub fn next(&mut self, table_heap: &mut TableHeap) -> Option<(TupleMeta, Tuple)> {
+    pub fn next(&mut self, table_heap: &TableHeap) -> Option<(TupleMeta, Tuple)> {
         self.rid?;
         let rid = self.rid.unwrap();
         if self.stop_at.is_some() && rid == self.stop_at.unwrap() {
