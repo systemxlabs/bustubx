@@ -69,11 +69,12 @@ impl ExprTrait for BinaryExpr {
         }
     }
 
-    fn to_column(&self, _input_schema: &Schema) -> BustubxResult<Column> {
-        Err(BustubxError::Plan(format!(
-            "expr {:?} as column not supported",
-            self
-        )))
+    fn to_column(&self, input_schema: &Schema) -> BustubxResult<Column> {
+        Ok(Column::new(
+            format!("{self}"),
+            self.data_type(input_schema)?,
+            self.nullable(input_schema)?,
+        ))
     }
 }
 
@@ -85,7 +86,7 @@ fn evaluate_comparison(
     let order = left
         .partial_cmp(&right)
         .ok_or(BustubxError::Execution(format!(
-            "Can not compare {} and {}",
+            "Can not compare {:?} and {:?}",
             left, right
         )))?;
     Ok(ScalarValue::Boolean(Some(
@@ -136,7 +137,7 @@ impl TryFrom<&sqlparser::ast::BinaryOperator> for BinaryOp {
 
 impl std::fmt::Display for BinaryExpr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {} {}", self.left, self.op, self.right)
+        write!(f, "({} {} {})", self.left, self.op, self.right)
     }
 }
 

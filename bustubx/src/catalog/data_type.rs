@@ -1,4 +1,5 @@
 use crate::error::BustubxError;
+use crate::BustubxResult;
 use sqlparser::dialect::PostgreSqlDialect;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -12,6 +13,58 @@ pub enum DataType {
     Float32,
     Float64,
     Varchar(Option<usize>),
+}
+
+impl DataType {
+    /// Coerce `lhs_type` and `rhs_type` to a common type for the purposes of a comparison operation
+    /// where one both are numeric
+    pub fn comparison_numeric_coercion(l: &DataType, r: &DataType) -> BustubxResult<DataType> {
+        use super::DataType::*;
+        if l == r {
+            return Ok(l.clone());
+        }
+        match (l, r) {
+            (Float64, _) | (_, Float64) => Ok(Float64),
+            (_, Float32) | (Float32, _) => Ok(Float32),
+            // The following match arms encode the following logic: Given the two
+            // integral types, we choose the narrowest possible integral type that
+            // accommodates all values of both types. Note that some information
+            // loss is inevitable when we have a signed type and a `UInt64`, in
+            // which case we use `Int64`;i.e. the widest signed integral type.
+            (Int64, _)
+            | (_, Int64)
+            | (UInt64, Int8)
+            | (Int8, UInt64)
+            | (UInt64, Int16)
+            | (Int16, UInt64)
+            | (UInt64, Int32)
+            | (Int32, UInt64)
+            // | (UInt32, Int8)
+            // | (Int8, UInt32)
+            // | (UInt32, Int16)
+            // | (Int16, UInt32)
+            // | (UInt32, Int32)
+            // | (Int32, UInt32)
+            => Ok(Int64),
+            (UInt64, _) | (_, UInt64) => Ok(UInt64),
+            (Int32, _)
+            | (_, Int32)
+            // | (UInt16, Int16)
+            // | (Int16, UInt16)
+            // | (UInt16, Int8)
+            // | (Int8, UInt16)
+            => Ok(Int32),
+            // (UInt32, _) | (_, UInt32) => Ok(UInt32),
+            (Int16, _) | (_, Int16)
+            // | (Int8, UInt8)
+            // | (UInt8, Int8)
+            => Ok(Int16),
+            // (UInt16, _) | (_, UInt16) => Ok(UInt16),
+            (Int8, _) | (_, Int8) => Ok(Int8),
+            // (UInt8, _) | (_, UInt8) => Ok(UInt8),
+            _ => Err(BustubxError::Internal(format!("Cannot coerce {} and {} for comparison", l, r))),
+        }
+    }
 }
 
 impl TryFrom<&sqlparser::ast::DataType> for DataType {
