@@ -3,7 +3,7 @@ use crate::common::ScalarValue;
 use crate::function::Accumulator;
 use crate::{BustubxError, BustubxResult};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AvgAccumulator {
     sum: Option<f64>,
     count: u64,

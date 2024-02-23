@@ -2,7 +2,7 @@ use crate::common::ScalarValue;
 use crate::function::Accumulator;
 use crate::BustubxResult;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CountAccumulator {
     count: i64,
 }

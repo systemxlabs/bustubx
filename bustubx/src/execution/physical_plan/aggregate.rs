@@ -5,8 +5,9 @@ use crate::execution::{ExecutionContext, VolcanoExecutor};
 use crate::expression::{Expr, ExprTrait};
 use crate::function::Accumulator;
 use crate::{BustubxError, BustubxResult, Tuple};
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug)]
 pub struct PhysicalAggregate {
@@ -19,8 +20,8 @@ pub struct PhysicalAggregate {
     /// The schema description of the aggregate output
     pub schema: SchemaRef,
 
-    // TODO tmp solution
-    pub output_count: AtomicUsize,
+    pub output_rows: Mutex<Vec<Tuple>>,
+    pub cursor: AtomicUsize,
 }
 
 impl PhysicalAggregate {
@@ -35,26 +36,15 @@ impl PhysicalAggregate {
             group_exprs,
             aggr_exprs,
             schema,
-            output_count: AtomicUsize::new(0),
+            output_rows: Mutex::new(vec![]),
+            cursor: AtomicUsize::new(0),
         }
     }
 }
 
-impl VolcanoExecutor for PhysicalAggregate {
-    fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
-        self.input.init(context)?;
-        self.output_count.store(0, Ordering::SeqCst);
-        Ok(())
-    }
-
-    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
-        if self.output_count.load(Ordering::SeqCst) > 0 {
-            return Ok(None);
-        }
-
-        // TODO support group
-        let mut accumulators = self
-            .aggr_exprs
+impl PhysicalAggregate {
+    fn build_accumulators(&self) -> BustubxResult<Vec<Box<dyn Accumulator>>> {
+        self.aggr_exprs
             .iter()
             .map(|expr| {
                 if let Expr::AggregateFunction(aggr) = expr {
@@ -66,25 +56,59 @@ impl VolcanoExecutor for PhysicalAggregate {
                     )))
                 }
             })
-            .collect::<BustubxResult<Vec<Box<dyn Accumulator>>>>()?;
+            .collect::<BustubxResult<Vec<Box<dyn Accumulator>>>>()
+    }
+}
 
-        loop {
-            if let Some(tuple) = self.input.next(context)? {
-                for (idx, acc) in accumulators.iter_mut().enumerate() {
-                    acc.update_value(&self.aggr_exprs[idx].evaluate(&tuple)?)?;
+impl VolcanoExecutor for PhysicalAggregate {
+    fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
+        self.input.init(context)?;
+        self.cursor.store(0, Ordering::SeqCst);
+        Ok(())
+    }
+
+    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
+        let output_rows_len = self.output_rows.lock().unwrap().len();
+        // build output rows
+        if output_rows_len == 0 {
+            let mut groups: HashMap<Vec<ScalarValue>, Vec<Box<dyn Accumulator>>> = HashMap::new();
+            loop {
+                if let Some(tuple) = self.input.next(context)? {
+                    let group_key = self
+                        .group_exprs
+                        .iter()
+                        .map(|e| e.evaluate(&tuple))
+                        .collect::<BustubxResult<Vec<ScalarValue>>>()?;
+                    let group_accumulators = if let Some(acc) = groups.get_mut(&group_key) {
+                        acc
+                    } else {
+                        let accumulators = self.build_accumulators()?;
+                        groups.insert(group_key.clone(), accumulators);
+                        groups.get_mut(&group_key).unwrap()
+                    };
+                    for (idx, acc) in group_accumulators.iter_mut().enumerate() {
+                        acc.update_value(&self.aggr_exprs[idx].evaluate(&tuple)?)?;
+                    }
+                } else {
+                    break;
                 }
-            } else {
-                break;
+            }
+
+            for (group_key, accumulators) in groups.into_iter() {
+                let mut values = accumulators
+                    .iter()
+                    .map(|acc| acc.evaluate())
+                    .collect::<BustubxResult<Vec<ScalarValue>>>()?;
+                values.extend(group_key);
+                self.output_rows
+                    .lock()
+                    .unwrap()
+                    .push(Tuple::new(self.schema.clone(), values));
             }
         }
 
-        let values = accumulators
-            .iter()
-            .map(|acc| acc.evaluate())
-            .collect::<BustubxResult<Vec<ScalarValue>>>()?;
-
-        self.output_count.fetch_add(1, Ordering::SeqCst);
-        Ok(Some(Tuple::new(self.schema.clone(), values)))
+        let cursor = self.cursor.fetch_add(1, Ordering::SeqCst);
+        Ok(self.output_rows.lock().unwrap().get(cursor).cloned())
     }
 
     fn output_schema(&self) -> SchemaRef {
