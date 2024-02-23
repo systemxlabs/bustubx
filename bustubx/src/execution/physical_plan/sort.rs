@@ -65,12 +65,8 @@ impl VolcanoExecutor for PhysicalSort {
         if all_tuples_len == 0 {
             // load all tuples from input
             let mut all_tuples = Vec::new();
-            loop {
-                if let Some(tuple) = self.input.next(context)? {
-                    all_tuples.push(tuple);
-                } else {
-                    break;
-                }
+            while let Some(tuple) = self.input.next(context)? {
+                all_tuples.push(tuple);
             }
 
             // sort all tuples

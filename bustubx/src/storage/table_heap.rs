@@ -377,18 +377,18 @@ mod tests {
 
         let mut iterator = table_heap.iter(None, None);
 
-        let (meta, tuple) = iterator.next(&mut table_heap).unwrap();
+        let (meta, tuple) = iterator.next(&table_heap).unwrap();
         assert_eq!(meta, meta1);
         assert_eq!(tuple.data, vec![1i8.into(), 1i16.into()]);
 
-        let (meta, tuple) = iterator.next(&mut table_heap).unwrap();
+        let (meta, tuple) = iterator.next(&table_heap).unwrap();
         assert_eq!(meta, meta2);
         assert_eq!(tuple.data, vec![2i8.into(), 2i16.into()]);
 
-        let (meta, tuple) = iterator.next(&mut table_heap).unwrap();
+        let (meta, tuple) = iterator.next(&table_heap).unwrap();
         assert_eq!(meta, meta3);
         assert_eq!(tuple.data, vec![3i8.into(), 3i16.into()]);
 
-        assert!(iterator.next(&mut table_heap).is_none());
+        assert!(iterator.next(&table_heap).is_none());
     }
 }

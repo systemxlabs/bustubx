@@ -72,25 +72,21 @@ impl VolcanoExecutor for PhysicalAggregate {
         // build output rows
         if output_rows_len == 0 {
             let mut groups: HashMap<Vec<ScalarValue>, Vec<Box<dyn Accumulator>>> = HashMap::new();
-            loop {
-                if let Some(tuple) = self.input.next(context)? {
-                    let group_key = self
-                        .group_exprs
-                        .iter()
-                        .map(|e| e.evaluate(&tuple))
-                        .collect::<BustubxResult<Vec<ScalarValue>>>()?;
-                    let group_accumulators = if let Some(acc) = groups.get_mut(&group_key) {
-                        acc
-                    } else {
-                        let accumulators = self.build_accumulators()?;
-                        groups.insert(group_key.clone(), accumulators);
-                        groups.get_mut(&group_key).unwrap()
-                    };
-                    for (idx, acc) in group_accumulators.iter_mut().enumerate() {
-                        acc.update_value(&self.aggr_exprs[idx].evaluate(&tuple)?)?;
-                    }
+            while let Some(tuple) = self.input.next(context)? {
+                let group_key = self
+                    .group_exprs
+                    .iter()
+                    .map(|e| e.evaluate(&tuple))
+                    .collect::<BustubxResult<Vec<ScalarValue>>>()?;
+                let group_accumulators = if let Some(acc) = groups.get_mut(&group_key) {
+                    acc
                 } else {
-                    break;
+                    let accumulators = self.build_accumulators()?;
+                    groups.insert(group_key.clone(), accumulators);
+                    groups.get_mut(&group_key).unwrap()
+                };
+                for (idx, acc) in group_accumulators.iter_mut().enumerate() {
+                    acc.update_value(&self.aggr_exprs[idx].evaluate(&tuple)?)?;
                 }
             }
 
