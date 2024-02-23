@@ -9,6 +9,9 @@ pub enum DataType {
     Int16,
     Int32,
     Int64,
+    UInt8,
+    UInt16,
+    UInt32,
     UInt64,
     Float32,
     Float64,
@@ -39,30 +42,28 @@ impl DataType {
             | (Int16, UInt64)
             | (UInt64, Int32)
             | (Int32, UInt64)
-            // | (UInt32, Int8)
-            // | (Int8, UInt32)
-            // | (UInt32, Int16)
-            // | (Int16, UInt32)
-            // | (UInt32, Int32)
-            // | (Int32, UInt32)
-            => Ok(Int64),
+            | (UInt32, Int8)
+            | (Int8, UInt32)
+            | (UInt32, Int16)
+            | (Int16, UInt32)
+            | (UInt32, Int32)
+            | (Int32, UInt32) => Ok(Int64),
             (UInt64, _) | (_, UInt64) => Ok(UInt64),
             (Int32, _)
             | (_, Int32)
-            // | (UInt16, Int16)
-            // | (Int16, UInt16)
-            // | (UInt16, Int8)
-            // | (Int8, UInt16)
-            => Ok(Int32),
-            // (UInt32, _) | (_, UInt32) => Ok(UInt32),
-            (Int16, _) | (_, Int16)
-            // | (Int8, UInt8)
-            // | (UInt8, Int8)
-            => Ok(Int16),
-            // (UInt16, _) | (_, UInt16) => Ok(UInt16),
+            | (UInt16, Int16)
+            | (Int16, UInt16)
+            | (UInt16, Int8)
+            | (Int8, UInt16) => Ok(Int32),
+            (UInt32, _) | (_, UInt32) => Ok(UInt32),
+            (Int16, _) | (_, Int16) | (Int8, UInt8) | (UInt8, Int8) => Ok(Int16),
+            (UInt16, _) | (_, UInt16) => Ok(UInt16),
             (Int8, _) | (_, Int8) => Ok(Int8),
-            // (UInt8, _) | (_, UInt8) => Ok(UInt8),
-            _ => Err(BustubxError::Internal(format!("Cannot coerce {} and {} for comparison", l, r))),
+            (UInt8, _) | (_, UInt8) => Ok(UInt8),
+            _ => Err(BustubxError::Internal(format!(
+                "Cannot coerce {} and {} for comparison",
+                l, r
+            ))),
         }
     }
 }
@@ -75,9 +76,14 @@ impl TryFrom<&sqlparser::ast::DataType> for DataType {
             sqlparser::ast::DataType::Boolean => Ok(DataType::Boolean),
             sqlparser::ast::DataType::TinyInt(_) => Ok(DataType::Int8),
             sqlparser::ast::DataType::SmallInt(_) => Ok(DataType::Int16),
-            sqlparser::ast::DataType::Int(_) => Ok(DataType::Int32),
-            sqlparser::ast::DataType::Integer(_) => Ok(DataType::Int32),
+            sqlparser::ast::DataType::Int(_) | sqlparser::ast::DataType::Integer(_) => {
+                Ok(DataType::Int32)
+            }
             sqlparser::ast::DataType::BigInt(_) => Ok(DataType::Int64),
+            sqlparser::ast::DataType::UnsignedTinyInt(_) => Ok(DataType::UInt8),
+            sqlparser::ast::DataType::UnsignedSmallInt(_) => Ok(DataType::UInt16),
+            sqlparser::ast::DataType::UnsignedInt(_)
+            | sqlparser::ast::DataType::UnsignedInteger(_) => Ok(DataType::UInt32),
             sqlparser::ast::DataType::UnsignedBigInt(_) => Ok(DataType::UInt64),
             sqlparser::ast::DataType::Float(_) => Ok(DataType::Float32),
             sqlparser::ast::DataType::Double => Ok(DataType::Float32),
@@ -106,6 +112,9 @@ impl From<&DataType> for sqlparser::ast::DataType {
             DataType::Int16 => sqlparser::ast::DataType::SmallInt(None),
             DataType::Int32 => sqlparser::ast::DataType::Integer(None),
             DataType::Int64 => sqlparser::ast::DataType::BigInt(None),
+            DataType::UInt8 => sqlparser::ast::DataType::UnsignedTinyInt(None),
+            DataType::UInt16 => sqlparser::ast::DataType::UnsignedSmallInt(None),
+            DataType::UInt32 => sqlparser::ast::DataType::UnsignedInteger(None),
             DataType::UInt64 => sqlparser::ast::DataType::UnsignedBigInt(None),
             DataType::Float32 => sqlparser::ast::DataType::Float(None),
             DataType::Float64 => sqlparser::ast::DataType::Double,
@@ -127,6 +136,9 @@ impl std::fmt::Display for DataType {
             | DataType::Int16
             | DataType::Int32
             | DataType::Int64
+            | DataType::UInt8
+            | DataType::UInt16
+            | DataType::UInt32
             | DataType::UInt64
             | DataType::Float32
             | DataType::Float64 => write!(f, "{self:?}"),

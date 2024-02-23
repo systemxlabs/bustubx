@@ -14,7 +14,7 @@ impl<'a> LogicalPlanner<'a> {
     ) -> BustubxResult<LogicalPlan> {
         let values = self.plan_set_expr(source.body.as_ref())?;
         let table = self.bind_table_name(table_name)?;
-        let table_schema = self.context.catalog.table(&table)?.schema.clone();
+        let table_schema = self.context.catalog.table_heap(&table)?.schema.clone();
 
         let projected_schema = if columns_ident.is_empty() {
             table_schema.clone()

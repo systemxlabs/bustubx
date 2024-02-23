@@ -269,7 +269,7 @@ impl LogicalPlanner<'_> {
                 // TODO handle alias
                 let table_ref = self.bind_table_name(name)?;
                 // TODO get schema by full table name
-                let schema = self.context.catalog.table(&table_ref)?.schema.clone();
+                let schema = self.context.catalog.table_heap(&table_ref)?.schema.clone();
                 Ok(LogicalPlan::TableScan(TableScan {
                     table_ref,
                     table_schema: schema,

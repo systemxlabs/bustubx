@@ -22,13 +22,6 @@ pub static DEFAULT_SCHEMA_NAME: &str = "public";
 /// catalog, schema, table, index
 pub type FullIndexRef = (String, String, String, String);
 
-// table元信息
-#[derive(Debug)]
-pub struct TableInfo {
-    pub schema: SchemaRef,
-    pub table: TableHeap,
-}
-
 // index元信息
 pub struct IndexInfo {
     pub key_schema: SchemaRef,
@@ -120,7 +113,7 @@ impl Catalog {
             .ok_or(BustubxError::Internal("Failed to create table".to_string()))
     }
 
-    pub fn table(&self, table_ref: &TableReference) -> BustubxResult<Arc<TableHeap>> {
+    pub fn table_heap(&self, table_ref: &TableReference) -> BustubxResult<Arc<TableHeap>> {
         self.tables
             .get(&table_ref.extend_to_full())
             .cloned()
@@ -139,7 +132,7 @@ impl Catalog {
         let (catalog, schema, table) = table_ref.extend_to_full();
         let full_index_ref = (catalog, schema, table, index_name.clone());
 
-        let table_info = self.table(table_ref)?;
+        let table_info = self.table_heap(table_ref)?;
         let tuple_schema = table_info.schema.clone();
         let key_schema = tuple_schema.project(&key_attrs)?;
 
@@ -219,10 +212,10 @@ mod tests {
             .unwrap();
         assert_eq!(table_info.schema, schema);
 
-        let table_info = db.catalog.table(&table_ref1).unwrap();
+        let table_info = db.catalog.table_heap(&table_ref1).unwrap();
         assert_eq!(table_info.schema.column_count(), 3);
 
-        let table_info = db.catalog.table(&table_ref2).unwrap();
+        let table_info = db.catalog.table_heap(&table_ref2).unwrap();
         assert_eq!(table_info.schema.column_count(), 3);
     }
 

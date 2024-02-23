@@ -4,7 +4,7 @@ mod data_type;
 mod information;
 mod schema;
 
-pub use catalog::{Catalog, TableInfo, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
+pub use catalog::{Catalog, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
 pub use column::{Column, ColumnRef};
 pub use data_type::DataType;
 pub use information::*;

@@ -27,6 +27,7 @@ impl<'a> LogicalPlanner<'a> {
                 .with_relation(Some(name.clone())),
             )
         }
+        // TODO check column conflict name
         Ok(LogicalPlan::CreateTable(CreateTable { name, columns }))
     }
 }

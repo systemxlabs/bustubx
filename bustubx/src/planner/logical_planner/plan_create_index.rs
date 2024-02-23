@@ -22,7 +22,7 @@ impl<'a> LogicalPlanner<'a> {
             let col_expr = self.bind_order_by_expr(col)?;
             columns_expr.push(col_expr);
         }
-        let table_schema = self.context.catalog.table(&table)?.schema.clone();
+        let table_schema = self.context.catalog.table_heap(&table)?.schema.clone();
         Ok(LogicalPlan::CreateIndex(CreateIndex {
             index_name,
             table,

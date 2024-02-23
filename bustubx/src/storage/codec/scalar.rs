@@ -13,6 +13,9 @@ impl ScalarValueCodec {
             ScalarValue::Int16(Some(v)) => CommonCodec::encode_i16(*v),
             ScalarValue::Int32(Some(v)) => CommonCodec::encode_i32(*v),
             ScalarValue::Int64(Some(v)) => CommonCodec::encode_i64(*v),
+            ScalarValue::UInt8(Some(v)) => CommonCodec::encode_u8(*v),
+            ScalarValue::UInt16(Some(v)) => CommonCodec::encode_u16(*v),
+            ScalarValue::UInt32(Some(v)) => CommonCodec::encode_u32(*v),
             ScalarValue::UInt64(Some(v)) => CommonCodec::encode_u64(*v),
             ScalarValue::Float32(Some(v)) => CommonCodec::encode_f32(*v),
             ScalarValue::Float64(Some(v)) => CommonCodec::encode_f64(*v),
@@ -28,6 +31,9 @@ impl ScalarValueCodec {
             | ScalarValue::Int16(None)
             | ScalarValue::Int32(None)
             | ScalarValue::Int64(None)
+            | ScalarValue::UInt8(None)
+            | ScalarValue::UInt16(None)
+            | ScalarValue::UInt32(None)
             | ScalarValue::UInt64(None)
             | ScalarValue::Float32(None)
             | ScalarValue::Float64(None)
@@ -56,6 +62,18 @@ impl ScalarValueCodec {
             DataType::Int64 => {
                 let (value, offset) = CommonCodec::decode_i64(bytes)?;
                 Ok((ScalarValue::Int64(Some(value)), offset))
+            }
+            DataType::UInt8 => {
+                let (value, offset) = CommonCodec::decode_u8(bytes)?;
+                Ok((ScalarValue::UInt8(Some(value)), offset))
+            }
+            DataType::UInt16 => {
+                let (value, offset) = CommonCodec::decode_u16(bytes)?;
+                Ok((ScalarValue::UInt16(Some(value)), offset))
+            }
+            DataType::UInt32 => {
+                let (value, offset) = CommonCodec::decode_u32(bytes)?;
+                Ok((ScalarValue::UInt32(Some(value)), offset))
             }
             DataType::UInt64 => {
                 let (value, offset) = CommonCodec::decode_u64(bytes)?;
