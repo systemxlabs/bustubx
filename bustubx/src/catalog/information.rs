@@ -15,8 +15,8 @@ lazy_static::lazy_static! {
         Column::new("table_catalog".to_string(), DataType::Varchar(None), false),
         Column::new("table_schema".to_string(), DataType::Varchar(None), false),
         Column::new("table_name".to_string(), DataType::Varchar(None), false),
-        Column::new("first_page_id".to_string(), DataType::UInt64, false),
-        Column::new("last_page_id".to_string(), DataType::UInt64, false),
+        Column::new("first_page_id".to_string(), DataType::UInt32, false),
+        Column::new("last_page_id".to_string(), DataType::UInt32, false),
     ]));
 
     pub static ref TABLES_TABLE_REF: TableReference = TableReference::full(
@@ -66,10 +66,10 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
         let ScalarValue::Varchar(Some(table_name)) = table_tuple.value(2)? else {
             return error;
         };
-        let ScalarValue::UInt64(Some(first_page_id)) = table_tuple.value(3)? else {
+        let ScalarValue::UInt32(Some(first_page_id)) = table_tuple.value(3)? else {
             return error;
         };
-        let ScalarValue::UInt64(Some(last_page_id)) = table_tuple.value(4)? else {
+        let ScalarValue::UInt32(Some(last_page_id)) = table_tuple.value(4)? else {
             return error;
         };
 

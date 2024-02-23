@@ -77,9 +77,8 @@ impl Catalog {
                     full_table_ref.0.clone().into(),
                     full_table_ref.1.clone().into(),
                     full_table_ref.2.clone().into(),
-                    // FIXME
-                    (first_page_id as u64).into(),
-                    (last_page_id as u64).into(),
+                    first_page_id.into(),
+                    last_page_id.into(),
                 ],
             );
             tables_table.insert_tuple(&tuple_meta, &tuple)?;

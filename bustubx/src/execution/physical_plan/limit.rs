@@ -31,7 +31,6 @@ impl PhysicalLimit {
 }
 impl VolcanoExecutor for PhysicalLimit {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
-        debug!("init limit executor");
         self.input.init(context)?;
         self.cursor.store(0, std::sync::atomic::Ordering::SeqCst);
         Ok(())
@@ -45,13 +44,11 @@ impl VolcanoExecutor for PhysicalLimit {
             let cursor = self
                 .cursor
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            let offset = self.offset;
-            if cursor < offset {
+            if cursor < self.offset {
                 continue;
             }
-            return if self.limit.is_some() {
-                let limit = self.limit.unwrap();
-                if cursor < offset + limit {
+            return if let Some(limit) = self.limit {
+                if cursor < self.offset + limit {
                     Ok(next_tuple)
                 } else {
                     Ok(None)

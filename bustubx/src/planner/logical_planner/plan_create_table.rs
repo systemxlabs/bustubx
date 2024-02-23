@@ -1,4 +1,6 @@
-use crate::BustubxResult;
+use crate::{BustubxError, BustubxResult};
+use itertools::Itertools;
+use std::collections::HashSet;
 
 use crate::catalog::Column;
 use crate::planner::logical_plan::{CreateTable, LogicalPlan};
@@ -27,7 +29,23 @@ impl<'a> LogicalPlanner<'a> {
                 .with_relation(Some(name.clone())),
             )
         }
-        // TODO check column conflict name
+
+        check_column_name_conflict(&columns)?;
         Ok(LogicalPlan::CreateTable(CreateTable { name, columns }))
     }
+}
+
+fn check_column_name_conflict(columns: &[Column]) -> BustubxResult<()> {
+    let mut names = HashSet::new();
+    for col in columns {
+        if names.contains(col.name.as_str()) {
+            return Err(BustubxError::Plan(format!(
+                "Column names have conflict on '{}'",
+                col.name
+            )));
+        } else {
+            names.insert(col.name.as_str());
+        }
+    }
+    Ok(())
 }

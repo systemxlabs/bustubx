@@ -175,7 +175,7 @@ impl ScalarValue {
         match self {
             ScalarValue::Boolean(v) => Ok(*v),
             _ => Err(BustubxError::Internal(format!(
-                "Cannot treat {} as boolean",
+                "Cannot treat {:?} as boolean",
                 self
             ))),
         }

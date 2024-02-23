@@ -20,21 +20,19 @@ pub struct PhysicalProject {
 
 impl VolcanoExecutor for PhysicalProject {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
-        debug!("init project executor");
         self.input.init(context)
     }
 
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
-        let next_tuple = self.input.next(context)?;
-        if next_tuple.is_none() {
-            return Ok(None);
+        if let Some(tuple) = self.input.next(context)? {
+            let mut new_values = Vec::new();
+            for expr in &self.exprs {
+                new_values.push(expr.evaluate(&tuple)?);
+            }
+            Ok(Some(Tuple::new(self.output_schema(), new_values)))
+        } else {
+            Ok(None)
         }
-        let next_tuple = next_tuple.unwrap();
-        let mut new_values = Vec::new();
-        for expr in &self.exprs {
-            new_values.push(expr.evaluate(&next_tuple)?);
-        }
-        Ok(Some(Tuple::new(self.output_schema(), new_values)))
     }
 
     fn output_schema(&self) -> SchemaRef {

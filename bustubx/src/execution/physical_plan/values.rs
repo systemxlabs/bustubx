@@ -2,6 +2,7 @@ use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
 use crate::catalog::SchemaRef;
+use crate::common::ScalarValue;
 use crate::expression::{Expr, ExprTrait};
 use crate::{
     catalog::Schema,
@@ -13,15 +14,15 @@ use crate::{
 #[derive(Debug)]
 pub struct PhysicalValues {
     pub schema: SchemaRef,
-    pub values: Vec<Vec<Expr>>,
+    pub rows: Vec<Vec<Expr>>,
 
     cursor: AtomicU32,
 }
 impl PhysicalValues {
-    pub fn new(schema: SchemaRef, values: Vec<Vec<Expr>>) -> Self {
+    pub fn new(schema: SchemaRef, rows: Vec<Vec<Expr>>) -> Self {
         PhysicalValues {
             schema,
-            values,
+            rows,
             cursor: AtomicU32::new(0),
         }
     }
@@ -31,18 +32,12 @@ impl VolcanoExecutor for PhysicalValues {
         let cursor = self
             .cursor
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst) as usize;
-        if cursor < self.values.len() {
-            let values = self.values[cursor].clone();
-            Ok(Some(Tuple::new(
-                self.output_schema(),
-                values
-                    .into_iter()
-                    .map(|v| {
-                        v.evaluate(&Tuple::empty(Arc::new(Schema::empty())))
-                            .unwrap()
-                    })
-                    .collect(),
-            )))
+        if cursor < self.rows.len() {
+            let values = self.rows[cursor]
+                .iter()
+                .map(|e| e.evaluate(&Tuple::empty(Arc::new(Schema::empty()))))
+                .collect::<BustubxResult<Vec<ScalarValue>>>()?;
+            Ok(Some(Tuple::new(self.output_schema(), values)))
         } else {
             Ok(None)
         }
@@ -55,6 +50,6 @@ impl VolcanoExecutor for PhysicalValues {
 
 impl std::fmt::Display for PhysicalValues {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Values")
+        write!(f, "Values: rows={}", self.rows.len())
     }
 }
