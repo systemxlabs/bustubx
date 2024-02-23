@@ -25,7 +25,7 @@ impl TableHeap {
         let table_page = TablePage::new(schema.clone(), INVALID_PAGE_ID);
         first_page.write().unwrap().data =
             page_bytes_to_array(&TablePageCodec::encode(&table_page));
-        buffer_pool.unpin_page(first_page_id, true)?;
+        buffer_pool.unpin_page_id(first_page_id, true)?;
 
         Ok(Self {
             schema,
@@ -80,7 +80,7 @@ impl TableHeap {
                 last_page_id,
                 page_bytes_to_array(&TablePageCodec::encode(&last_table_page)),
             );
-            self.buffer_pool.unpin_page(last_page_id, true)?;
+            self.buffer_pool.unpin_page_id(last_page_id, true)?;
 
             // Update last_page_id.
             last_page_id = next_page_id;
@@ -95,7 +95,7 @@ impl TableHeap {
             last_page_id,
             page_bytes_to_array(&TablePageCodec::encode(&last_table_page)),
         );
-        self.buffer_pool.unpin_page(last_page_id, true)?;
+        self.buffer_pool.unpin_page_id(last_page_id, true)?;
 
         // Map the slot_id to a Rid and return
         Ok(Rid::new(last_page_id, slot_id as u32))
@@ -108,7 +108,7 @@ impl TableHeap {
         table_page.update_tuple_meta(meta, rid.slot_num as u16)?;
 
         page.write().unwrap().data = page_bytes_to_array(&TablePageCodec::encode(&table_page));
-        self.buffer_pool.unpin_page(rid.page_id, true)?;
+        self.buffer_pool.unpin_page_id(rid.page_id, true)?;
         Ok(())
     }
 
@@ -117,7 +117,7 @@ impl TableHeap {
         let (table_page, _) =
             TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone())?;
         let result = table_page.tuple(rid.slot_num as u16)?;
-        self.buffer_pool.unpin_page(rid.page_id, false)?;
+        self.buffer_pool.unpin_page_id(rid.page_id, false)?;
         Ok(result)
     }
 
@@ -126,7 +126,7 @@ impl TableHeap {
         let (table_page, _) =
             TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone())?;
         let result = table_page.tuple_meta(rid.slot_num as u16)?;
-        self.buffer_pool.unpin_page(rid.page_id, false)?;
+        self.buffer_pool.unpin_page_id(rid.page_id, false)?;
         Ok(result)
     }
 
@@ -138,7 +138,9 @@ impl TableHeap {
             .expect("Can not fetch page");
         let (table_page, _) =
             TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone()).unwrap();
-        self.buffer_pool.unpin_page(first_page_id, false).unwrap();
+        self.buffer_pool
+            .unpin_page_id(first_page_id, false)
+            .unwrap();
         if table_page.header.num_tuples == 0 {
             // TODO 忽略删除的tuple
             None
@@ -154,7 +156,7 @@ impl TableHeap {
             .expect("Can not fetch page");
         let (table_page, _) =
             TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone()).unwrap();
-        self.buffer_pool.unpin_page(rid.page_id, false).unwrap();
+        self.buffer_pool.unpin_page_id(rid.page_id, false).unwrap();
         let next_rid = table_page.get_next_rid(&rid);
         if next_rid.is_some() {
             return next_rid;
@@ -170,7 +172,7 @@ impl TableHeap {
         let (next_table_page, _) =
             TablePageCodec::decode(&next_page.read().unwrap().data, self.schema.clone()).unwrap();
         self.buffer_pool
-            .unpin_page(table_page.header.next_page_id, false)
+            .unpin_page_id(table_page.header.next_page_id, false)
             .unwrap();
         if next_table_page.header.num_tuples == 0 {
             // TODO 忽略删除的tuple

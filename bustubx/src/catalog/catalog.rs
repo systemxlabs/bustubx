@@ -9,10 +9,7 @@ use crate::common::{FullTableRef, TableReference};
 use crate::storage::{TupleMeta, BPLUS_INTERNAL_PAGE_MAX_SIZE, BPLUS_LEAF_PAGE_MAX_SIZE};
 use crate::{
     buffer::BufferPoolManager,
-    storage::{
-        index::{BPlusTreeIndex, IndexMetadata},
-        TableHeap,
-    },
+    storage::{index::BPlusTreeIndex, TableHeap},
     BustubxError, BustubxResult, Tuple,
 };
 
@@ -135,14 +132,8 @@ impl Catalog {
         let tuple_schema = table_info.schema.clone();
         let key_schema = tuple_schema.project(&key_attrs)?;
 
-        let index_metadata = IndexMetadata::new(
-            index_name.clone(),
-            table_ref.table().to_string(),
-            tuple_schema.clone(),
-            key_attrs,
-        );
         let b_plus_tree_index = BPlusTreeIndex::new(
-            index_metadata,
+            key_schema.clone(),
             self.buffer_pool.clone(),
             BPLUS_LEAF_PAGE_MAX_SIZE as u32,
             BPLUS_INTERNAL_PAGE_MAX_SIZE as u32,

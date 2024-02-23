@@ -277,31 +277,6 @@ impl BPlusTreeInternalPage {
             self.array[start as usize].1
         }
     }
-
-    pub fn print_page(&self, page_id: PageId) {
-        println!(
-            "{:?}, page_id: {}, size: {}/{}",
-            self.header.page_type, page_id, self.header.current_size, self.header.max_size
-        );
-        print!("array: ");
-        for i in 0..self.header.current_size {
-            if i == 0 {
-                print!("null => {} , ", self.array[i as usize].1);
-                continue;
-            }
-            print!(
-                "{:?} => {}{}",
-                self.array[i as usize].0.data,
-                self.array[i as usize].1,
-                if i == self.header.current_size - 1 {
-                    ""
-                } else {
-                    " , "
-                }
-            );
-        }
-        println!();
-    }
 }
 
 /**
@@ -425,32 +400,6 @@ impl BPlusTreeLeafPage {
             return Some(start as usize);
         }
         None
-    }
-
-    pub fn print_page(&self, page_id: PageId) {
-        println!(
-            "{:?}, page_id: {}, size: {}/{}, , next_page_id: {}",
-            self.header.page_type,
-            page_id,
-            self.header.current_size,
-            self.header.max_size,
-            self.header.next_page_id
-        );
-        print!("array: ");
-        for i in 0..self.header.current_size {
-            print!(
-                "{:?} => {}-{}{}",
-                self.array[i as usize].0.data,
-                self.array[i as usize].1.page_id,
-                self.array[i as usize].1.slot_num,
-                if i == self.header.current_size - 1 {
-                    ""
-                } else {
-                    " , "
-                }
-            );
-        }
-        println!()
     }
 }
 
