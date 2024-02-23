@@ -60,9 +60,9 @@ mod tests {
     #[test]
     fn tuple_codec() {
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Boolean, true),
-            Column::new("b".to_string(), DataType::Int32, true),
-            Column::new("c".to_string(), DataType::UInt64, true),
+            Column::new("a", DataType::Boolean, true),
+            Column::new("b", DataType::Int32, true),
+            Column::new("c", DataType::UInt64, true),
         ]));
         let tuple = Tuple::new(
             schema.clone(),

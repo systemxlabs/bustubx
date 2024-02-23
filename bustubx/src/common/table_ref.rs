@@ -29,19 +29,28 @@ pub enum TableReference {
 pub type FullTableRef = (String, String, String);
 
 impl TableReference {
-    pub fn bare(table: String) -> Self {
-        Self::Bare { table }
+    pub fn bare(table: impl Into<String>) -> Self {
+        Self::Bare {
+            table: table.into(),
+        }
     }
 
-    pub fn partial(schema: String, table: String) -> Self {
-        Self::Partial { schema, table }
+    pub fn partial(schema: impl Into<String>, table: impl Into<String>) -> Self {
+        Self::Partial {
+            schema: schema.into(),
+            table: table.into(),
+        }
     }
 
-    pub fn full(catalog: String, schema: String, table: String) -> Self {
+    pub fn full(
+        catalog: impl Into<String>,
+        schema: impl Into<String>,
+        table: impl Into<String>,
+    ) -> Self {
         Self::Full {
-            catalog,
-            schema,
-            table,
+            catalog: catalog.into(),
+            schema: schema.into(),
+            table: table.into(),
         }
     }
 

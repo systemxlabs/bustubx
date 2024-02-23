@@ -156,8 +156,8 @@ mod tests {
     #[test]
     fn table_page_codec() {
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, true),
-            Column::new("b".to_string(), DataType::Int32, true),
+            Column::new("a", DataType::Int8, true),
+            Column::new("b", DataType::Int32, true),
         ]));
         let tuple1 = Tuple::new(schema.clone(), vec![1i8.into(), 1i32.into()]);
         let tuple1_meta = TupleMeta {

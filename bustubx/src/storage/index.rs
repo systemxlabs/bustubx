@@ -822,8 +822,8 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, false),
-            Column::new("b".to_string(), DataType::Int16, false),
+            Column::new("a", DataType::Int8, false),
+            Column::new("b", DataType::Int16, false),
         ]));
         let index_metadata = IndexMetadata::new(
             "test_index".to_string(),
@@ -903,8 +903,8 @@ mod tests {
         let temp_path = temp_dir.path().join("test.db");
 
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, false),
-            Column::new("b".to_string(), DataType::Int16, false),
+            Column::new("a", DataType::Int8, false),
+            Column::new("b", DataType::Int16, false),
         ]));
         let index_metadata = IndexMetadata::new(
             "test_index".to_string(),

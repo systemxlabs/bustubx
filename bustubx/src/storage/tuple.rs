@@ -80,8 +80,8 @@ mod tests {
     #[test]
     pub fn tuple_compare() {
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, false),
-            Column::new("b".to_string(), DataType::Int16, false),
+            Column::new("a", DataType::Int8, false),
+            Column::new("b", DataType::Int16, false),
         ]));
         let tuple1 = super::Tuple::new(schema.clone(), vec![1i8.into(), 2i16.into()]);
         let tuple2 = super::Tuple::new(schema.clone(), vec![1i8.into(), 2i16.into()]);

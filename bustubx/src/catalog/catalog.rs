@@ -187,11 +187,11 @@ mod tests {
     pub fn test_catalog_create_table() {
         let mut db = Database::new_temp().unwrap();
 
-        let table_ref1 = TableReference::bare("test_table1".to_string());
+        let table_ref1 = TableReference::bare("test_table1");
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, true),
-            Column::new("b".to_string(), DataType::Int16, true),
-            Column::new("c".to_string(), DataType::Int32, true),
+            Column::new("a", DataType::Int8, true),
+            Column::new("b", DataType::Int16, true),
+            Column::new("c", DataType::Int32, true),
         ]));
         let table_info = db
             .catalog
@@ -199,11 +199,11 @@ mod tests {
             .unwrap();
         assert_eq!(table_info.schema, schema);
 
-        let table_ref2 = TableReference::bare("test_table2".to_string());
+        let table_ref2 = TableReference::bare("test_table2");
         let schema = Arc::new(Schema::new(vec![
-            Column::new("d".to_string(), DataType::Int32, true),
-            Column::new("e".to_string(), DataType::Int16, true),
-            Column::new("f".to_string(), DataType::Int8, true),
+            Column::new("d", DataType::Int32, true),
+            Column::new("e", DataType::Int16, true),
+            Column::new("f", DataType::Int8, true),
         ]));
         let table_info = db
             .catalog
@@ -227,11 +227,11 @@ mod tests {
         let buffer_pool = Arc::new(BufferPoolManager::new(1000, Arc::new(disk_manager)));
         let mut catalog = super::Catalog::new(buffer_pool);
 
-        let table_ref = TableReference::bare("test_table1".to_string());
+        let table_ref = TableReference::bare("test_table1");
         let schema = Arc::new(Schema::new(vec![
-            Column::new("a".to_string(), DataType::Int8, true),
-            Column::new("b".to_string(), DataType::Int16, true),
-            Column::new("c".to_string(), DataType::Int32, true),
+            Column::new("a", DataType::Int8, true),
+            Column::new("b", DataType::Int16, true),
+            Column::new("c", DataType::Int32, true),
         ]));
         let _ = catalog.create_table(table_ref.clone(), schema);
 

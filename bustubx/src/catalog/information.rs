@@ -12,32 +12,32 @@ pub static INFORMATION_SCHEMA_COLUMNS: &str = "columns";
 
 lazy_static::lazy_static! {
     pub static ref TABLES_SCHMEA: SchemaRef = Arc::new(Schema::new(vec![
-        Column::new("table_catalog".to_string(), DataType::Varchar(None), false),
-        Column::new("table_schema".to_string(), DataType::Varchar(None), false),
-        Column::new("table_name".to_string(), DataType::Varchar(None), false),
-        Column::new("first_page_id".to_string(), DataType::UInt32, false),
-        Column::new("last_page_id".to_string(), DataType::UInt32, false),
+        Column::new("table_catalog", DataType::Varchar(None), false),
+        Column::new("table_schema", DataType::Varchar(None), false),
+        Column::new("table_name", DataType::Varchar(None), false),
+        Column::new("first_page_id", DataType::UInt32, false),
+        Column::new("last_page_id", DataType::UInt32, false),
     ]));
 
     pub static ref TABLES_TABLE_REF: TableReference = TableReference::full(
-        DEFAULT_CATALOG_NAME.to_string(),
-        INFORMATION_SCHEMA_NAME.to_string(),
-        INFORMATION_SCHEMA_TABLES.to_string()
+        DEFAULT_CATALOG_NAME,
+        INFORMATION_SCHEMA_NAME,
+        INFORMATION_SCHEMA_TABLES,
     );
 
     pub static ref COLUMNS_SCHMEA: SchemaRef = Arc::new(Schema::new(vec![
-        Column::new("table_catalog".to_string(), DataType::Varchar(None), false),
-        Column::new("table_schema".to_string(), DataType::Varchar(None), false),
-        Column::new("table_name".to_string(), DataType::Varchar(None), false),
-        Column::new("column_name".to_string(), DataType::Varchar(None), false),
-        Column::new("data_type".to_string(), DataType::Varchar(None), false),
-        Column::new("nullable".to_string(), DataType::Boolean, false),
+        Column::new("table_catalog", DataType::Varchar(None), false),
+        Column::new("table_schema", DataType::Varchar(None), false),
+        Column::new("table_name", DataType::Varchar(None), false),
+        Column::new("column_name", DataType::Varchar(None), false),
+        Column::new("data_type", DataType::Varchar(None), false),
+        Column::new("nullable", DataType::Boolean, false),
     ]));
 
     pub static ref COLUMNS_TABLE_REF: TableReference = TableReference::full(
-        DEFAULT_CATALOG_NAME.to_string(),
-        INFORMATION_SCHEMA_NAME.to_string(),
-        INFORMATION_SCHEMA_COLUMNS.to_string()
+        DEFAULT_CATALOG_NAME,
+        INFORMATION_SCHEMA_NAME,
+        INFORMATION_SCHEMA_COLUMNS,
     );
 }
 
@@ -101,11 +101,7 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
             first_page_id: AtomicPageId::new(*first_page_id),
             last_page_id: AtomicPageId::new(*last_page_id),
         };
-        let table_ref = TableReference::full(
-            catalog.to_string(),
-            table_schema.to_string(),
-            table_name.to_string(),
-        );
+        let table_ref = TableReference::full(catalog, table_schema, table_name);
         db.catalog
             .tables
             .insert(table_ref.extend_to_full(), Arc::new(table_heap));

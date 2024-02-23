@@ -23,10 +23,10 @@ impl PartialEq for Column {
 impl Eq for Column {}
 
 impl Column {
-    pub fn new(name: String, data_type: DataType, nullable: bool) -> Self {
+    pub fn new(name: impl Into<String>, data_type: DataType, nullable: bool) -> Self {
         Self {
             relation: None,
-            name,
+            name: name.into(),
             data_type,
             nullable,
         }
