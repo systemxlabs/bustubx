@@ -703,102 +703,6 @@ impl BPlusTreeIndex {
             }
         }
     }
-
-    pub fn print_tree(&mut self) -> BustubxResult<()> {
-        if self.is_empty() {
-            println!("Empty tree.");
-            return Ok(());
-        }
-        // 层序遍历
-        let mut curr_queue = VecDeque::new();
-        curr_queue.push_back(self.root_page_id);
-
-        let mut level_index = 1;
-        loop {
-            if curr_queue.is_empty() {
-                return Ok(());
-            }
-            let mut next_queue = VecDeque::new();
-            // 打印当前层
-            println!("B+树第{}层: ", level_index);
-            while let Some(page_id) = curr_queue.pop_front() {
-                let page = self.buffer_pool.fetch_page(page_id)?;
-                let (curr_page, _) = BPlusTreePageCodec::decode(
-                    &page.read().unwrap().data,
-                    self.key_schema.clone(),
-                )?;
-                self.buffer_pool.unpin_page(page, false)?;
-
-                match curr_page {
-                    BPlusTreePage::Internal(internal_page) => {
-                        println!(
-                            "{:?}, page_id={}, size: {}/{}",
-                            internal_page.header.page_type,
-                            page_id,
-                            internal_page.header.current_size,
-                            internal_page.header.max_size
-                        );
-
-                        let mut table = comfy_table::Table::new();
-                        table.set_content_arrangement(ContentArrangement::Dynamic);
-                        table.load_preset("||--+-++|    ++++++");
-
-                        let mut header = Vec::new();
-                        let mut row = Vec::new();
-                        for (tuple, page_id) in internal_page.array.iter() {
-                            header.push(Cell::new(
-                                tuple
-                                    .data
-                                    .iter()
-                                    .map(|v| format!("{v}"))
-                                    .collect::<Vec<_>>()
-                                    .join(","),
-                            ));
-                            row.push(Cell::new(page_id));
-                        }
-                        table.set_header(header);
-                        table.add_row(row);
-                        println!("{table}");
-
-                        next_queue.extend(internal_page.values());
-                    }
-                    BPlusTreePage::Leaf(leaf_page) => {
-                        println!(
-                            "{:?}, page_id={}, size: {}/{}, , next_page_id: {}",
-                            leaf_page.header.page_type,
-                            page_id,
-                            leaf_page.header.current_size,
-                            leaf_page.header.max_size,
-                            leaf_page.header.next_page_id
-                        );
-
-                        let mut table = comfy_table::Table::new();
-                        table.load_preset("||--+-++|    ++++++");
-
-                        let mut header = Vec::new();
-                        let mut row = Vec::new();
-                        for (tuple, rid) in leaf_page.array.iter() {
-                            header.push(Cell::new(
-                                tuple
-                                    .data
-                                    .iter()
-                                    .map(|v| format!("{v}"))
-                                    .collect::<Vec<_>>()
-                                    .join(","),
-                            ));
-                            row.push(Cell::new(format!("{}-{}", rid.page_id, rid.slot_num)));
-                        }
-                        table.set_header(header);
-                        table.add_row(row);
-                        println!("{table}");
-                    }
-                }
-            }
-            println!();
-            level_index += 1;
-            curr_queue = next_queue;
-        }
-    }
 }
 
 #[cfg(test)]
@@ -806,6 +710,7 @@ mod tests {
     use std::sync::Arc;
     use tempfile::TempDir;
 
+    use crate::common::util::pretty_format_index_tree;
     use crate::{
         buffer::BufferPoolManager,
         catalog::{Column, DataType, Schema},
@@ -816,7 +721,6 @@ mod tests {
     use super::BPlusTreeIndex;
 
     #[test]
-    // TODO remove page id number
     pub fn test_index_insert() {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
@@ -835,91 +739,64 @@ mod tests {
                 Rid::new(1, 1),
             )
             .unwrap();
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![1i8.into(), 2i16.into()]
-                ))
-                .unwrap()
-                .unwrap(),
-            Rid::new(1, 1)
-        );
-        assert_eq!(index.root_page_id, 4);
-
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![2i8.into(), 4i16.into()]),
                 Rid::new(2, 2),
             )
             .unwrap();
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![2i8.into(), 4i16.into()]
-                ))
-                .unwrap()
-                .unwrap(),
-            Rid::new(2, 2)
-        );
-        assert_eq!(index.root_page_id, 4);
-
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![3i8.into(), 6i16.into()]),
                 Rid::new(3, 3),
             )
             .unwrap();
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![3i8.into(), 6i16.into()]
-                ))
-                .unwrap()
-                .unwrap(),
-            Rid::new(3, 3)
-        );
-        assert_eq!(index.root_page_id, 6);
-
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![4i8.into(), 8i16.into()]),
                 Rid::new(4, 4),
             )
             .unwrap();
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![4i8.into(), 8i16.into()]
-                ))
-                .unwrap()
-                .unwrap(),
-            Rid::new(4, 4)
-        );
-        assert_eq!(index.root_page_id, 6);
-
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![5i8.into(), 10i16.into()]),
                 Rid::new(5, 5),
             )
             .unwrap();
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![5i8.into(), 10i16.into()]
-                ))
-                .unwrap()
-                .unwrap(),
-            Rid::new(5, 5)
-        );
-        assert_eq!(index.root_page_id, 10);
 
-        index.print_tree().unwrap();
+        assert_eq!(pretty_format_index_tree(&index).unwrap(),
+                   "B+ Tree Level No.1:
++-----------------------+
+| page_id=10, size: 2/3 |
++-----------------------+
+| +------------+------+ |
+| | NULL, NULL | 3, 6 | |
+| +------------+------+ |
+| | 6          | 9    | |
+| +------------+------+ |
++-----------------------+
+B+ Tree Level No.2:
++-----------------------+----------------------+
+| page_id=6, size: 2/3  | page_id=9, size: 2/3 |
++-----------------------+----------------------+
+| +------------+------+ | +------+------+      |
+| | NULL, NULL | 2, 4 | | | 3, 6 | 4, 8 |      |
+| +------------+------+ | +------+------+      |
+| | 4          | 5    | | | 7    | 8    |      |
+| +------------+------+ | +------+------+      |
++-----------------------+----------------------+
+B+ Tree Level No.3:
++--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+
+| page_id=4, size: 1/2, next_page_id=5 | page_id=5, size: 1/2, next_page_id=7 | page_id=7, size: 1/2, next_page_id=8 | page_id=8, size: 2/2, next_page_id=0 |
++--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+
+| +------+                             | +------+                             | +------+                             | +------+-------+                     |
+| | 1, 2 |                             | | 2, 4 |                             | | 3, 6 |                             | | 4, 8 | 5, 10 |                     |
+| +------+                             | +------+                             | +------+                             | +------+-------+                     |
+| | 1-1  |                             | | 2-2  |                             | | 3-3  |                             | | 4-4  | 5-5   |                     |
+| +------+                             | +------+                             | +------+                             | +------+-------+                     |
++--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+
+"
+        );
     }
 
     #[test]
@@ -997,7 +874,6 @@ mod tests {
             )
             .unwrap();
         assert_eq!(index.root_page_id, 6);
-        index.print_tree().unwrap();
 
         index.delete(&Tuple::new(
             key_schema.clone(),
@@ -1163,5 +1039,6 @@ mod tests {
                 .unwrap(),
             None
         );
+        println!("{}", pretty_format_index_tree(&index).unwrap());
     }
 }
