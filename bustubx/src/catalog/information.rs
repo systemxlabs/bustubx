@@ -98,8 +98,8 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
         let table_heap = TableHeap {
             schema: schema.clone(),
             buffer_pool: db.buffer_pool.clone(),
-            first_page_id: AtomicPageId::new(*first_page_id as u32),
-            last_page_id: AtomicPageId::new(*last_page_id as u32),
+            first_page_id: AtomicPageId::new(*first_page_id),
+            last_page_id: AtomicPageId::new(*last_page_id),
         };
         let table_ref = TableReference::full(
             catalog.to_string(),

@@ -289,6 +289,6 @@ mod tests {
 
         let index_info = catalog.get_index_by_name(&table_ref, index_name1.as_str());
         assert!(index_info.is_some());
-        let index_info = index_info.unwrap();
+        let _index_info = index_info.unwrap();
     }
 }

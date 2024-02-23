@@ -22,3 +22,10 @@ query I
 select 1 as a
 ----
 1
+
+query I
+select a > 1 from t1
+----
+false
+true
+true

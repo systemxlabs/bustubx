@@ -83,8 +83,11 @@ fn evaluate_comparison(
     right: ScalarValue,
     accepted_orderings: &[Ordering],
 ) -> BustubxResult<ScalarValue> {
+    let coercion_type =
+        DataType::comparison_numeric_coercion(&left.data_type(), &right.data_type())?;
     let order = left
-        .partial_cmp(&right)
+        .cast_to(&coercion_type)?
+        .partial_cmp(&right.cast_to(&coercion_type)?)
         .ok_or(BustubxError::Execution(format!(
             "Can not compare {:?} and {:?}",
             left, right

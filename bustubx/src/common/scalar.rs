@@ -85,7 +85,7 @@ impl ScalarValue {
                     ScalarValue::Int64(v) => Ok(v.map(|v| v as i8)),
                     _ => Err(error),
                 };
-                data.map(|v| ScalarValue::Int8(v))
+                data.map(ScalarValue::Int8)
             }
             DataType::Int16 => {
                 let data = match self {
@@ -93,7 +93,7 @@ impl ScalarValue {
                     ScalarValue::Int64(v) => Ok(v.map(|v| v as i16)),
                     _ => Err(error),
                 };
-                data.map(|v| ScalarValue::Int16(v))
+                data.map(ScalarValue::Int16)
             }
             DataType::Int32 => {
                 let data = match self {
@@ -101,14 +101,15 @@ impl ScalarValue {
                     ScalarValue::Int64(v) => Ok(v.map(|v| v as i32)),
                     _ => Err(error),
                 };
-                data.map(|v| ScalarValue::Int32(v))
+                data.map(ScalarValue::Int32)
             }
             DataType::Int64 => {
                 let data = match self {
                     ScalarValue::Int8(v) => Ok(v.map(|v| v as i64)),
+                    ScalarValue::Int32(v) => Ok(v.map(|v| v as i64)),
                     _ => Err(error),
                 };
-                data.map(|v| ScalarValue::Int64(v))
+                data.map(ScalarValue::Int64)
             }
             DataType::UInt8 => {
                 let data = match self {
@@ -116,7 +117,7 @@ impl ScalarValue {
                     ScalarValue::Int64(v) => Ok(v.map(|v| v as u8)),
                     _ => Err(error),
                 };
-                data.map(|v| ScalarValue::UInt8(v))
+                data.map(ScalarValue::UInt8)
             }
             DataType::UInt16 => {
                 let data = match self {
@@ -124,7 +125,7 @@ impl ScalarValue {
                     ScalarValue::Int64(v) => Ok(v.map(|v| v as u16)),
                     _ => Err(error),
                 };
-                data.map(|v| ScalarValue::UInt16(v))
+                data.map(ScalarValue::UInt16)
             }
             DataType::UInt32 => {
                 let data = match self {
@@ -132,7 +133,7 @@ impl ScalarValue {
                     ScalarValue::Int64(v) => Ok(v.map(|v| v as u32)),
                     _ => Err(error),
                 };
-                data.map(|v| ScalarValue::UInt32(v))
+                data.map(ScalarValue::UInt32)
             }
             DataType::UInt64 => {
                 let data = match self {
@@ -140,7 +141,7 @@ impl ScalarValue {
                     ScalarValue::Int64(v) => Ok(v.map(|v| v as u64)),
                     _ => Err(error),
                 };
-                data.map(|v| ScalarValue::UInt64(v))
+                data.map(ScalarValue::UInt64)
             }
             DataType::Float32 => {
                 let data = match self {
@@ -149,7 +150,7 @@ impl ScalarValue {
                     ScalarValue::Float64(v) => Ok(v.map(|v| v as f32)),
                     _ => Err(error),
                 };
-                data.map(|v| ScalarValue::Float32(v))
+                data.map(ScalarValue::Float32)
             }
             DataType::Float64 => {
                 let data = match self {
@@ -158,14 +159,14 @@ impl ScalarValue {
                     ScalarValue::Int64(v) => Ok(v.map(|v| v as f64)),
                     _ => Err(error),
                 };
-                data.map(|v| ScalarValue::Float64(v))
+                data.map(ScalarValue::Float64)
             }
             DataType::Varchar(_) => {
                 let data = match self {
                     ScalarValue::Int8(v) => Ok(v.map(|v| v.to_string())),
                     _ => Err(error),
                 };
-                data.map(|v| ScalarValue::Varchar(v))
+                data.map(ScalarValue::Varchar)
             }
             _ => Err(error),
         }

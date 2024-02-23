@@ -24,7 +24,7 @@ impl DataType {
     pub fn comparison_numeric_coercion(l: &DataType, r: &DataType) -> BustubxResult<DataType> {
         use super::DataType::*;
         if l == r {
-            return Ok(l.clone());
+            return Ok(*l);
         }
         match (l, r) {
             (Float64, _) | (_, Float64) => Ok(Float64),

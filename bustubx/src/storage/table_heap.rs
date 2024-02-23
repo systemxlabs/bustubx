@@ -229,7 +229,7 @@ mod tests {
         ]));
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let buffer_pool = Arc::new(BufferPoolManager::new(1000, Arc::new(disk_manager)));
-        let mut table_heap = TableHeap::try_new(schema.clone(), buffer_pool).unwrap();
+        let table_heap = TableHeap::try_new(schema.clone(), buffer_pool).unwrap();
         let meta = super::TupleMeta {
             insert_txn_id: 0,
             delete_txn_id: 0,
@@ -278,7 +278,7 @@ mod tests {
         ]));
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let buffer_pool = Arc::new(BufferPoolManager::new(1000, Arc::new(disk_manager)));
-        let mut table_heap = TableHeap::try_new(schema.clone(), buffer_pool).unwrap();
+        let table_heap = TableHeap::try_new(schema.clone(), buffer_pool).unwrap();
 
         let meta1 = super::TupleMeta {
             insert_txn_id: 1,
