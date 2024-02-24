@@ -1,7 +1,9 @@
 use log::debug;
+use std::ops::{Bound, RangeBounds, RangeFull};
 use std::sync::Mutex;
 
 use crate::catalog::SchemaRef;
+use crate::common::rid::Rid;
 use crate::common::TableReference;
 use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
@@ -22,18 +24,21 @@ impl PhysicalSeqScan {
         PhysicalSeqScan {
             table,
             table_schema,
-            iterator: Mutex::new(TableIterator::new(None, None)),
+            iterator: Mutex::new(TableIterator::new(
+                Bound::Unbounded,
+                Bound::Unbounded,
+                None,
+                false,
+                false,
+            )),
         }
     }
 }
 
 impl VolcanoExecutor for PhysicalSeqScan {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
-        debug!("init table scan executor");
         let table_heap = context.catalog.table_heap(&self.table)?;
-        let inited_iterator = table_heap.iter(None, None);
-        let mut iterator = self.iterator.lock().unwrap();
-        *iterator = inited_iterator;
+        *self.iterator.lock().unwrap() = table_heap.scan(RangeFull);
         Ok(())
     }
 

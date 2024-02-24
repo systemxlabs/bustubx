@@ -1,8 +1,9 @@
 use std::collections::VecDeque;
+use std::ops::{Bound, Range, RangeBounds};
 use std::sync::{Arc, RwLock};
 
 use crate::buffer::{Page, PageId, INVALID_PAGE_ID};
-use crate::catalog::SchemaRef;
+use crate::catalog::{Schema, SchemaRef};
 use crate::common::util::page_bytes_to_array;
 use crate::storage::codec::{
     BPlusTreeInternalPageCodec, BPlusTreeLeafPageCodec, BPlusTreePageCodec,
@@ -40,6 +41,8 @@ pub struct BPlusTreeIndex {
     pub internal_max_size: u32,
     pub root_page_id: PageId,
 }
+
+pub struct TreeIndexIterator {}
 
 impl BPlusTreeIndex {
     pub fn new(
@@ -205,7 +208,11 @@ impl BPlusTreeIndex {
         Ok(())
     }
 
-    pub fn scan(&self, _key: &Tuple) -> Vec<Rid> {
+    pub fn scan<R>(&self, range: R) -> Vec<Rid>
+    where
+        R: RangeBounds<Tuple>,
+    {
+        range.start_bound();
         unimplemented!()
     }
 
@@ -748,5 +755,28 @@ B+ Tree Level No.2:
 | +------+------+------+               | +------+------+                      | +------+------+--------+             |
 +--------------------------------------+--------------------------------------+--------------------------------------+
 ");
+    }
+
+    #[test]
+    pub fn test_index_get() {
+        let (mut index, key_schema) = build_index();
+        assert_eq!(
+            index
+                .get(&Tuple::new(
+                    key_schema.clone(),
+                    vec![3i8.into(), 3i16.into()],
+                ))
+                .unwrap(),
+            Some(Rid::new(3, 3))
+        );
+        assert_eq!(
+            index
+                .get(&Tuple::new(
+                    key_schema.clone(),
+                    vec![10i8.into(), 10i16.into()],
+                ))
+                .unwrap(),
+            Some(Rid::new(10, 10))
+        );
     }
 }

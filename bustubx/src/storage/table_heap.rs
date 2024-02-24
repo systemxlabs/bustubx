@@ -4,6 +4,8 @@ use crate::common::util::page_bytes_to_array;
 use crate::storage::codec::TablePageCodec;
 use crate::storage::{TablePage, TupleMeta};
 use crate::{buffer::BufferPoolManager, common::rid::Rid, BustubxResult};
+use std::collections::Bound;
+use std::ops::RangeBounds;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
@@ -182,35 +184,85 @@ impl TableHeap {
         }
     }
 
-    pub fn iter(&self, start_at: Option<Rid>, stop_at: Option<Rid>) -> TableIterator {
+    pub fn scan<R: RangeBounds<Rid>>(&self, rang: R) -> TableIterator {
         TableIterator {
-            rid: start_at.or(self.get_first_rid()),
-            stop_at,
+            start_bound: rang.start_bound().cloned(),
+            end_bound: rang.end_bound().cloned(),
+            cursor: None,
+            started: false,
+            ended: false,
         }
     }
 }
 
 #[derive(derive_new::new, Debug)]
 pub struct TableIterator {
-    pub rid: Option<Rid>,
-    pub stop_at: Option<Rid>,
+    start_bound: Bound<Rid>,
+    end_bound: Bound<Rid>,
+    cursor: Option<Rid>,
+    started: bool,
+    ended: bool,
 }
 
 impl TableIterator {
     pub fn next(&mut self, table_heap: &TableHeap) -> Option<(TupleMeta, Tuple)> {
-        self.rid?;
-        let rid = self.rid.unwrap();
-        if self.stop_at.is_some() && rid == self.stop_at.unwrap() {
+        if self.ended {
             return None;
         }
-        let result = table_heap.tuple(rid).unwrap();
-        self.rid = table_heap.get_next_rid(rid);
-        Some(result)
+
+        if self.started {
+            match self.end_bound {
+                Bound::Included(rid) => {
+                    if let Some(next_rid) = table_heap.get_next_rid(self.cursor.unwrap()) {
+                        if next_rid == rid {
+                            self.ended = true;
+                        }
+                        self.cursor = Some(next_rid);
+                        self.cursor.map(|rid| table_heap.tuple(rid).unwrap())
+                    } else {
+                        None
+                    }
+                }
+                Bound::Excluded(rid) => {
+                    if let Some(next_rid) = table_heap.get_next_rid(self.cursor.unwrap()) {
+                        if next_rid == rid {
+                            None
+                        } else {
+                            self.cursor = Some(next_rid);
+                            self.cursor.map(|rid| table_heap.tuple(rid).unwrap())
+                        }
+                    } else {
+                        None
+                    }
+                }
+                Bound::Unbounded => {
+                    let next_rid = table_heap.get_next_rid(self.cursor.unwrap());
+                    self.cursor = next_rid;
+                    self.cursor.map(|rid| table_heap.tuple(rid).unwrap())
+                }
+            }
+        } else {
+            match self.start_bound {
+                Bound::Included(rid) => {
+                    self.cursor = Some(rid.clone());
+                    Some(table_heap.tuple(rid).unwrap())
+                }
+                Bound::Excluded(rid) => {
+                    self.cursor = table_heap.get_next_rid(rid);
+                    self.cursor.map(|rid| table_heap.tuple(rid).unwrap())
+                }
+                Bound::Unbounded => {
+                    self.cursor = table_heap.get_first_rid();
+                    self.cursor.map(|rid| table_heap.tuple(rid).unwrap())
+                }
+            }
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::ops::RangeFull;
     use std::sync::Arc;
     use tempfile::TempDir;
 
@@ -377,7 +429,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut iterator = table_heap.iter(None, None);
+        let mut iterator = table_heap.scan(RangeFull);
 
         let (meta, tuple) = iterator.next(&table_heap).unwrap();
         assert_eq!(meta, meta1);
