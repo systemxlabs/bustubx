@@ -19,16 +19,9 @@ pub static DEFAULT_SCHEMA_NAME: &str = "public";
 /// catalog, schema, table, index
 pub type FullIndexRef = (String, String, String, String);
 
-// index元信息
-pub struct IndexInfo {
-    pub key_schema: SchemaRef,
-    pub index: BPlusTreeIndex,
-    pub table_name: String,
-}
-
 pub struct Catalog {
     pub tables: HashMap<FullTableRef, Arc<TableHeap>>,
-    pub indexes: HashMap<FullIndexRef, IndexInfo>,
+    pub indexes: HashMap<FullIndexRef, Arc<BPlusTreeIndex>>,
     pub buffer_pool: Arc<BufferPoolManager>,
 }
 
@@ -124,7 +117,7 @@ impl Catalog {
         index_name: String,
         table_ref: &TableReference,
         key_attrs: Vec<usize>,
-    ) -> BustubxResult<&IndexInfo> {
+    ) -> BustubxResult<Arc<BPlusTreeIndex>> {
         let (catalog, schema, table) = table_ref.extend_to_full();
         let full_index_ref = (catalog, schema, table, index_name.clone());
 
@@ -139,14 +132,11 @@ impl Catalog {
             BPLUS_INTERNAL_PAGE_MAX_SIZE as u32,
         );
 
-        let index_info = IndexInfo {
-            key_schema,
-            index: b_plus_tree_index,
-            table_name: table_ref.table().to_string(),
-        };
-        self.indexes.insert(full_index_ref.clone(), index_info);
+        self.indexes
+            .insert(full_index_ref.clone(), Arc::new(b_plus_tree_index));
         self.indexes
             .get(&full_index_ref)
+            .cloned()
             .ok_or(BustubxError::Internal("Failed to create table".to_string()))
     }
 
@@ -154,10 +144,10 @@ impl Catalog {
         &self,
         table_ref: &TableReference,
         index_name: &str,
-    ) -> Option<&IndexInfo> {
+    ) -> Option<Arc<BPlusTreeIndex>> {
         let (catalog, schema, table) = table_ref.extend_to_full();
         let full_index_ref = (catalog, schema, table, index_name.to_string());
-        self.indexes.get(&full_index_ref)
+        self.indexes.get(&full_index_ref).cloned()
     }
 }
 
@@ -231,7 +221,6 @@ mod tests {
         let index_info = catalog
             .create_index(index_name1.clone(), &table_ref, key_attrs)
             .unwrap();
-        assert_eq!(index_info.table_name, table_ref.table());
         assert_eq!(index_info.key_schema.column_count(), 2);
         assert_eq!(
             index_info.key_schema.column_with_index(0).unwrap().name,
@@ -263,7 +252,6 @@ mod tests {
         let index_info = catalog
             .create_index(index_name2.clone(), &table_ref, key_attrs)
             .unwrap();
-        assert_eq!(index_info.table_name, table_ref.table());
         assert_eq!(index_info.key_schema.column_count(), 1);
         assert_eq!(
             index_info.key_schema.column_with_index(0).unwrap().name,

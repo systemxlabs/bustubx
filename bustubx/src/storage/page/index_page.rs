@@ -1,6 +1,7 @@
 use crate::buffer::{PageId, INVALID_PAGE_ID};
-use crate::catalog::SchemaRef;
+use crate::catalog::{Schema, SchemaRef};
 use crate::{common::rid::Rid, Tuple};
+use std::sync::Arc;
 
 pub const BPLUS_INTERNAL_PAGE_MAX_SIZE: usize = 10;
 pub const BPLUS_LEAF_PAGE_MAX_SIZE: usize = 10;
@@ -305,6 +306,19 @@ impl BPlusTreeLeafPage {
         }
     }
 
+    pub fn empty() -> Self {
+        Self {
+            schema: Arc::new(Schema::empty()),
+            header: BPlusTreeLeafPageHeader {
+                page_type: BPlusTreePageType::LeafPage,
+                current_size: 0,
+                max_size: 0,
+                next_page_id: INVALID_PAGE_ID,
+            },
+            array: Vec::new(),
+        }
+    }
+
     pub fn min_size(&self) -> u32 {
         self.header.max_size / 2
     }
@@ -383,6 +397,18 @@ impl BPlusTreeLeafPage {
         }
         if key.partial_cmp(&self.array[start as usize].0).unwrap() == std::cmp::Ordering::Equal {
             return Some(start as usize);
+        }
+        None
+    }
+
+    pub fn next_closest(&self, tuple: &Tuple, included: bool) -> Option<usize> {
+        for (idx, (key, _)) in self.array.iter().enumerate() {
+            if tuple == key && included {
+                return Some(idx);
+            }
+            if key > tuple {
+                return Some(idx);
+            }
         }
         None
     }

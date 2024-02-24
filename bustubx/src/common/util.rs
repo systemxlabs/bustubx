@@ -6,6 +6,7 @@ use crate::storage::index::BPlusTreeIndex;
 use crate::BustubxResult;
 use comfy_table::Cell;
 use std::collections::VecDeque;
+use std::sync::atomic::Ordering;
 
 use crate::storage::{BPlusTreePage, Tuple};
 
@@ -79,7 +80,7 @@ pub(crate) fn pretty_format_index_tree(index: &BPlusTreeIndex) -> BustubxResult<
     }
     // 层序遍历
     let mut curr_queue = VecDeque::new();
-    curr_queue.push_back(index.root_page_id);
+    curr_queue.push_back(index.root_page_id.load(Ordering::SeqCst));
 
     let mut level_index = 1;
     loop {

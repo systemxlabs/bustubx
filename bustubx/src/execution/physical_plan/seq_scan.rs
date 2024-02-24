@@ -29,7 +29,7 @@ impl PhysicalSeqScan {
 impl VolcanoExecutor for PhysicalSeqScan {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         let table_heap = context.catalog.table_heap(&self.table)?;
-        *self.iterator.lock().unwrap() = Some(TableIterator::new(table_heap, (..)));
+        *self.iterator.lock().unwrap() = Some(TableIterator::new(table_heap, ..));
         Ok(())
     }
 

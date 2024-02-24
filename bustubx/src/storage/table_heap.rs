@@ -247,7 +247,7 @@ impl TableIterator {
             self.started = true;
             match self.start_bound {
                 Bound::Included(rid) => {
-                    self.cursor = Some(rid.clone());
+                    self.cursor = Some(rid);
                     Some(self.heap.tuple(rid).unwrap())
                 }
                 Bound::Excluded(rid) => {
@@ -265,7 +265,7 @@ impl TableIterator {
 
 #[cfg(test)]
 mod tests {
-    use std::ops::RangeFull;
+
     use std::sync::Arc;
     use tempfile::TempDir;
 
@@ -433,7 +433,7 @@ mod tests {
             )
             .unwrap();
 
-        let mut iterator = TableIterator::new(table_heap.clone(), (..));
+        let mut iterator = TableIterator::new(table_heap.clone(), ..);
 
         let (meta, tuple) = iterator.next().unwrap();
         assert_eq!(meta, meta1);
