@@ -42,8 +42,6 @@ pub struct BPlusTreeIndex {
     pub root_page_id: PageId,
 }
 
-pub struct TreeIndexIterator {}
-
 impl BPlusTreeIndex {
     pub fn new(
         key_schema: SchemaRef,
@@ -571,6 +569,8 @@ impl BPlusTreeIndex {
         }
     }
 }
+
+pub struct TreeIndexIterator {}
 
 #[cfg(test)]
 mod tests {

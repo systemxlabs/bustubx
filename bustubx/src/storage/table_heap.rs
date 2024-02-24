@@ -183,20 +183,11 @@ impl TableHeap {
             Some(Rid::new(table_page.header.next_page_id, 0))
         }
     }
-
-    pub fn scan<R: RangeBounds<Rid>>(&self, rang: R) -> TableIterator {
-        TableIterator {
-            start_bound: rang.start_bound().cloned(),
-            end_bound: rang.end_bound().cloned(),
-            cursor: None,
-            started: false,
-            ended: false,
-        }
-    }
 }
 
-#[derive(derive_new::new, Debug)]
+#[derive(Debug)]
 pub struct TableIterator {
+    heap: Arc<TableHeap>,
     start_bound: Bound<Rid>,
     end_bound: Bound<Rid>,
     cursor: Option<Rid>,
@@ -205,7 +196,18 @@ pub struct TableIterator {
 }
 
 impl TableIterator {
-    pub fn next(&mut self, table_heap: &TableHeap) -> Option<(TupleMeta, Tuple)> {
+    pub fn new<R: RangeBounds<Rid>>(heap: Arc<TableHeap>, range: R) -> Self {
+        Self {
+            heap,
+            start_bound: range.start_bound().cloned(),
+            end_bound: range.end_bound().cloned(),
+            cursor: None,
+            started: false,
+            ended: false,
+        }
+    }
+
+    pub fn next(&mut self) -> Option<(TupleMeta, Tuple)> {
         if self.ended {
             return None;
         }
@@ -213,47 +215,48 @@ impl TableIterator {
         if self.started {
             match self.end_bound {
                 Bound::Included(rid) => {
-                    if let Some(next_rid) = table_heap.get_next_rid(self.cursor.unwrap()) {
+                    if let Some(next_rid) = self.heap.get_next_rid(self.cursor.unwrap()) {
                         if next_rid == rid {
                             self.ended = true;
                         }
                         self.cursor = Some(next_rid);
-                        self.cursor.map(|rid| table_heap.tuple(rid).unwrap())
+                        self.cursor.map(|rid| self.heap.tuple(rid).unwrap())
                     } else {
                         None
                     }
                 }
                 Bound::Excluded(rid) => {
-                    if let Some(next_rid) = table_heap.get_next_rid(self.cursor.unwrap()) {
+                    if let Some(next_rid) = self.heap.get_next_rid(self.cursor.unwrap()) {
                         if next_rid == rid {
                             None
                         } else {
                             self.cursor = Some(next_rid);
-                            self.cursor.map(|rid| table_heap.tuple(rid).unwrap())
+                            self.cursor.map(|rid| self.heap.tuple(rid).unwrap())
                         }
                     } else {
                         None
                     }
                 }
                 Bound::Unbounded => {
-                    let next_rid = table_heap.get_next_rid(self.cursor.unwrap());
+                    let next_rid = self.heap.get_next_rid(self.cursor.unwrap());
                     self.cursor = next_rid;
-                    self.cursor.map(|rid| table_heap.tuple(rid).unwrap())
+                    self.cursor.map(|rid| self.heap.tuple(rid).unwrap())
                 }
             }
         } else {
+            self.started = true;
             match self.start_bound {
                 Bound::Included(rid) => {
                     self.cursor = Some(rid.clone());
-                    Some(table_heap.tuple(rid).unwrap())
+                    Some(self.heap.tuple(rid).unwrap())
                 }
                 Bound::Excluded(rid) => {
-                    self.cursor = table_heap.get_next_rid(rid);
-                    self.cursor.map(|rid| table_heap.tuple(rid).unwrap())
+                    self.cursor = self.heap.get_next_rid(rid);
+                    self.cursor.map(|rid| self.heap.tuple(rid).unwrap())
                 }
                 Bound::Unbounded => {
-                    self.cursor = table_heap.get_first_rid();
-                    self.cursor.map(|rid| table_heap.tuple(rid).unwrap())
+                    self.cursor = self.heap.get_first_rid();
+                    self.cursor.map(|rid| self.heap.tuple(rid).unwrap())
                 }
             }
         }
@@ -267,6 +270,7 @@ mod tests {
     use tempfile::TempDir;
 
     use crate::catalog::{Column, DataType, Schema};
+    use crate::storage::TableIterator;
     use crate::{
         buffer::BufferPoolManager,
         storage::{table_heap::TableHeap, DiskManager, Tuple},
@@ -393,7 +397,7 @@ mod tests {
 
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let buffer_pool = Arc::new(BufferPoolManager::new(1000, Arc::new(disk_manager)));
-        let table_heap = TableHeap::try_new(schema.clone(), buffer_pool).unwrap();
+        let table_heap = Arc::new(TableHeap::try_new(schema.clone(), buffer_pool).unwrap());
 
         let meta1 = super::TupleMeta {
             insert_txn_id: 1,
@@ -429,20 +433,20 @@ mod tests {
             )
             .unwrap();
 
-        let mut iterator = table_heap.scan(RangeFull);
+        let mut iterator = TableIterator::new(table_heap.clone(), (..));
 
-        let (meta, tuple) = iterator.next(&table_heap).unwrap();
+        let (meta, tuple) = iterator.next().unwrap();
         assert_eq!(meta, meta1);
         assert_eq!(tuple.data, vec![1i8.into(), 1i16.into()]);
 
-        let (meta, tuple) = iterator.next(&table_heap).unwrap();
+        let (meta, tuple) = iterator.next().unwrap();
         assert_eq!(meta, meta2);
         assert_eq!(tuple.data, vec![2i8.into(), 2i16.into()]);
 
-        let (meta, tuple) = iterator.next(&table_heap).unwrap();
+        let (meta, tuple) = iterator.next().unwrap();
         assert_eq!(meta, meta3);
         assert_eq!(tuple.data, vec![3i8.into(), 3i16.into()]);
 
-        assert!(iterator.next(&table_heap).is_none());
+        assert!(iterator.next().is_none());
     }
 }

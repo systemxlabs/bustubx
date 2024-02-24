@@ -1,14 +1,11 @@
-use log::debug;
-use std::ops::{Bound, RangeBounds, RangeFull};
 use std::sync::Mutex;
 
 use crate::catalog::SchemaRef;
-use crate::common::rid::Rid;
 use crate::common::TableReference;
 use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
     storage::{TableIterator, Tuple},
-    BustubxResult,
+    BustubxError, BustubxResult,
 };
 
 #[derive(Debug)]
@@ -16,7 +13,7 @@ pub struct PhysicalSeqScan {
     pub table: TableReference,
     pub table_schema: SchemaRef,
 
-    iterator: Mutex<TableIterator>,
+    iterator: Mutex<Option<TableIterator>>,
 }
 
 impl PhysicalSeqScan {
@@ -24,13 +21,7 @@ impl PhysicalSeqScan {
         PhysicalSeqScan {
             table,
             table_schema,
-            iterator: Mutex::new(TableIterator::new(
-                Bound::Unbounded,
-                Bound::Unbounded,
-                None,
-                false,
-                false,
-            )),
+            iterator: Mutex::new(None),
         }
     }
 }
@@ -38,15 +29,18 @@ impl PhysicalSeqScan {
 impl VolcanoExecutor for PhysicalSeqScan {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         let table_heap = context.catalog.table_heap(&self.table)?;
-        *self.iterator.lock().unwrap() = table_heap.scan(RangeFull);
+        *self.iterator.lock().unwrap() = Some(TableIterator::new(table_heap, (..)));
         Ok(())
     }
 
-    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
-        let table_heap = context.catalog.table_heap(&self.table)?;
-        let mut iterator = self.iterator.lock().unwrap();
-        let full_tuple = iterator.next(&table_heap);
-        Ok(full_tuple.map(|t| t.1))
+    fn next(&self, _context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
+        let mut guard = self.iterator.lock().unwrap();
+        match &mut *guard {
+            Some(x) => Ok(x.next().map(|full| full.1)),
+            None => Err(BustubxError::Execution(
+                "table iterator not created".to_string(),
+            )),
+        }
     }
 
     fn output_schema(&self) -> SchemaRef {
