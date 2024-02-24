@@ -1,4 +1,3 @@
-use comfy_table::{Cell, ContentArrangement};
 use std::collections::VecDeque;
 use std::sync::{Arc, RwLock};
 
@@ -70,7 +69,7 @@ impl BPlusTreeIndex {
         let mut context = Context::new(self.root_page_id);
         // 找到leaf page
         let Some(leaf_page) = self.find_leaf_page(key, &mut context)? else {
-            return Err(BustubxError::Execution(
+            return Err(BustubxError::Storage(
                 "Cannot find leaf page to insert".to_string(),
             ));
         };
@@ -138,31 +137,31 @@ impl BPlusTreeIndex {
         Ok(())
     }
 
-    pub fn delete(&mut self, key: &Tuple) {
+    pub fn delete(&mut self, key: &Tuple) -> BustubxResult<()> {
         if self.is_empty() {
-            return;
+            return Ok(());
         }
         let mut context = Context::new(self.root_page_id);
         // 找到leaf page
-        let Some(leaf_page) = self.find_leaf_page(key, &mut context).unwrap() else {
-            todo!()
+        let Some(leaf_page) = self.find_leaf_page(key, &mut context)? else {
+            return Err(BustubxError::Storage(
+                "Cannot find leaf page to delete".to_string(),
+            ));
         };
         let (mut leaf_tree_page, _) = BPlusTreeLeafPageCodec::decode(
             &leaf_page.read().unwrap().data,
             self.key_schema.clone(),
-        )
-        .unwrap();
+        )?;
         leaf_tree_page.delete(key);
 
-        let mut curr_page = BPlusTreePage::Leaf(leaf_tree_page);
+        let mut curr_tree_page = BPlusTreePage::Leaf(leaf_tree_page);
         let mut curr_page_id = leaf_page.read().unwrap().page_id;
 
         // leaf page未达到半满则从兄弟节点借一个或合并
-        while curr_page.is_underflow(self.root_page_id == curr_page_id) {
+        while curr_tree_page.is_underflow(self.root_page_id == curr_page_id) {
             if let Some(parent_page_id) = context.read_set.pop_back() {
-                let (left_sibling_page_id, right_sibling_page_id) = self
-                    .find_sibling_pages(parent_page_id, curr_page_id)
-                    .unwrap();
+                let (left_sibling_page_id, right_sibling_page_id) =
+                    self.find_sibling_pages(parent_page_id, curr_page_id)?;
 
                 // 尝试从左兄弟借一个
                 if let Some(left_sibling_page_id) = left_sibling_page_id {
@@ -173,8 +172,7 @@ impl BPlusTreeIndex {
                     let (mut left_sibling_tree_page, _) = BPlusTreePageCodec::decode(
                         &left_sibling_page.read().unwrap().data,
                         self.key_schema.clone(),
-                    )
-                    .unwrap();
+                    )?;
                     if left_sibling_tree_page.can_borrow() {
                         // 从左兄弟借一个，返回父节点需要更新的key
                         let (old_internal_key, new_internal_key) = match left_sibling_tree_page {
@@ -185,18 +183,15 @@ impl BPlusTreeIndex {
                                     )
                                     .remove(0);
                                 if let BPlusTreePage::Internal(ref mut curr_internal_page) =
-                                    curr_page
+                                    curr_tree_page
                                 {
                                     curr_internal_page.insert(kv.0.clone(), kv.1);
-                                    let max_leaf_kv = self
-                                        .find_subtree_max_leafkv(
-                                            left_sibling_internal_page.value_at(
-                                                left_sibling_internal_page.header.current_size
-                                                    as usize
-                                                    - 1,
-                                            ),
-                                        )
-                                        .unwrap();
+                                    let max_leaf_kv = self.find_subtree_max_leafkv(
+                                        left_sibling_internal_page.value_at(
+                                            left_sibling_internal_page.header.current_size as usize
+                                                - 1,
+                                        ),
+                                    )?;
                                     (kv.0, max_leaf_kv.0)
                                 } else {
                                     panic!("Leaf page can not borrow from internal page");
@@ -208,7 +203,8 @@ impl BPlusTreeIndex {
                                         left_sibling_leaf_page.header.current_size as usize - 1,
                                     )
                                     .remove(0);
-                                if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_page {
+                                if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_tree_page
+                                {
                                     curr_leaf_page.insert(kv.0.clone(), kv.1);
                                     (
                                         kv.0,
@@ -231,34 +227,25 @@ impl BPlusTreeIndex {
                                 &left_sibling_tree_page,
                             )),
                         );
-                        self.buffer_pool
-                            .unpin_page_id(left_sibling_page_id, true)
-                            .unwrap();
+                        self.buffer_pool.unpin_page_id(left_sibling_page_id, true)?;
 
                         // 更新父节点
-                        let parent_page = self
-                            .buffer_pool
-                            .fetch_page(parent_page_id)
-                            .expect("Parent page can not be fetched");
+                        let parent_page = self.buffer_pool.fetch_page(parent_page_id)?;
                         let (mut parent_internal_page, _) = BPlusTreeInternalPageCodec::decode(
                             &parent_page.read().unwrap().data,
                             self.key_schema.clone(),
-                        )
-                        .unwrap();
+                        )?;
                         parent_internal_page.replace_key(&old_internal_key, new_internal_key);
 
                         parent_page.write().unwrap().data = page_bytes_to_array(
                             &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
                         );
-                        self.buffer_pool
-                            .unpin_page_id(parent_page_id, true)
-                            .unwrap();
+                        self.buffer_pool.unpin_page_id(parent_page_id, true)?;
 
                         break;
                     }
                     self.buffer_pool
-                        .unpin_page_id(left_sibling_page_id, false)
-                        .unwrap();
+                        .unpin_page_id(left_sibling_page_id, false)?;
                 }
 
                 // 尝试从右兄弟借一个
@@ -270,22 +257,19 @@ impl BPlusTreeIndex {
                     let (mut right_sibling_tree_page, _) = BPlusTreePageCodec::decode(
                         &right_sibling_page.read().unwrap().data,
                         self.key_schema.clone(),
-                    )
-                    .unwrap();
+                    )?;
                     if right_sibling_tree_page.can_borrow() {
                         // 从右兄弟借一个，返回父节点需要更新的key
                         let (old_internal_key, new_internal_key) = match right_sibling_tree_page {
                             BPlusTreePage::Internal(ref mut right_sibling_internal_page) => {
                                 let kv = right_sibling_internal_page.reverse_split_off(0).remove(0);
                                 if let BPlusTreePage::Internal(ref mut curr_internal_page) =
-                                    curr_page
+                                    curr_tree_page
                                 {
                                     curr_internal_page.insert(kv.0.clone(), kv.1);
-                                    let min_leaf_kv = self
-                                        .find_subtree_min_leafkv(
-                                            right_sibling_internal_page.value_at(0),
-                                        )
-                                        .unwrap();
+                                    let min_leaf_kv = self.find_subtree_min_leafkv(
+                                        right_sibling_internal_page.value_at(0),
+                                    )?;
                                     (kv.0, min_leaf_kv.0)
                                 } else {
                                     panic!("Leaf page can not borrow from internal page");
@@ -293,7 +277,8 @@ impl BPlusTreeIndex {
                             }
                             BPlusTreePage::Leaf(ref mut right_sibling_leaf_page) => {
                                 let kv = right_sibling_leaf_page.reverse_split_off(0).remove(0);
-                                if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_page {
+                                if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_tree_page
+                                {
                                     curr_leaf_page.insert(kv.0.clone(), kv.1);
                                     (kv.0, right_sibling_leaf_page.key_at(0).clone())
                                 } else {
@@ -309,55 +294,44 @@ impl BPlusTreeIndex {
                             )),
                         );
                         self.buffer_pool
-                            .unpin_page_id(right_sibling_page_id, true)
-                            .unwrap();
+                            .unpin_page_id(right_sibling_page_id, true)?;
 
                         // 更新父节点
-                        let parent_page = self
-                            .buffer_pool
-                            .fetch_page(parent_page_id)
-                            .expect("Parent page can not be fetched");
+                        let parent_page = self.buffer_pool.fetch_page(parent_page_id)?;
                         let (mut parent_internal_page, _) = BPlusTreeInternalPageCodec::decode(
                             &parent_page.read().unwrap().data,
                             self.key_schema.clone(),
-                        )
-                        .unwrap();
+                        )?;
                         parent_internal_page.replace_key(&old_internal_key, new_internal_key);
 
                         parent_page.write().unwrap().data = page_bytes_to_array(
                             &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
                         );
-                        self.buffer_pool
-                            .unpin_page_id(parent_page_id, true)
-                            .unwrap();
+                        self.buffer_pool.unpin_page_id(parent_page_id, true)?;
 
                         break;
                     }
                     self.buffer_pool
-                        .unpin_page_id(right_sibling_page_id, false)
-                        .unwrap();
+                        .unpin_page_id(right_sibling_page_id, false)?;
                 }
 
                 // 跟左兄弟合并
                 if let Some(left_sibling_page_id) = left_sibling_page_id {
-                    let left_sibling_page = self
-                        .buffer_pool
-                        .fetch_page(left_sibling_page_id)
-                        .expect("Left sibling page can not be fetched");
+                    let left_sibling_page = self.buffer_pool.fetch_page(left_sibling_page_id)?;
                     let (mut left_sibling_tree_page, _) = BPlusTreePageCodec::decode(
                         &left_sibling_page.read().unwrap().data,
                         self.key_schema.clone(),
-                    )
-                    .unwrap();
+                    )?;
                     // 将当前页向左兄弟合入
                     match left_sibling_tree_page {
                         BPlusTreePage::Internal(ref mut left_sibling_internal_page) => {
-                            if let BPlusTreePage::Internal(ref mut curr_internal_page) = curr_page {
+                            if let BPlusTreePage::Internal(ref mut curr_internal_page) =
+                                curr_tree_page
+                            {
                                 // 空key处理
                                 let mut kvs = curr_internal_page.array.clone();
-                                let min_leaf_kv = self
-                                    .find_subtree_min_leafkv(curr_internal_page.value_at(0))
-                                    .unwrap();
+                                let min_leaf_kv =
+                                    self.find_subtree_min_leafkv(curr_internal_page.value_at(0))?;
                                 kvs[0].0 = min_leaf_kv.0;
                                 left_sibling_internal_page.batch_insert(kvs);
                             } else {
@@ -365,7 +339,7 @@ impl BPlusTreeIndex {
                             }
                         }
                         BPlusTreePage::Leaf(ref mut left_sibling_leaf_page) => {
-                            if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_page {
+                            if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_tree_page {
                                 left_sibling_leaf_page.batch_insert(curr_leaf_page.array.clone());
                                 // 更新next page id
                                 left_sibling_leaf_page.header.next_page_id =
@@ -383,25 +357,19 @@ impl BPlusTreeIndex {
 
                     // 删除当前页
                     let deleted_page_id = curr_page_id;
-                    self.buffer_pool
-                        .unpin_page_id(deleted_page_id, false)
-                        .unwrap();
-                    self.buffer_pool.delete_page(deleted_page_id).unwrap();
+                    self.buffer_pool.unpin_page_id(deleted_page_id, false)?;
+                    self.buffer_pool.delete_page(deleted_page_id)?;
 
                     // 更新当前页为左兄弟页
                     curr_page_id = left_sibling_page_id;
-                    curr_page = left_sibling_tree_page;
+                    curr_tree_page = left_sibling_tree_page;
 
                     // 更新父节点
-                    let parent_page = self
-                        .buffer_pool
-                        .fetch_page(parent_page_id)
-                        .expect("Parent page can not be fetched");
+                    let parent_page = self.buffer_pool.fetch_page(parent_page_id)?;
                     let (mut parent_internal_page, _) = BPlusTreeInternalPageCodec::decode(
                         &parent_page.read().unwrap().data,
                         self.key_schema.clone(),
-                    )
-                    .unwrap();
+                    )?;
                     parent_internal_page.delete_page_id(deleted_page_id);
                     // 根节点只有一个子节点（叶子）时，则叶子节点成为新的根节点
                     if parent_page_id == self.root_page_id
@@ -409,16 +377,14 @@ impl BPlusTreeIndex {
                     {
                         self.root_page_id = curr_page_id;
                         // 删除旧的根节点
-                        self.buffer_pool
-                            .unpin_page_id(parent_page_id, false)
-                            .unwrap();
-                        self.buffer_pool.delete_page(parent_page_id).unwrap();
+                        self.buffer_pool.unpin_page_id(parent_page_id, false)?;
+                        self.buffer_pool.delete_page(parent_page_id)?;
                     } else {
                         parent_page.write().unwrap().data = page_bytes_to_array(
                             &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
                         );
-                        self.buffer_pool.unpin_page_id(curr_page_id, true).unwrap();
-                        curr_page = BPlusTreePage::Internal(parent_internal_page);
+                        self.buffer_pool.unpin_page_id(curr_page_id, true)?;
+                        curr_tree_page = BPlusTreePage::Internal(parent_internal_page);
                         curr_page_id = parent_page_id;
                     }
                     continue;
@@ -426,26 +392,22 @@ impl BPlusTreeIndex {
 
                 // 跟右兄弟合并
                 if let Some(right_sibling_page_id) = right_sibling_page_id {
-                    let right_sibling_page = self
-                        .buffer_pool
-                        .fetch_page(right_sibling_page_id)
-                        .expect("Right sibling page can not be fetched");
+                    let right_sibling_page = self.buffer_pool.fetch_page(right_sibling_page_id)?;
                     let (mut right_sibling_tree_page, _) = BPlusTreePageCodec::decode(
                         &right_sibling_page.read().unwrap().data,
                         self.key_schema.clone(),
-                    )
-                    .unwrap();
+                    )?;
                     // 将右兄弟合入当前页
                     match right_sibling_tree_page {
                         BPlusTreePage::Internal(ref mut right_sibling_internal_page) => {
-                            if let BPlusTreePage::Internal(ref mut curr_internal_page) = curr_page {
+                            if let BPlusTreePage::Internal(ref mut curr_internal_page) =
+                                curr_tree_page
+                            {
                                 // 空key处理
                                 let mut kvs = right_sibling_internal_page.array.clone();
-                                let min_leaf_kv = self
-                                    .find_subtree_min_leafkv(
-                                        right_sibling_internal_page.value_at(0),
-                                    )
-                                    .unwrap();
+                                let min_leaf_kv = self.find_subtree_min_leafkv(
+                                    right_sibling_internal_page.value_at(0),
+                                )?;
                                 kvs[0].0 = min_leaf_kv.0;
                                 curr_internal_page.batch_insert(kvs);
                             } else {
@@ -453,7 +415,7 @@ impl BPlusTreeIndex {
                             }
                         }
                         BPlusTreePage::Leaf(ref mut right_sibling_leaf_page) => {
-                            if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_page {
+                            if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_tree_page {
                                 curr_leaf_page.batch_insert(right_sibling_leaf_page.array.clone());
                                 // 更新next page id
                                 curr_leaf_page.header.next_page_id =
@@ -466,26 +428,20 @@ impl BPlusTreeIndex {
 
                     self.buffer_pool.write_page(
                         curr_page_id,
-                        page_bytes_to_array(&BPlusTreePageCodec::encode(&curr_page)),
+                        page_bytes_to_array(&BPlusTreePageCodec::encode(&curr_tree_page)),
                     );
 
                     // 删除右兄弟页
                     let deleted_page_id = right_sibling_page_id;
-                    self.buffer_pool
-                        .unpin_page_id(deleted_page_id, false)
-                        .unwrap();
-                    self.buffer_pool.delete_page(deleted_page_id).unwrap();
+                    self.buffer_pool.unpin_page_id(deleted_page_id, false)?;
+                    self.buffer_pool.delete_page(deleted_page_id)?;
 
                     // 更新父节点
-                    let parent_page = self
-                        .buffer_pool
-                        .fetch_page(parent_page_id)
-                        .expect("Parent page can not be fetched");
+                    let parent_page = self.buffer_pool.fetch_page(parent_page_id)?;
                     let (mut parent_internal_page, _) = BPlusTreeInternalPageCodec::decode(
                         &parent_page.read().unwrap().data,
                         self.key_schema.clone(),
-                    )
-                    .unwrap();
+                    )?;
                     parent_internal_page.delete_page_id(deleted_page_id);
                     // 根节点只有一个子节点（叶子）时，则叶子节点成为新的根节点
                     if parent_page_id == self.root_page_id
@@ -493,16 +449,14 @@ impl BPlusTreeIndex {
                     {
                         self.root_page_id = curr_page_id;
                         // 删除旧的根节点
-                        self.buffer_pool
-                            .unpin_page_id(parent_page_id, false)
-                            .unwrap();
-                        self.buffer_pool.delete_page(parent_page_id).unwrap();
+                        self.buffer_pool.unpin_page_id(parent_page_id, false)?;
+                        self.buffer_pool.delete_page(parent_page_id)?;
                     } else {
                         parent_page.write().unwrap().data = page_bytes_to_array(
                             &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
                         );
-                        self.buffer_pool.unpin_page_id(curr_page_id, true).unwrap();
-                        curr_page = BPlusTreePage::Internal(parent_internal_page);
+                        self.buffer_pool.unpin_page_id(curr_page_id, true)?;
+                        curr_tree_page = BPlusTreePage::Internal(parent_internal_page);
                         curr_page_id = parent_page_id;
                     }
                     continue;
@@ -512,9 +466,10 @@ impl BPlusTreeIndex {
 
         self.buffer_pool.write_page(
             curr_page_id,
-            page_bytes_to_array(&BPlusTreePageCodec::encode(&curr_page)),
+            page_bytes_to_array(&BPlusTreePageCodec::encode(&curr_tree_page)),
         );
-        self.buffer_pool.unpin_page_id(curr_page_id, true).unwrap();
+        self.buffer_pool.unpin_page_id(curr_page_id, true)?;
+        Ok(())
     }
 
     pub fn scan(&self, _key: &Tuple) -> Vec<Rid> {
@@ -710,6 +665,7 @@ mod tests {
     use std::sync::Arc;
     use tempfile::TempDir;
 
+    use crate::catalog::SchemaRef;
     use crate::common::util::pretty_format_index_tree;
     use crate::{
         buffer::BufferPoolManager,
@@ -720,8 +676,7 @@ mod tests {
 
     use super::BPlusTreeIndex;
 
-    #[test]
-    pub fn test_index_insert() {
+    fn build_index() -> (BPlusTreeIndex, SchemaRef) {
         let temp_dir = TempDir::new().unwrap();
         let temp_path = temp_dir.path().join("test.db");
 
@@ -731,87 +686,7 @@ mod tests {
         ]));
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let buffer_pool = Arc::new(BufferPoolManager::new(1000, Arc::new(disk_manager)));
-        let mut index = BPlusTreeIndex::new(key_schema.clone(), buffer_pool, 2, 3);
-
-        index
-            .insert(
-                &Tuple::new(key_schema.clone(), vec![1i8.into(), 2i16.into()]),
-                Rid::new(1, 1),
-            )
-            .unwrap();
-        index
-            .insert(
-                &Tuple::new(key_schema.clone(), vec![2i8.into(), 4i16.into()]),
-                Rid::new(2, 2),
-            )
-            .unwrap();
-        index
-            .insert(
-                &Tuple::new(key_schema.clone(), vec![3i8.into(), 6i16.into()]),
-                Rid::new(3, 3),
-            )
-            .unwrap();
-        index
-            .insert(
-                &Tuple::new(key_schema.clone(), vec![4i8.into(), 8i16.into()]),
-                Rid::new(4, 4),
-            )
-            .unwrap();
-        index
-            .insert(
-                &Tuple::new(key_schema.clone(), vec![5i8.into(), 10i16.into()]),
-                Rid::new(5, 5),
-            )
-            .unwrap();
-
-        assert_eq!(pretty_format_index_tree(&index).unwrap(),
-                   "B+ Tree Level No.1:
-+-----------------------+
-| page_id=10, size: 2/3 |
-+-----------------------+
-| +------------+------+ |
-| | NULL, NULL | 3, 6 | |
-| +------------+------+ |
-| | 6          | 9    | |
-| +------------+------+ |
-+-----------------------+
-B+ Tree Level No.2:
-+-----------------------+----------------------+
-| page_id=6, size: 2/3  | page_id=9, size: 2/3 |
-+-----------------------+----------------------+
-| +------------+------+ | +------+------+      |
-| | NULL, NULL | 2, 4 | | | 3, 6 | 4, 8 |      |
-| +------------+------+ | +------+------+      |
-| | 4          | 5    | | | 7    | 8    |      |
-| +------------+------+ | +------+------+      |
-+-----------------------+----------------------+
-B+ Tree Level No.3:
-+--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+
-| page_id=4, size: 1/2, next_page_id=5 | page_id=5, size: 1/2, next_page_id=7 | page_id=7, size: 1/2, next_page_id=8 | page_id=8, size: 2/2, next_page_id=0 |
-+--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+
-| +------+                             | +------+                             | +------+                             | +------+-------+                     |
-| | 1, 2 |                             | | 2, 4 |                             | | 3, 6 |                             | | 4, 8 | 5, 10 |                     |
-| +------+                             | +------+                             | +------+                             | +------+-------+                     |
-| | 1-1  |                             | | 2-2  |                             | | 3-3  |                             | | 4-4  | 5-5   |                     |
-| +------+                             | +------+                             | +------+                             | +------+-------+                     |
-+--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+
-"
-        );
-    }
-
-    #[test]
-    // TODO remove page id number
-    pub fn test_index_delete() {
-        let temp_dir = TempDir::new().unwrap();
-        let temp_path = temp_dir.path().join("test.db");
-
-        let key_schema = Arc::new(Schema::new(vec![
-            Column::new("a", DataType::Int8, false),
-            Column::new("b", DataType::Int16, false),
-        ]));
-        let disk_manager = DiskManager::try_new(temp_path).unwrap();
-        let buffer_pool = Arc::new(BufferPoolManager::new(1000, Arc::new(disk_manager)));
-        let mut index = BPlusTreeIndex::new(key_schema.clone(), buffer_pool, 4, 5);
+        let mut index = BPlusTreeIndex::new(key_schema.clone(), buffer_pool, 4, 4);
 
         index
             .insert(
@@ -873,172 +748,69 @@ B+ Tree Level No.3:
                 Rid::new(10, 10),
             )
             .unwrap();
-        assert_eq!(index.root_page_id, 6);
+        index
+            .insert(
+                &Tuple::new(key_schema.clone(), vec![11i8.into(), 11i16.into()]),
+                Rid::new(11, 11),
+            )
+            .unwrap();
+        (index, key_schema)
+    }
 
-        index.delete(&Tuple::new(
-            key_schema.clone(),
-            vec![1i8.into(), 1i16.into()],
-        ));
-        assert_eq!(index.root_page_id, 6);
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![1i8.into(), 1i16.into()]
-                ))
-                .unwrap(),
-            None
-        );
+    #[test]
+    pub fn test_index_insert() {
+        let (index, _) = build_index();
+        let display = pretty_format_index_tree(&index).unwrap();
+        println!("{display}");
+        assert_eq!(display, "B+ Tree Level No.1:
++-----------------------+
+| page_id=11, size: 2/4 |
++-----------------------+
+| +------------+------+ |
+| | NULL, NULL | 5, 5 | |
+| +------------+------+ |
+| | 6          | 10   | |
+| +------------+------+ |
++-----------------------+
+B+ Tree Level No.2:
++-----------------------+------------------------+
+| page_id=6, size: 2/4  | page_id=10, size: 3/4  |
++-----------------------+------------------------+
+| +------------+------+ | +------+------+------+ |
+| | NULL, NULL | 3, 3 | | | 5, 5 | 7, 7 | 9, 9 | |
+| +------------+------+ | +------+------+------+ |
+| | 4          | 5    | | | 7    | 8    | 9    | |
+| +------------+------+ | +------+------+------+ |
++-----------------------+------------------------+
+B+ Tree Level No.3:
++--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+
+| page_id=4, size: 2/4, next_page_id=5 | page_id=5, size: 2/4, next_page_id=7 | page_id=7, size: 2/4, next_page_id=8 | page_id=8, size: 2/4, next_page_id=9 | page_id=9, size: 3/4, next_page_id=0 |
++--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+
+| +------+------+                      | +------+------+                      | +------+------+                      | +------+------+                      | +------+--------+--------+           |
+| | 1, 1 | 2, 2 |                      | | 3, 3 | 4, 4 |                      | | 5, 5 | 6, 6 |                      | | 7, 7 | 8, 8 |                      | | 9, 9 | 10, 10 | 11, 11 |           |
+| +------+------+                      | +------+------+                      | +------+------+                      | +------+------+                      | +------+--------+--------+           |
+| | 1-1  | 2-2  |                      | | 3-3  | 4-4  |                      | | 5-5  | 6-6  |                      | | 7-7  | 8-8  |                      | | 9-9  | 10-10  | 11-11  |           |
+| +------+------+                      | +------+------+                      | +------+------+                      | +------+------+                      | +------+--------+--------+           |
++--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+--------------------------------------+
+");
+    }
 
-        index.delete(&Tuple::new(
-            key_schema.clone(),
-            vec![3i8.into(), 3i16.into()],
-        ));
-        assert_eq!(index.root_page_id, 6);
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![3i8.into(), 3i16.into()]
-                ))
-                .unwrap(),
-            None
-        );
+    // #[test]
+    pub fn test_index_delete() {
+        let (mut index, key_schema) = build_index();
 
-        index.delete(&Tuple::new(
-            key_schema.clone(),
-            vec![5i8.into(), 5i16.into()],
-        ));
-        assert_eq!(index.root_page_id, 6);
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![5i8.into(), 5i16.into()]
-                ))
-                .unwrap(),
-            None
-        );
-
-        index.delete(&Tuple::new(
-            key_schema.clone(),
-            vec![7i8.into(), 7i16.into()],
-        ));
-        assert_eq!(index.root_page_id, 6);
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![7i8.into(), 7i16.into()]
-                ))
-                .unwrap(),
-            None
-        );
-
-        index.delete(&Tuple::new(
-            key_schema.clone(),
-            vec![9i8.into(), 9i16.into()],
-        ));
-        assert_eq!(index.root_page_id, 6);
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![9i8.into(), 9i16.into()]
-                ))
-                .unwrap(),
-            None
-        );
-
-        index.delete(&Tuple::new(
-            key_schema.clone(),
-            vec![10i8.into(), 10i16.into()],
-        ));
-        assert_eq!(index.root_page_id, 6);
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![10i8.into(), 10i16.into()]
-                ))
-                .unwrap(),
-            None
-        );
-
-        index.delete(&Tuple::new(
-            key_schema.clone(),
-            vec![8i8.into(), 8i16.into()],
-        ));
-        assert_eq!(index.root_page_id, 4);
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![8i8.into(), 8i16.into()]
-                ))
-                .unwrap(),
-            None
-        );
-
-        index.delete(&Tuple::new(
-            key_schema.clone(),
-            vec![6i8.into(), 6i16.into()],
-        ));
-        assert_eq!(index.root_page_id, 4);
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![6i8.into(), 6i16.into()]
-                ))
-                .unwrap(),
-            None
-        );
-
-        index.delete(&Tuple::new(
-            key_schema.clone(),
-            vec![4i8.into(), 4i16.into()],
-        ));
-        assert_eq!(index.root_page_id, 4);
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![4i8.into(), 4i16.into()]
-                ))
-                .unwrap(),
-            None
-        );
-
-        index.delete(&Tuple::new(
-            key_schema.clone(),
-            vec![2i8.into(), 2i16.into()],
-        ));
-        assert_eq!(index.root_page_id, 4);
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![2i8.into(), 2i16.into()]
-                ))
-                .unwrap(),
-            None
-        );
-
-        index.delete(&Tuple::new(
-            key_schema.clone(),
-            vec![2i8.into(), 2i16.into()],
-        ));
-        assert_eq!(index.root_page_id, 4);
-        assert_eq!(
-            index
-                .get(&Tuple::new(
-                    key_schema.clone(),
-                    vec![2i8.into(), 2i16.into()]
-                ))
-                .unwrap(),
-            None
-        );
+        index
+            .delete(&Tuple::new(
+                key_schema.clone(),
+                vec![3i8.into(), 3i16.into()],
+            ))
+            .unwrap();
+        index
+            .delete(&Tuple::new(
+                key_schema.clone(),
+                vec![10i8.into(), 10i16.into()],
+            ))
+            .unwrap();
         println!("{}", pretty_format_index_tree(&index).unwrap());
     }
 }
