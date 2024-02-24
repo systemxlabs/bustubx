@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::buffer::{Page, PageId, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
-use crate::common::util::{page_bytes_to_array, pretty_format_index_tree};
+use crate::common::util::page_bytes_to_array;
 use crate::storage::codec::{
     BPlusTreeInternalPageCodec, BPlusTreeLeafPageCodec, BPlusTreePageCodec,
 };
@@ -161,73 +161,47 @@ impl BPlusTreeIndex {
 
         // leaf page未达到半满则从兄弟节点借一个或合并
         while curr_tree_page.is_underflow(self.root_page_id == curr_page_id) {
-            if let Some(parent_page_id) = context.read_set.pop_back() {
-                let (left_sibling_page_id, right_sibling_page_id) =
-                    self.find_sibling_pages(parent_page_id, curr_page_id)?;
+            let Some(parent_page_id) = context.read_set.pop_back() else {
+                return Err(BustubxError::Storage("Cannot find parent page".to_string()));
+            };
+            let (left_sibling_page_id, right_sibling_page_id) =
+                self.find_sibling_pages(parent_page_id, curr_page_id)?;
 
-                // 尝试从左兄弟借一个
-                if let Some(left_sibling_page_id) = left_sibling_page_id {
-                    if self.borrow_max_kv(
-                        parent_page_id,
-                        curr_page_id,
-                        left_sibling_page_id,
-                        &mut context,
-                    )? {
-                        break;
-                    }
-                }
-
-                // 尝试从右兄弟借一个
-                if let Some(right_sibling_page_id) = right_sibling_page_id {
-                    if self.borrow_min_kv(
-                        parent_page_id,
-                        curr_page_id,
-                        right_sibling_page_id,
-                        &mut context,
-                    )? {
-                        break;
-                    }
-                }
-
-                // 跟左兄弟合并
-                if let Some(left_sibling_page_id) = left_sibling_page_id {
-                    let new_parent_page_id = self.merge(
-                        parent_page_id,
-                        left_sibling_page_id,
-                        curr_page_id,
-                        &mut context,
-                    )?;
-                    let new_parent_page = self.buffer_pool.fetch_page(new_parent_page_id)?;
-                    let (new_parent_tree_page, _) = BPlusTreePageCodec::decode(
-                        &new_parent_page.read().unwrap().data,
-                        self.key_schema.clone(),
-                    )?;
-                    curr_page_id = new_parent_page_id;
-                    curr_tree_page = new_parent_tree_page;
-                } else if let Some(right_sibling_page_id) = right_sibling_page_id {
-                    // 跟右兄弟合并
-                    let new_parent_page_id = self.merge(
-                        parent_page_id,
-                        curr_page_id,
-                        right_sibling_page_id,
-                        &mut context,
-                    )?;
-                    let new_parent_page = self.buffer_pool.fetch_page(new_parent_page_id)?;
-                    let (new_parent_tree_page, _) = BPlusTreePageCodec::decode(
-                        &new_parent_page.read().unwrap().data,
-                        self.key_schema.clone(),
-                    )?;
-                    curr_page_id = new_parent_page_id;
-                    curr_tree_page = new_parent_tree_page;
+            // 尝试从左兄弟借一个
+            if let Some(left_sibling_page_id) = left_sibling_page_id {
+                if self.borrow_max_kv(parent_page_id, curr_page_id, left_sibling_page_id)? {
+                    break;
                 }
             }
+
+            // 尝试从右兄弟借一个
+            if let Some(right_sibling_page_id) = right_sibling_page_id {
+                if self.borrow_min_kv(parent_page_id, curr_page_id, right_sibling_page_id)? {
+                    break;
+                }
+            }
+
+            let new_parent_page_id = if let Some(left_sibling_page_id) = left_sibling_page_id {
+                // 跟左兄弟合并
+                self.merge(parent_page_id, left_sibling_page_id, curr_page_id)?
+            } else if let Some(right_sibling_page_id) = right_sibling_page_id {
+                // 跟右兄弟合并
+                self.merge(parent_page_id, curr_page_id, right_sibling_page_id)?
+            } else {
+                return Err(BustubxError::Storage(
+                    "Cannot process index page borrow or merge".to_string(),
+                ));
+            };
+            let new_parent_page = self.buffer_pool.fetch_page(new_parent_page_id)?;
+            let (new_parent_tree_page, _) = BPlusTreePageCodec::decode(
+                &new_parent_page.read().unwrap().data,
+                self.key_schema.clone(),
+            )?;
+
+            curr_page_id = new_parent_page_id;
+            curr_tree_page = new_parent_tree_page;
         }
 
-        self.buffer_pool.write_page(
-            curr_page_id,
-            page_bytes_to_array(&BPlusTreePageCodec::encode(&curr_tree_page)),
-        );
-        self.buffer_pool.unpin_page_id(curr_page_id, true)?;
         Ok(())
     }
 
@@ -357,9 +331,8 @@ impl BPlusTreeIndex {
         parent_page_id: PageId,
         page_id: PageId,
         borrowed_page_id: PageId,
-        context: &mut Context,
     ) -> BustubxResult<bool> {
-        self.borrow(parent_page_id, page_id, borrowed_page_id, true, context)
+        self.borrow(parent_page_id, page_id, borrowed_page_id, true)
     }
 
     fn borrow_max_kv(
@@ -367,9 +340,8 @@ impl BPlusTreeIndex {
         parent_page_id: PageId,
         page_id: PageId,
         borrowed_page_id: PageId,
-        context: &mut Context,
     ) -> BustubxResult<bool> {
-        self.borrow(parent_page_id, page_id, borrowed_page_id, false, context)
+        self.borrow(parent_page_id, page_id, borrowed_page_id, false)
     }
 
     fn borrow(
@@ -378,7 +350,6 @@ impl BPlusTreeIndex {
         page_id: PageId,
         borrowed_page_id: PageId,
         min_max: bool,
-        _context: &mut Context,
     ) -> BustubxResult<bool> {
         let borrowed_page = self.buffer_pool.fetch_page(borrowed_page_id)?;
         let (mut borrowed_tree_page, _) = BPlusTreePageCodec::decode(
@@ -395,52 +366,48 @@ impl BPlusTreeIndex {
 
         let (old_internal_key, new_internal_key) = match borrowed_tree_page {
             BPlusTreePage::Internal(ref mut borrowed_internal_page) => {
-                // TODO let if
-                if let BPlusTreePage::Internal(ref mut internal_page) = tree_page {
-                    if min_max {
-                        let kv = borrowed_internal_page.reverse_split_off(0).remove(0);
-                        internal_page.insert(kv.0.clone(), kv.1);
-                        (
-                            kv.0,
-                            self.find_subtree_min_leafkv(borrowed_internal_page.value_at(0))?
-                                .0,
-                        )
-                    } else {
-                        let kv = borrowed_internal_page
-                            .split_off(borrowed_internal_page.header.current_size as usize - 1)
-                            .remove(0);
-                        let min_key = internal_page.key_at(0).clone();
-                        internal_page.insert(kv.0.clone(), kv.1);
-                        (
-                            min_key,
-                            self.find_subtree_min_leafkv(borrowed_internal_page.value_at(0))?
-                                .0,
-                        )
-                    }
-                } else {
+                let BPlusTreePage::Internal(ref mut internal_page) = tree_page else {
                     return Err(BustubxError::Storage(
                         "Leaf page can not borrow from internal page".to_string(),
                     ));
+                };
+                if min_max {
+                    let kv = borrowed_internal_page.reverse_split_off(0).remove(0);
+                    internal_page.insert(kv.0.clone(), kv.1);
+                    (
+                        kv.0,
+                        self.find_subtree_min_leafkv(borrowed_internal_page.value_at(0))?
+                            .0,
+                    )
+                } else {
+                    let kv = borrowed_internal_page
+                        .split_off(borrowed_internal_page.header.current_size as usize - 1)
+                        .remove(0);
+                    let min_key = internal_page.key_at(0).clone();
+                    internal_page.insert(kv.0.clone(), kv.1);
+                    (
+                        min_key,
+                        self.find_subtree_min_leafkv(borrowed_internal_page.value_at(0))?
+                            .0,
+                    )
                 }
             }
             BPlusTreePage::Leaf(ref mut borrowed_leaf_page) => {
-                // TODO let if
-                if let BPlusTreePage::Leaf(ref mut leaf_page) = tree_page {
-                    if min_max {
-                        let kv = borrowed_leaf_page.reverse_split_off(0).remove(0);
-                        leaf_page.insert(kv.0.clone(), kv.1);
-                        (kv.0, borrowed_leaf_page.key_at(0).clone())
-                    } else {
-                        let kv = borrowed_leaf_page
-                            .split_off(borrowed_leaf_page.header.current_size as usize - 1)
-                            .remove(0);
-                        leaf_page.insert(kv.0.clone(), kv.1);
-                        (leaf_page.key_at(1).clone(), leaf_page.key_at(0).clone())
-                    }
-                } else {
+                let BPlusTreePage::Leaf(ref mut leaf_page) = tree_page else {
                     return Err(BustubxError::Storage(
                         "Internal page can not borrow from leaf page".to_string(),
                     ));
+                };
+                if min_max {
+                    let kv = borrowed_leaf_page.reverse_split_off(0).remove(0);
+                    leaf_page.insert(kv.0.clone(), kv.1);
+                    (kv.0, borrowed_leaf_page.key_at(0).clone())
+                } else {
+                    let kv = borrowed_leaf_page
+                        .split_off(borrowed_leaf_page.header.current_size as usize - 1)
+                        .remove(0);
+                    leaf_page.insert(kv.0.clone(), kv.1);
+                    (leaf_page.key_at(1).clone(), leaf_page.key_at(0).clone())
                 }
             }
         };
@@ -485,7 +452,6 @@ impl BPlusTreeIndex {
         parent_page_id: PageId,
         left_page_id: PageId,
         right_page_id: PageId,
-        _context: &mut Context,
     ) -> BustubxResult<PageId> {
         let left_page = self.buffer_pool.fetch_page(left_page_id)?;
         let (mut left_tree_page, _) =
@@ -494,7 +460,7 @@ impl BPlusTreeIndex {
         let (mut right_tree_page, _) =
             BPlusTreePageCodec::decode(&right_page.read().unwrap().data, self.key_schema.clone())?;
 
-        // 将当前页向左合入
+        // 向左合入
         match left_tree_page {
             BPlusTreePage::Internal(ref mut left_internal_page) => {
                 if let BPlusTreePage::Internal(ref mut right_internal_page) = right_tree_page {
@@ -540,7 +506,7 @@ impl BPlusTreeIndex {
         parent_internal_page.delete_page_id(right_page_id);
 
         // 根节点只有一个子节点（叶子）时，则叶子节点成为新的根节点
-        if parent_page_id == self.root_page_id && parent_internal_page.header.current_size == 0 {
+        if parent_page_id == self.root_page_id && parent_internal_page.header.current_size == 1 {
             self.root_page_id = left_page_id;
             // 删除旧的根节点
             self.buffer_pool.unpin_page_id(parent_page_id, false)?;
@@ -759,5 +725,28 @@ B+ Tree Level No.3:
             ))
             .unwrap();
         println!("{}", pretty_format_index_tree(&index).unwrap());
+
+        assert_eq!(pretty_format_index_tree(&index).unwrap(),
+                   "B+ Tree Level No.1:
++------------------------------+
+| page_id=6, size: 3/4         |
++------------------------------+
+| +------------+------+------+ |
+| | NULL, NULL | 5, 5 | 7, 7 | |
+| +------------+------+------+ |
+| | 4          | 7    | 8    | |
+| +------------+------+------+ |
++------------------------------+
+B+ Tree Level No.2:
++--------------------------------------+--------------------------------------+--------------------------------------+
+| page_id=4, size: 3/4, next_page_id=7 | page_id=7, size: 2/4, next_page_id=8 | page_id=8, size: 3/4, next_page_id=0 |
++--------------------------------------+--------------------------------------+--------------------------------------+
+| +------+------+------+               | +------+------+                      | +------+------+--------+             |
+| | 1, 1 | 2, 2 | 4, 4 |               | | 5, 5 | 6, 6 |                      | | 7, 7 | 9, 9 | 11, 11 |             |
+| +------+------+------+               | +------+------+                      | +------+------+--------+             |
+| | 1-1  | 2-2  | 4-4  |               | | 5-5  | 6-6  |                      | | 7-7  | 9-9  | 11-11  |             |
+| +------+------+------+               | +------+------+                      | +------+------+--------+             |
++--------------------------------------+--------------------------------------+--------------------------------------+
+");
     }
 }
