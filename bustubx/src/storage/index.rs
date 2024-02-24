@@ -167,148 +167,26 @@ impl BPlusTreeIndex {
 
                 // 尝试从左兄弟借一个
                 if let Some(left_sibling_page_id) = left_sibling_page_id {
-                    let left_sibling_page = self.buffer_pool.fetch_page(left_sibling_page_id)?;
-                    let (mut left_sibling_tree_page, _) = BPlusTreePageCodec::decode(
-                        &left_sibling_page.read().unwrap().data,
-                        self.key_schema.clone(),
-                    )?;
-                    if left_sibling_tree_page.can_borrow() {
-                        // 从左兄弟借一个，返回父节点需要更新的key
-                        let (old_internal_key, new_internal_key) = match left_sibling_tree_page {
-                            BPlusTreePage::Internal(ref mut left_sibling_internal_page) => {
-                                let kv = left_sibling_internal_page
-                                    .split_off(
-                                        left_sibling_internal_page.header.current_size as usize - 1,
-                                    )
-                                    .remove(0);
-                                if let BPlusTreePage::Internal(ref mut curr_internal_page) =
-                                    curr_tree_page
-                                {
-                                    curr_internal_page.insert(kv.0.clone(), kv.1);
-                                    let max_leaf_kv = self.find_subtree_max_leafkv(
-                                        left_sibling_internal_page.value_at(
-                                            left_sibling_internal_page.header.current_size as usize
-                                                - 1,
-                                        ),
-                                    )?;
-                                    (kv.0, max_leaf_kv.0)
-                                } else {
-                                    panic!("Leaf page can not borrow from internal page");
-                                }
-                            }
-                            BPlusTreePage::Leaf(ref mut left_sibling_leaf_page) => {
-                                let kv = left_sibling_leaf_page
-                                    .split_off(
-                                        left_sibling_leaf_page.header.current_size as usize - 1,
-                                    )
-                                    .remove(0);
-                                if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_tree_page
-                                {
-                                    curr_leaf_page.insert(kv.0.clone(), kv.1);
-                                    (
-                                        kv.0,
-                                        left_sibling_leaf_page
-                                            .key_at(
-                                                left_sibling_leaf_page.header.current_size as usize
-                                                    - 1,
-                                            )
-                                            .clone(),
-                                    )
-                                } else {
-                                    panic!("Internal page can not borrow from leaf page");
-                                }
-                            }
-                        };
-                        // 更新兄弟节点
-                        self.buffer_pool.write_page(
-                            left_sibling_page_id,
-                            page_bytes_to_array(&BPlusTreePageCodec::encode(
-                                &left_sibling_tree_page,
-                            )),
-                        );
-                        self.buffer_pool.unpin_page_id(left_sibling_page_id, true)?;
-
-                        // 更新父节点
-                        let parent_page = self.buffer_pool.fetch_page(parent_page_id)?;
-                        let (mut parent_internal_page, _) = BPlusTreeInternalPageCodec::decode(
-                            &parent_page.read().unwrap().data,
-                            self.key_schema.clone(),
-                        )?;
-                        parent_internal_page.replace_key(&old_internal_key, new_internal_key);
-
-                        parent_page.write().unwrap().data = page_bytes_to_array(
-                            &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
-                        );
-                        self.buffer_pool.unpin_page_id(parent_page_id, true)?;
-
+                    if self.borrow_max_kv(
+                        parent_page_id,
+                        curr_page_id,
+                        left_sibling_page_id,
+                        &mut context,
+                    )? {
                         break;
                     }
-                    self.buffer_pool
-                        .unpin_page_id(left_sibling_page_id, false)?;
                 }
 
                 // 尝试从右兄弟借一个
                 if let Some(right_sibling_page_id) = right_sibling_page_id {
-                    let right_sibling_page = self.buffer_pool.fetch_page(right_sibling_page_id)?;
-                    let (mut right_sibling_tree_page, _) = BPlusTreePageCodec::decode(
-                        &right_sibling_page.read().unwrap().data,
-                        self.key_schema.clone(),
-                    )?;
-                    if right_sibling_tree_page.can_borrow() {
-                        // 从右兄弟借一个，返回父节点需要更新的key
-                        let (old_internal_key, new_internal_key) = match right_sibling_tree_page {
-                            BPlusTreePage::Internal(ref mut right_sibling_internal_page) => {
-                                let kv = right_sibling_internal_page.reverse_split_off(0).remove(0);
-                                if let BPlusTreePage::Internal(ref mut curr_internal_page) =
-                                    curr_tree_page
-                                {
-                                    curr_internal_page.insert(kv.0.clone(), kv.1);
-                                    let min_leaf_kv = self.find_subtree_min_leafkv(
-                                        right_sibling_internal_page.value_at(0),
-                                    )?;
-                                    (kv.0, min_leaf_kv.0)
-                                } else {
-                                    panic!("Leaf page can not borrow from internal page");
-                                }
-                            }
-                            BPlusTreePage::Leaf(ref mut right_sibling_leaf_page) => {
-                                let kv = right_sibling_leaf_page.reverse_split_off(0).remove(0);
-                                if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_tree_page
-                                {
-                                    curr_leaf_page.insert(kv.0.clone(), kv.1);
-                                    (kv.0, right_sibling_leaf_page.key_at(0).clone())
-                                } else {
-                                    panic!("Internal page can not borrow from leaf page");
-                                }
-                            }
-                        };
-                        // 更新兄弟节点
-                        self.buffer_pool.write_page(
-                            right_sibling_page_id,
-                            page_bytes_to_array(&BPlusTreePageCodec::encode(
-                                &right_sibling_tree_page,
-                            )),
-                        );
-                        self.buffer_pool
-                            .unpin_page_id(right_sibling_page_id, true)?;
-
-                        // 更新父节点
-                        let parent_page = self.buffer_pool.fetch_page(parent_page_id)?;
-                        let (mut parent_internal_page, _) = BPlusTreeInternalPageCodec::decode(
-                            &parent_page.read().unwrap().data,
-                            self.key_schema.clone(),
-                        )?;
-                        parent_internal_page.replace_key(&old_internal_key, new_internal_key);
-
-                        parent_page.write().unwrap().data = page_bytes_to_array(
-                            &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
-                        );
-                        self.buffer_pool.unpin_page_id(parent_page_id, true)?;
-
+                    if self.borrow_min_kv(
+                        parent_page_id,
+                        curr_page_id,
+                        right_sibling_page_id,
+                        &mut context,
+                    )? {
                         break;
                     }
-                    self.buffer_pool
-                        .unpin_page_id(right_sibling_page_id, false)?;
                 }
 
                 // 跟左兄弟合并
@@ -474,8 +352,118 @@ impl BPlusTreeIndex {
         }
     }
 
-    fn borrow(&mut self, _page: &mut BPlusTreePage, _context: &mut Context) {
-        unimplemented!()
+    fn borrow_min_kv(
+        &mut self,
+        parent_page_id: PageId,
+        page_id: PageId,
+        borrowed_page_id: PageId,
+        context: &mut Context,
+    ) -> BustubxResult<bool> {
+        self.borrow(parent_page_id, page_id, borrowed_page_id, true, context)
+    }
+
+    fn borrow_max_kv(
+        &mut self,
+        parent_page_id: PageId,
+        page_id: PageId,
+        borrowed_page_id: PageId,
+        context: &mut Context,
+    ) -> BustubxResult<bool> {
+        self.borrow(parent_page_id, page_id, borrowed_page_id, false, context)
+    }
+
+    fn borrow(
+        &mut self,
+        parent_page_id: PageId,
+        page_id: PageId,
+        borrowed_page_id: PageId,
+        min_max: bool,
+        _context: &mut Context,
+    ) -> BustubxResult<bool> {
+        let borrowed_page = self.buffer_pool.fetch_page(borrowed_page_id)?;
+        let (mut borrowed_tree_page, _) = BPlusTreePageCodec::decode(
+            &borrowed_page.read().unwrap().data,
+            self.key_schema.clone(),
+        )?;
+        if !borrowed_tree_page.can_borrow() {
+            return Ok(false);
+        }
+
+        let page = self.buffer_pool.fetch_page(page_id)?;
+        let (mut tree_page, _) =
+            BPlusTreePageCodec::decode(&page.read().unwrap().data, self.key_schema.clone())?;
+
+        let (old_internal_key, new_internal_key) = match borrowed_tree_page {
+            BPlusTreePage::Internal(ref mut borrowed_internal_page) => {
+                // TODO let if
+                if let BPlusTreePage::Internal(ref mut internal_page) = tree_page {
+                    if min_max {
+                        let kv = borrowed_internal_page.reverse_split_off(0).remove(0);
+                        internal_page.insert(kv.0.clone(), kv.1);
+                        (
+                            kv.0,
+                            self.find_subtree_min_leafkv(borrowed_internal_page.value_at(0))?
+                                .0,
+                        )
+                    } else {
+                        let kv = borrowed_internal_page
+                            .split_off(borrowed_internal_page.header.current_size as usize - 1)
+                            .remove(0);
+                        let min_key = internal_page.key_at(0).clone();
+                        internal_page.insert(kv.0.clone(), kv.1);
+                        (
+                            min_key,
+                            self.find_subtree_min_leafkv(borrowed_internal_page.value_at(0))?
+                                .0,
+                        )
+                    }
+                } else {
+                    return Err(BustubxError::Storage(
+                        "Leaf page can not borrow from internal page".to_string(),
+                    ));
+                }
+            }
+            BPlusTreePage::Leaf(ref mut borrowed_leaf_page) => {
+                // TODO let if
+                if let BPlusTreePage::Leaf(ref mut leaf_page) = tree_page {
+                    if min_max {
+                        let kv = borrowed_leaf_page.reverse_split_off(0).remove(0);
+                        leaf_page.insert(kv.0.clone(), kv.1);
+                        (kv.0, borrowed_leaf_page.key_at(0).clone())
+                    } else {
+                        let kv = borrowed_leaf_page
+                            .split_off(borrowed_leaf_page.header.current_size as usize - 1)
+                            .remove(0);
+                        leaf_page.insert(kv.0.clone(), kv.1);
+                        (leaf_page.key_at(1).clone(), leaf_page.key_at(0).clone())
+                    }
+                } else {
+                    return Err(BustubxError::Storage(
+                        "Internal page can not borrow from leaf page".to_string(),
+                    ));
+                }
+            }
+        };
+
+        page.write().unwrap().data = page_bytes_to_array(&BPlusTreePageCodec::encode(&tree_page));
+        self.buffer_pool.unpin_page_id(page_id, true)?;
+
+        borrowed_page.write().unwrap().data =
+            page_bytes_to_array(&BPlusTreePageCodec::encode(&borrowed_tree_page));
+        self.buffer_pool.unpin_page_id(borrowed_page_id, true)?;
+
+        // 更新父节点
+        let parent_page = self.buffer_pool.fetch_page(parent_page_id)?;
+        let (mut parent_internal_page, _) = BPlusTreeInternalPageCodec::decode(
+            &parent_page.read().unwrap().data,
+            self.key_schema.clone(),
+        )?;
+        parent_internal_page.replace_key(&old_internal_key, new_internal_key);
+
+        parent_page.write().unwrap().data =
+            page_bytes_to_array(&BPlusTreeInternalPageCodec::encode(&parent_internal_page));
+        self.buffer_pool.unpin_page_id(parent_page_id, true)?;
+        Ok(true)
     }
 
     fn find_sibling_pages(
