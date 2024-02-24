@@ -123,9 +123,9 @@ impl BPlusTreeInternalPage {
 
     // TODO 可以通过二分查找来插入
     pub fn insert(&mut self, key: Tuple, page_id: PageId) {
-        if self.header.current_size == 0 && !key.is_null() {
-            panic!("First key must be zero");
-        }
+        // if self.header.current_size == 0 && !key.is_null() {
+        //     panic!("First key must be zero");
+        // }
         self.array.push((key, page_id));
         self.header.current_size += 1;
         // 跳过第一个空key
@@ -177,25 +177,10 @@ impl BPlusTreeInternalPage {
     }
 
     pub fn delete_page_id(&mut self, page_id: PageId) {
-        if self.header.current_size == 0 {
-            return;
-        }
         for i in 0..self.header.current_size {
             if self.array[i as usize].1 == page_id {
-                if i == 0 {
-                    self.array.remove(0);
-                    self.header.current_size -= 1;
-                    // 把第一个key置空
-                    self.array[0].0 = Tuple::empty(self.schema.clone());
-                } else {
-                    self.array.remove(i as usize);
-                    self.header.current_size -= 1;
-                }
-                // 删除后，如果只剩下一个空key，那么删除
-                if self.header.current_size == 1 {
-                    self.array.remove(0);
-                    self.header.current_size -= 1;
-                }
+                self.array.remove(i as usize);
+                self.header.current_size -= 1;
                 return;
             }
         }

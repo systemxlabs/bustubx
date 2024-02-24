@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::buffer::{Page, PageId, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
-use crate::common::util::page_bytes_to_array;
+use crate::common::util::{page_bytes_to_array, pretty_format_index_tree};
 use crate::storage::codec::{
     BPlusTreeInternalPageCodec, BPlusTreeLeafPageCodec, BPlusTreePageCodec,
 };
@@ -153,6 +153,8 @@ impl BPlusTreeIndex {
             self.key_schema.clone(),
         )?;
         leaf_tree_page.delete(key);
+        leaf_page.write().unwrap().data =
+            page_bytes_to_array(&BPlusTreeLeafPageCodec::encode(&leaf_tree_page));
 
         let mut curr_tree_page = BPlusTreePage::Leaf(leaf_tree_page);
         let mut curr_page_id = leaf_page.read().unwrap().page_id;
@@ -165,10 +167,7 @@ impl BPlusTreeIndex {
 
                 // 尝试从左兄弟借一个
                 if let Some(left_sibling_page_id) = left_sibling_page_id {
-                    let left_sibling_page = self
-                        .buffer_pool
-                        .fetch_page(left_sibling_page_id)
-                        .expect("Left sibling page can not be fetched");
+                    let left_sibling_page = self.buffer_pool.fetch_page(left_sibling_page_id)?;
                     let (mut left_sibling_tree_page, _) = BPlusTreePageCodec::decode(
                         &left_sibling_page.read().unwrap().data,
                         self.key_schema.clone(),
@@ -250,10 +249,7 @@ impl BPlusTreeIndex {
 
                 // 尝试从右兄弟借一个
                 if let Some(right_sibling_page_id) = right_sibling_page_id {
-                    let right_sibling_page = self
-                        .buffer_pool
-                        .fetch_page(right_sibling_page_id)
-                        .expect("Right sibling page can not be fetched");
+                    let right_sibling_page = self.buffer_pool.fetch_page(right_sibling_page_id)?;
                     let (mut right_sibling_tree_page, _) = BPlusTreePageCodec::decode(
                         &right_sibling_page.read().unwrap().data,
                         self.key_schema.clone(),
@@ -317,149 +313,34 @@ impl BPlusTreeIndex {
 
                 // 跟左兄弟合并
                 if let Some(left_sibling_page_id) = left_sibling_page_id {
-                    let left_sibling_page = self.buffer_pool.fetch_page(left_sibling_page_id)?;
-                    let (mut left_sibling_tree_page, _) = BPlusTreePageCodec::decode(
-                        &left_sibling_page.read().unwrap().data,
-                        self.key_schema.clone(),
-                    )?;
-                    // 将当前页向左兄弟合入
-                    match left_sibling_tree_page {
-                        BPlusTreePage::Internal(ref mut left_sibling_internal_page) => {
-                            if let BPlusTreePage::Internal(ref mut curr_internal_page) =
-                                curr_tree_page
-                            {
-                                // 空key处理
-                                let mut kvs = curr_internal_page.array.clone();
-                                let min_leaf_kv =
-                                    self.find_subtree_min_leafkv(curr_internal_page.value_at(0))?;
-                                kvs[0].0 = min_leaf_kv.0;
-                                left_sibling_internal_page.batch_insert(kvs);
-                            } else {
-                                panic!("Leaf page can not merge from internal page");
-                            }
-                        }
-                        BPlusTreePage::Leaf(ref mut left_sibling_leaf_page) => {
-                            if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_tree_page {
-                                left_sibling_leaf_page.batch_insert(curr_leaf_page.array.clone());
-                                // 更新next page id
-                                left_sibling_leaf_page.header.next_page_id =
-                                    curr_leaf_page.header.next_page_id;
-                            } else {
-                                panic!("Internal page can not merge from leaf page");
-                            }
-                        }
-                    };
-
-                    self.buffer_pool.write_page(
+                    let new_parent_page_id = self.merge(
+                        parent_page_id,
                         left_sibling_page_id,
-                        page_bytes_to_array(&BPlusTreePageCodec::encode(&left_sibling_tree_page)),
-                    );
-
-                    // 删除当前页
-                    let deleted_page_id = curr_page_id;
-                    self.buffer_pool.unpin_page_id(deleted_page_id, false)?;
-                    self.buffer_pool.delete_page(deleted_page_id)?;
-
-                    // 更新当前页为左兄弟页
-                    curr_page_id = left_sibling_page_id;
-                    curr_tree_page = left_sibling_tree_page;
-
-                    // 更新父节点
-                    let parent_page = self.buffer_pool.fetch_page(parent_page_id)?;
-                    let (mut parent_internal_page, _) = BPlusTreeInternalPageCodec::decode(
-                        &parent_page.read().unwrap().data,
-                        self.key_schema.clone(),
-                    )?;
-                    parent_internal_page.delete_page_id(deleted_page_id);
-                    // 根节点只有一个子节点（叶子）时，则叶子节点成为新的根节点
-                    if parent_page_id == self.root_page_id
-                        && parent_internal_page.header.current_size == 0
-                    {
-                        self.root_page_id = curr_page_id;
-                        // 删除旧的根节点
-                        self.buffer_pool.unpin_page_id(parent_page_id, false)?;
-                        self.buffer_pool.delete_page(parent_page_id)?;
-                    } else {
-                        parent_page.write().unwrap().data = page_bytes_to_array(
-                            &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
-                        );
-                        self.buffer_pool.unpin_page_id(curr_page_id, true)?;
-                        curr_tree_page = BPlusTreePage::Internal(parent_internal_page);
-                        curr_page_id = parent_page_id;
-                    }
-                    continue;
-                }
-
-                // 跟右兄弟合并
-                if let Some(right_sibling_page_id) = right_sibling_page_id {
-                    let right_sibling_page = self.buffer_pool.fetch_page(right_sibling_page_id)?;
-                    let (mut right_sibling_tree_page, _) = BPlusTreePageCodec::decode(
-                        &right_sibling_page.read().unwrap().data,
-                        self.key_schema.clone(),
-                    )?;
-                    // 将右兄弟合入当前页
-                    match right_sibling_tree_page {
-                        BPlusTreePage::Internal(ref mut right_sibling_internal_page) => {
-                            if let BPlusTreePage::Internal(ref mut curr_internal_page) =
-                                curr_tree_page
-                            {
-                                // 空key处理
-                                let mut kvs = right_sibling_internal_page.array.clone();
-                                let min_leaf_kv = self.find_subtree_min_leafkv(
-                                    right_sibling_internal_page.value_at(0),
-                                )?;
-                                kvs[0].0 = min_leaf_kv.0;
-                                curr_internal_page.batch_insert(kvs);
-                            } else {
-                                panic!("Leaf page can not merge from internal page");
-                            }
-                        }
-                        BPlusTreePage::Leaf(ref mut right_sibling_leaf_page) => {
-                            if let BPlusTreePage::Leaf(ref mut curr_leaf_page) = curr_tree_page {
-                                curr_leaf_page.batch_insert(right_sibling_leaf_page.array.clone());
-                                // 更新next page id
-                                curr_leaf_page.header.next_page_id =
-                                    right_sibling_leaf_page.header.next_page_id;
-                            } else {
-                                panic!("Internal page can not merge from leaf page");
-                            }
-                        }
-                    };
-
-                    self.buffer_pool.write_page(
                         curr_page_id,
-                        page_bytes_to_array(&BPlusTreePageCodec::encode(&curr_tree_page)),
-                    );
-
-                    // 删除右兄弟页
-                    let deleted_page_id = right_sibling_page_id;
-                    self.buffer_pool.unpin_page_id(deleted_page_id, false)?;
-                    self.buffer_pool.delete_page(deleted_page_id)?;
-
-                    // 更新父节点
-                    let parent_page = self.buffer_pool.fetch_page(parent_page_id)?;
-                    let (mut parent_internal_page, _) = BPlusTreeInternalPageCodec::decode(
-                        &parent_page.read().unwrap().data,
+                        &mut context,
+                    )?;
+                    let new_parent_page = self.buffer_pool.fetch_page(new_parent_page_id)?;
+                    let (new_parent_tree_page, _) = BPlusTreePageCodec::decode(
+                        &new_parent_page.read().unwrap().data,
                         self.key_schema.clone(),
                     )?;
-                    parent_internal_page.delete_page_id(deleted_page_id);
-                    // 根节点只有一个子节点（叶子）时，则叶子节点成为新的根节点
-                    if parent_page_id == self.root_page_id
-                        && parent_internal_page.header.current_size == 0
-                    {
-                        self.root_page_id = curr_page_id;
-                        // 删除旧的根节点
-                        self.buffer_pool.unpin_page_id(parent_page_id, false)?;
-                        self.buffer_pool.delete_page(parent_page_id)?;
-                    } else {
-                        parent_page.write().unwrap().data = page_bytes_to_array(
-                            &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
-                        );
-                        self.buffer_pool.unpin_page_id(curr_page_id, true)?;
-                        curr_tree_page = BPlusTreePage::Internal(parent_internal_page);
-                        curr_page_id = parent_page_id;
-                    }
-                    continue;
+                    curr_page_id = new_parent_page_id;
+                    curr_tree_page = new_parent_tree_page;
+                } else if let Some(right_sibling_page_id) = right_sibling_page_id {
+                    // 跟右兄弟合并
+                    let new_parent_page_id = self.merge(
+                        parent_page_id,
+                        curr_page_id,
+                        right_sibling_page_id,
+                        &mut context,
+                    )?;
+                    let new_parent_page = self.buffer_pool.fetch_page(new_parent_page_id)?;
+                    let (new_parent_tree_page, _) = BPlusTreePageCodec::decode(
+                        &new_parent_page.read().unwrap().data,
+                        self.key_schema.clone(),
+                    )?;
+                    curr_page_id = new_parent_page_id;
+                    curr_tree_page = new_parent_tree_page;
                 }
             }
         }
@@ -494,7 +375,7 @@ impl BPlusTreeIndex {
     }
 
     // 找到叶子节点上对应的Value
-    pub fn get(&mut self, key: &Tuple) -> BustubxResult<Option<Rid>> {
+    pub fn get(&self, key: &Tuple) -> BustubxResult<Option<Rid>> {
         if self.is_empty() {
             return Ok(None);
         }
@@ -514,7 +395,7 @@ impl BPlusTreeIndex {
     }
 
     fn find_leaf_page(
-        &mut self,
+        &self,
         key: &Tuple,
         context: &mut Context,
     ) -> BustubxResult<Option<Arc<RwLock<Page>>>> {
@@ -611,8 +492,78 @@ impl BPlusTreeIndex {
         Ok(parent_page.sibling_page_ids(child_page_id))
     }
 
-    fn merge(&mut self, _page: &BPlusTreePage, _context: &mut Context) {
-        unimplemented!()
+    fn merge(
+        &mut self,
+        parent_page_id: PageId,
+        left_page_id: PageId,
+        right_page_id: PageId,
+        _context: &mut Context,
+    ) -> BustubxResult<PageId> {
+        let left_page = self.buffer_pool.fetch_page(left_page_id)?;
+        let (mut left_tree_page, _) =
+            BPlusTreePageCodec::decode(&left_page.read().unwrap().data, self.key_schema.clone())?;
+        let right_page = self.buffer_pool.fetch_page(right_page_id)?;
+        let (mut right_tree_page, _) =
+            BPlusTreePageCodec::decode(&right_page.read().unwrap().data, self.key_schema.clone())?;
+
+        // 将当前页向左合入
+        match left_tree_page {
+            BPlusTreePage::Internal(ref mut left_internal_page) => {
+                if let BPlusTreePage::Internal(ref mut right_internal_page) = right_tree_page {
+                    // 空key处理
+                    let mut kvs = right_internal_page.array.clone();
+                    let min_leaf_kv =
+                        self.find_subtree_min_leafkv(right_internal_page.value_at(0))?;
+                    kvs[0].0 = min_leaf_kv.0;
+                    left_internal_page.batch_insert(kvs);
+                } else {
+                    return Err(BustubxError::Storage(
+                        "Leaf page can not merge from internal page".to_string(),
+                    ));
+                }
+            }
+            BPlusTreePage::Leaf(ref mut left_leaf_page) => {
+                if let BPlusTreePage::Leaf(ref mut right_leaf_page) = right_tree_page {
+                    left_leaf_page.batch_insert(right_leaf_page.array.clone());
+                    // 更新next page id
+                    left_leaf_page.header.next_page_id = right_leaf_page.header.next_page_id;
+                } else {
+                    return Err(BustubxError::Storage(
+                        "Internal page can not merge from leaf page".to_string(),
+                    ));
+                }
+            }
+        };
+
+        left_page.write().unwrap().data =
+            page_bytes_to_array(&BPlusTreePageCodec::encode(&left_tree_page));
+        self.buffer_pool.unpin_page_id(left_page_id, true)?;
+
+        // 删除右边页
+        self.buffer_pool.unpin_page_id(right_page_id, false)?;
+        self.buffer_pool.delete_page(right_page_id)?;
+
+        // 更新父节点
+        let parent_page = self.buffer_pool.fetch_page(parent_page_id)?;
+        let (mut parent_internal_page, _) = BPlusTreeInternalPageCodec::decode(
+            &parent_page.read().unwrap().data,
+            self.key_schema.clone(),
+        )?;
+        parent_internal_page.delete_page_id(right_page_id);
+
+        // 根节点只有一个子节点（叶子）时，则叶子节点成为新的根节点
+        if parent_page_id == self.root_page_id && parent_internal_page.header.current_size == 0 {
+            self.root_page_id = left_page_id;
+            // 删除旧的根节点
+            self.buffer_pool.unpin_page_id(parent_page_id, false)?;
+            self.buffer_pool.delete_page(parent_page_id)?;
+            Ok(left_page_id)
+        } else {
+            parent_page.write().unwrap().data =
+                page_bytes_to_array(&BPlusTreeInternalPageCodec::encode(&parent_internal_page));
+            self.buffer_pool.unpin_page_id(parent_page_id, true)?;
+            Ok(parent_page_id)
+        }
     }
 
     // 查找子树最小的leafKV
@@ -795,7 +746,7 @@ B+ Tree Level No.3:
 ");
     }
 
-    // #[test]
+    #[test]
     pub fn test_index_delete() {
         let (mut index, key_schema) = build_index();
 
@@ -805,10 +756,18 @@ B+ Tree Level No.3:
                 vec![3i8.into(), 3i16.into()],
             ))
             .unwrap();
+        println!("{}", pretty_format_index_tree(&index).unwrap());
         index
             .delete(&Tuple::new(
                 key_schema.clone(),
                 vec![10i8.into(), 10i16.into()],
+            ))
+            .unwrap();
+        println!("{}", pretty_format_index_tree(&index).unwrap());
+        index
+            .delete(&Tuple::new(
+                key_schema.clone(),
+                vec![8i8.into(), 8i16.into()],
             ))
             .unwrap();
         println!("{}", pretty_format_index_tree(&index).unwrap());
