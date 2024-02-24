@@ -1,10 +1,11 @@
 use crate::catalog::{SchemaRef, EMPTY_SCHEMA_REF};
 use crate::common::TableReference;
+use crate::expression::{ColumnExpr, Expr};
 use crate::planner::logical_plan::OrderByExpr;
 use crate::{
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
-    BustubxResult,
+    BustubxError, BustubxResult,
 };
 
 #[derive(Debug, derive_new::new)]
@@ -16,8 +17,25 @@ pub struct PhysicalCreateIndex {
 }
 
 impl VolcanoExecutor for PhysicalCreateIndex {
-    fn next(&self, _context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
-        // TODO implement
+    fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
+        let mut key_indices = vec![];
+        for col in self.columns.iter() {
+            match col.expr.as_ref() {
+                Expr::Column(ColumnExpr { name, .. }) => {
+                    key_indices.push(self.table_schema.index_of(None, name)?);
+                }
+                _ => {
+                    return Err(BustubxError::Execution(format!(
+                        "The expr should be column instead of {}",
+                        col.expr
+                    )))
+                }
+            }
+        }
+        let key_schema = self.table_schema.project(&key_indices)?;
+        context
+            .catalog
+            .create_index(self.name.clone(), &self.table, key_schema)?;
         Ok(None)
     }
     fn output_schema(&self) -> SchemaRef {

@@ -116,15 +116,10 @@ impl Catalog {
         &mut self,
         index_name: String,
         table_ref: &TableReference,
-        key_attrs: Vec<usize>,
+        key_schema: SchemaRef,
     ) -> BustubxResult<Arc<BPlusTreeIndex>> {
         let (catalog, schema, table) = table_ref.extend_to_full();
         let full_index_ref = (catalog, schema, table, index_name.clone());
-
-        let table_info = self.table_heap(table_ref)?;
-        let tuple_schema = table_info.schema.clone();
-        let key_schema = tuple_schema.project(&key_attrs)?;
-
         let b_plus_tree_index = BPlusTreeIndex::new(
             key_schema.clone(),
             self.buffer_pool.clone(),
@@ -214,60 +209,25 @@ mod tests {
             Column::new("b", DataType::Int16, true),
             Column::new("c", DataType::Int32, true),
         ]));
-        let _ = catalog.create_table(table_ref.clone(), schema);
+        let _ = catalog.create_table(table_ref.clone(), schema.clone());
 
         let index_name1 = "test_index1".to_string();
-        let key_attrs = vec![0, 2];
-        let index_info = catalog
-            .create_index(index_name1.clone(), &table_ref, key_attrs)
+        let key_schema1 = schema.project(&vec![0, 2]).unwrap();
+        let index1 = catalog
+            .create_index(index_name1.clone(), &table_ref, key_schema1.clone())
             .unwrap();
-        assert_eq!(index_info.key_schema.column_count(), 2);
-        assert_eq!(
-            index_info.key_schema.column_with_index(0).unwrap().name,
-            "a".to_string()
-        );
-        assert_eq!(
-            index_info
-                .key_schema
-                .column_with_index(0)
-                .unwrap()
-                .data_type,
-            DataType::Int8
-        );
-        assert_eq!(
-            index_info.key_schema.column_with_index(1).unwrap().name,
-            "c".to_string()
-        );
-        assert_eq!(
-            index_info
-                .key_schema
-                .column_with_index(1)
-                .unwrap()
-                .data_type,
-            DataType::Int32
-        );
+        assert_eq!(index1.key_schema, key_schema1);
 
         let index_name2 = "test_index2".to_string();
-        let key_attrs = vec![1];
-        let index_info = catalog
-            .create_index(index_name2.clone(), &table_ref, key_attrs)
+        let key_schema2 = schema.project(&vec![1]).unwrap();
+        let index2 = catalog
+            .create_index(index_name2.clone(), &table_ref, key_schema2.clone())
             .unwrap();
-        assert_eq!(index_info.key_schema.column_count(), 1);
-        assert_eq!(
-            index_info.key_schema.column_with_index(0).unwrap().name,
-            "b".to_string()
-        );
-        assert_eq!(
-            index_info
-                .key_schema
-                .column_with_index(0)
-                .unwrap()
-                .data_type,
-            DataType::Int16
-        );
+        assert_eq!(index2.key_schema, key_schema2);
 
-        let index_info = catalog.get_index_by_name(&table_ref, index_name1.as_str());
-        assert!(index_info.is_some());
-        let _index_info = index_info.unwrap();
+        let index3 = catalog
+            .get_index_by_name(&table_ref, index_name1.as_str())
+            .unwrap();
+        assert_eq!(index3.key_schema, key_schema1);
     }
 }
