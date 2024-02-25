@@ -34,13 +34,12 @@ impl VolcanoExecutor for PhysicalSeqScan {
     }
 
     fn next(&self, _context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
-        let mut guard = self.iterator.lock().unwrap();
-        match &mut *guard {
-            Some(x) => Ok(x.next().map(|full| full.1)),
-            None => Err(BustubxError::Execution(
+        let Some(iterator) = &mut *self.iterator.lock().unwrap() else {
+            return Err(BustubxError::Execution(
                 "table iterator not created".to_string(),
-            )),
-        }
+            ));
+        };
+        Ok(iterator.next()?.map(|full| full.1))
     }
 
     fn output_schema(&self) -> SchemaRef {

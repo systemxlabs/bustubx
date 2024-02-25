@@ -1,4 +1,9 @@
-use crate::buffer::PageId;
+use crate::buffer::{PageId, INVALID_PAGE_ID};
+
+pub const INVALID_RID: Rid = Rid {
+    page_id: INVALID_PAGE_ID,
+    slot_num: 0,
+};
 
 // TODO should move to table page?
 // Record Identifier
@@ -6,11 +11,4 @@ use crate::buffer::PageId;
 pub struct Rid {
     pub page_id: PageId,
     pub slot_num: u32,
-}
-
-impl Rid {
-    pub const INVALID_RID: Self = Self {
-        page_id: u32::MAX,
-        slot_num: u32::MAX,
-    };
 }

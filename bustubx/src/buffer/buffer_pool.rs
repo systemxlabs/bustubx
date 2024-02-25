@@ -3,7 +3,7 @@ use std::sync::RwLock;
 use std::{collections::VecDeque, sync::Arc};
 
 use crate::buffer::page::{Page, PageId};
-use crate::buffer::BUSTUBX_PAGE_SIZE;
+
 use crate::storage::DiskManager;
 use crate::{BustubxError, BustubxResult};
 
