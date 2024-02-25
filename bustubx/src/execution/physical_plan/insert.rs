@@ -85,7 +85,7 @@ impl VolcanoExecutor for PhysicalInsert {
             };
             let rid = table_heap.insert_tuple(&tuple_meta, &tuple)?;
 
-            let indexes = context.catalog.table_indexes(&self.table);
+            let indexes = context.catalog.table_indexes(&self.table)?;
             for index in indexes {
                 if let Ok(key_tuple) = tuple.project_with_schema(index.key_schema.clone()) {
                     index.insert(&key_tuple, rid)?;

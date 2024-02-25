@@ -40,7 +40,7 @@ pub enum PhysicalPlan {
     CreateIndex(PhysicalCreateIndex),
     Project(PhysicalProject),
     Filter(PhysicalFilter),
-    TableScan(PhysicalSeqScan),
+    SeqScan(PhysicalSeqScan),
     IndexScan(PhysicalIndexScan),
     Limit(PhysicalLimit),
     Insert(PhysicalInsert),
@@ -67,7 +67,7 @@ impl PhysicalPlan {
             PhysicalPlan::Empty(_)
             | PhysicalPlan::CreateTable(_)
             | PhysicalPlan::CreateIndex(_)
-            | PhysicalPlan::TableScan(_)
+            | PhysicalPlan::SeqScan(_)
             | PhysicalPlan::IndexScan(_)
             | PhysicalPlan::Values(_) => vec![],
         }
@@ -84,7 +84,7 @@ impl VolcanoExecutor for PhysicalPlan {
             PhysicalPlan::Values(op) => op.init(context),
             PhysicalPlan::Project(op) => op.init(context),
             PhysicalPlan::Filter(op) => op.init(context),
-            PhysicalPlan::TableScan(op) => op.init(context),
+            PhysicalPlan::SeqScan(op) => op.init(context),
             PhysicalPlan::IndexScan(op) => op.init(context),
             PhysicalPlan::Limit(op) => op.init(context),
             PhysicalPlan::NestedLoopJoin(op) => op.init(context),
@@ -102,7 +102,7 @@ impl VolcanoExecutor for PhysicalPlan {
             PhysicalPlan::Values(op) => op.next(context),
             PhysicalPlan::Project(op) => op.next(context),
             PhysicalPlan::Filter(op) => op.next(context),
-            PhysicalPlan::TableScan(op) => op.next(context),
+            PhysicalPlan::SeqScan(op) => op.next(context),
             PhysicalPlan::IndexScan(op) => op.next(context),
             PhysicalPlan::Limit(op) => op.next(context),
             PhysicalPlan::NestedLoopJoin(op) => op.next(context),
@@ -120,7 +120,7 @@ impl VolcanoExecutor for PhysicalPlan {
             Self::Values(op) => op.output_schema(),
             Self::Project(op) => op.output_schema(),
             Self::Filter(op) => op.output_schema(),
-            Self::TableScan(op) => op.output_schema(),
+            Self::SeqScan(op) => op.output_schema(),
             Self::IndexScan(op) => op.output_schema(),
             Self::Limit(op) => op.output_schema(),
             Self::NestedLoopJoin(op) => op.output_schema(),
@@ -140,7 +140,7 @@ impl std::fmt::Display for PhysicalPlan {
             Self::Values(op) => write!(f, "{op}"),
             Self::Project(op) => write!(f, "{op}"),
             Self::Filter(op) => write!(f, "{op}"),
-            Self::TableScan(op) => write!(f, "{op}"),
+            Self::SeqScan(op) => write!(f, "{op}"),
             Self::IndexScan(op) => write!(f, "{op}"),
             Self::Limit(op) => write!(f, "{op}"),
             Self::NestedLoopJoin(op) => write!(f, "{op}"),

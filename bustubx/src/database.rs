@@ -81,7 +81,10 @@ impl Database {
         );
 
         // logical plan -> physical plan
-        let physical_plan = PhysicalPlanner::new().create_physical_plan(optimized_logical_plan);
+        let physical_planner = PhysicalPlanner {
+            catalog: &self.catalog,
+        };
+        let physical_plan = physical_planner.create_physical_plan(optimized_logical_plan);
         debug!(
             "Physical Plan: \n{}",
             pretty_format_physical_plan(&physical_plan)
