@@ -157,7 +157,7 @@ fn load_table_last_page_id(
     let mut page_id = first_page_id;
     loop {
         let page = catalog.buffer_pool.fetch_page(page_id)?;
-        let (table_page, _) = TablePageCodec::decode(&page.read().unwrap().data, schema.clone())?;
+        let (table_page, _) = TablePageCodec::decode(page.read().unwrap().data(), schema.clone())?;
         catalog.buffer_pool.unpin_page_id(page_id, false)?;
 
         if table_page.header.next_page_id == INVALID_PAGE_ID {

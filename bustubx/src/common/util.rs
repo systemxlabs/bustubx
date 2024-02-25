@@ -100,7 +100,7 @@ pub(crate) fn pretty_format_index_tree(index: &BPlusTreeIndex) -> BustubxResult<
         while let Some(page_id) = curr_queue.pop_front() {
             let page = index.buffer_pool.fetch_page(page_id)?;
             let (curr_page, _) =
-                BPlusTreePageCodec::decode(&page.read().unwrap().data, index.key_schema.clone())?;
+                BPlusTreePageCodec::decode(page.read().unwrap().data(), index.key_schema.clone())?;
             index.buffer_pool.unpin_page(page, false)?;
 
             match curr_page {

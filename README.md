@@ -12,7 +12,7 @@
 - [x] Table Heap
 - [x] System Metadata (information_schema)
 - [ ] Parallel Execution
-- [ ] B+ Tree Index
+- [x] B+ Tree Index
 - [ ] Multi-Version Concurrency Control
 - [ ] Crash Recovery
 

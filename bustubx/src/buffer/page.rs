@@ -1,3 +1,4 @@
+use derive_with::With;
 use std::sync::atomic::AtomicU32;
 
 pub type PageId = u32;
@@ -6,10 +7,10 @@ pub type AtomicPageId = AtomicU32;
 pub const INVALID_PAGE_ID: PageId = 0;
 pub const BUSTUBX_PAGE_SIZE: usize = 4096;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, With)]
 pub struct Page {
     pub page_id: PageId,
-    pub data: [u8; BUSTUBX_PAGE_SIZE],
+    data: [u8; BUSTUBX_PAGE_SIZE],
     // 被引用次数
     pub pin_count: u32,
     // 是否被写过
@@ -33,6 +34,15 @@ impl Page {
         self.data = [0; BUSTUBX_PAGE_SIZE];
         self.pin_count = 0;
         self.is_dirty = false;
+    }
+
+    pub fn set_data(&mut self, data: [u8; BUSTUBX_PAGE_SIZE]) {
+        self.data = data;
+        self.is_dirty = true;
+    }
+
+    pub fn data(&self) -> &[u8] {
+        &self.data
     }
 
     pub fn replace(&mut self, other: Page) {

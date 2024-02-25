@@ -12,6 +12,7 @@ pub struct Tuple {
 
 impl Tuple {
     pub fn new(schema: SchemaRef, data: Vec<ScalarValue>) -> Self {
+        debug_assert_eq!(schema.columns.len(), data.len());
         Self { schema, data }
     }
 

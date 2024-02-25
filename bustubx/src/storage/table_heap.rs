@@ -25,8 +25,10 @@ impl TableHeap {
         let first_page = buffer_pool.new_page()?;
         let first_page_id = first_page.read().unwrap().page_id;
         let table_page = TablePage::new(schema.clone(), INVALID_PAGE_ID);
-        first_page.write().unwrap().data =
-            page_bytes_to_array(&TablePageCodec::encode(&table_page));
+        first_page
+            .write()
+            .unwrap()
+            .set_data(page_bytes_to_array(&TablePageCodec::encode(&table_page)));
         buffer_pool.unpin_page_id(first_page_id, true)?;
 
         Ok(Self {
@@ -55,7 +57,7 @@ impl TableHeap {
 
         // Loop until a suitable page is found for inserting the tuple
         let (mut last_table_page, _) =
-            TablePageCodec::decode(&last_page.read().unwrap().data, self.schema.clone())?;
+            TablePageCodec::decode(last_page.read().unwrap().data(), self.schema.clone())?;
         loop {
             if last_table_page.next_tuple_offset(tuple).is_ok() {
                 break;
@@ -72,16 +74,21 @@ impl TableHeap {
             let next_page = self.buffer_pool.new_page()?;
             let next_page_id = next_page.read().unwrap().page_id;
             let next_table_page = TablePage::new(self.schema.clone(), INVALID_PAGE_ID);
-            next_page.write().unwrap().data =
-                page_bytes_to_array(&TablePageCodec::encode(&next_table_page));
+            next_page
+                .write()
+                .unwrap()
+                .set_data(page_bytes_to_array(&TablePageCodec::encode(
+                    &next_table_page,
+                )));
 
             // Update and release the previous page
             last_table_page.header.next_page_id = next_page_id;
-
-            self.buffer_pool.write_page(
-                last_page_id,
-                page_bytes_to_array(&TablePageCodec::encode(&last_table_page)),
-            );
+            last_page
+                .write()
+                .unwrap()
+                .set_data(page_bytes_to_array(&TablePageCodec::encode(
+                    &last_table_page,
+                )));
             self.buffer_pool.unpin_page_id(last_page_id, true)?;
 
             // Update last_page_id.
@@ -93,10 +100,12 @@ impl TableHeap {
         // Insert the tuple into the chosen page
         let slot_id = last_table_page.insert_tuple(meta, tuple)?;
 
-        self.buffer_pool.write_page(
-            last_page_id,
-            page_bytes_to_array(&TablePageCodec::encode(&last_table_page)),
-        );
+        last_page
+            .write()
+            .unwrap()
+            .set_data(page_bytes_to_array(&TablePageCodec::encode(
+                &last_table_page,
+            )));
         self.buffer_pool.unpin_page_id(last_page_id, true)?;
 
         // Map the slot_id to a Rid and return
@@ -106,10 +115,12 @@ impl TableHeap {
     pub fn update_tuple_meta(&self, meta: &TupleMeta, rid: Rid) -> BustubxResult<()> {
         let page = self.buffer_pool.fetch_page(rid.page_id)?;
         let (mut table_page, _) =
-            TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone())?;
+            TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
         table_page.update_tuple_meta(meta, rid.slot_num as u16)?;
 
-        page.write().unwrap().data = page_bytes_to_array(&TablePageCodec::encode(&table_page));
+        page.write()
+            .unwrap()
+            .set_data(page_bytes_to_array(&TablePageCodec::encode(&table_page)));
         self.buffer_pool.unpin_page_id(rid.page_id, true)?;
         Ok(())
     }
@@ -117,7 +128,7 @@ impl TableHeap {
     pub fn tuple(&self, rid: Rid) -> BustubxResult<(TupleMeta, Tuple)> {
         let page = self.buffer_pool.fetch_page(rid.page_id)?;
         let (table_page, _) =
-            TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone())?;
+            TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
         let result = table_page.tuple(rid.slot_num as u16)?;
         self.buffer_pool.unpin_page_id(rid.page_id, false)?;
         Ok(result)
@@ -126,7 +137,7 @@ impl TableHeap {
     pub fn tuple_meta(&self, rid: Rid) -> BustubxResult<TupleMeta> {
         let page = self.buffer_pool.fetch_page(rid.page_id)?;
         let (table_page, _) =
-            TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone())?;
+            TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
         let result = table_page.tuple_meta(rid.slot_num as u16)?;
         self.buffer_pool.unpin_page_id(rid.page_id, false)?;
         Ok(result)
@@ -139,7 +150,7 @@ impl TableHeap {
             .fetch_page(first_page_id)
             .expect("Can not fetch page");
         let (table_page, _) =
-            TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone()).unwrap();
+            TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone()).unwrap();
         self.buffer_pool
             .unpin_page_id(first_page_id, false)
             .unwrap();
@@ -157,7 +168,7 @@ impl TableHeap {
             .fetch_page(rid.page_id)
             .expect("Can not fetch page");
         let (table_page, _) =
-            TablePageCodec::decode(&page.read().unwrap().data, self.schema.clone()).unwrap();
+            TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone()).unwrap();
         self.buffer_pool.unpin_page_id(rid.page_id, false).unwrap();
         let next_rid = table_page.get_next_rid(&rid);
         if next_rid.is_some() {
@@ -172,7 +183,7 @@ impl TableHeap {
             .fetch_page(table_page.header.next_page_id)
             .expect("Can not fetch page");
         let (next_table_page, _) =
-            TablePageCodec::decode(&next_page.read().unwrap().data, self.schema.clone()).unwrap();
+            TablePageCodec::decode(next_page.read().unwrap().data(), self.schema.clone()).unwrap();
         self.buffer_pool
             .unpin_page_id(table_page.header.next_page_id, false)
             .unwrap();

@@ -85,9 +85,9 @@ impl BufferPoolManager {
 
             // 从磁盘读取页
             self.page_table.insert(page_id, frame_id);
-            let mut new_page = Page::new(page_id);
-            new_page.pin_count = 1;
-            new_page.data = self.disk_manager.read_page(page_id)?;
+            let new_page = Page::new(page_id)
+                .with_pin_count(1u32)
+                .with_data(self.disk_manager.read_page(page_id)?);
             self.pool[frame_id].write().unwrap().replace(new_page);
 
             self.replacer.write().unwrap().record_access(frame_id)?;
@@ -97,14 +97,6 @@ impl BufferPoolManager {
                 .set_evictable(frame_id, false)?;
 
             Ok(self.pool[frame_id].clone())
-        }
-    }
-
-    pub fn write_page(&self, page_id: PageId, data: [u8; BUSTUBX_PAGE_SIZE]) {
-        if let Some(frame_id) = self.page_table.get(&page_id) {
-            let page = self.pool[*frame_id].clone();
-            page.write().unwrap().data = data;
-            page.write().unwrap().is_dirty = true;
         }
     }
 
@@ -143,7 +135,7 @@ impl BufferPoolManager {
         if let Some(frame_id) = self.page_table.get(&page_id) {
             let page = self.pool[*frame_id].clone();
             self.disk_manager
-                .write_page(page_id, &page.read().unwrap().data)?;
+                .write_page(page_id, page.read().unwrap().data())?;
             page.write().unwrap().is_dirty = false;
             Ok(true)
         } else {
