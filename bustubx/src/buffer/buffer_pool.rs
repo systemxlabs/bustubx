@@ -20,7 +20,7 @@ pub struct BufferPoolManager {
     pub replacer: Arc<RwLock<LRUKReplacer>>,
     pub disk_manager: Arc<DiskManager>,
     // 缓冲池中的页号与frame号的映射
-    page_table: DashMap<PageId, FrameId>,
+    page_table: Arc<DashMap<PageId, FrameId>>,
     // 缓冲池中空闲的frame
     free_list: Arc<RwLock<VecDeque<FrameId>>>,
 }
@@ -37,7 +37,7 @@ impl BufferPoolManager {
             pool,
             replacer: Arc::new(RwLock::new(LRUKReplacer::new(num_pages, 2))),
             disk_manager,
-            page_table: DashMap::new(),
+            page_table: Arc::new(DashMap::new()),
             free_list: Arc::new(RwLock::new(free_list)),
         }
     }
