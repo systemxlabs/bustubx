@@ -35,6 +35,7 @@ impl Context {
 }
 
 // B+树索引
+#[derive(Debug)]
 pub struct BPlusTreeIndex {
     pub key_schema: SchemaRef,
     pub buffer_pool: Arc<BufferPoolManager>,
@@ -604,6 +605,7 @@ impl BPlusTreeIndex {
     }
 }
 
+#[derive(Debug)]
 pub struct TreeIndexIterator {
     index: Arc<BPlusTreeIndex>,
     start_bound: Bound<Tuple>,

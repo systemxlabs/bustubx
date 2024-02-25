@@ -74,19 +74,24 @@ impl VolcanoExecutor for PhysicalInsert {
                     casted_data.push(value.cast_to(&target_type)?);
                 }
             }
-            let tuple = Tuple {
-                schema: self.projected_schema.clone(),
-                data: casted_data,
-            };
+            // TODO fill default values in data
+            let tuple = Tuple::new(self.table_schema.clone(), casted_data);
 
-            // TODO update index if needed
             let table_heap = context.catalog.table_heap(&self.table)?;
             let tuple_meta = TupleMeta {
                 insert_txn_id: 0,
                 delete_txn_id: 0,
                 is_deleted: false,
             };
-            table_heap.insert_tuple(&tuple_meta, &tuple)?;
+            let rid = table_heap.insert_tuple(&tuple_meta, &tuple)?;
+
+            let indexes = context.catalog.table_indexes(&self.table);
+            for index in indexes {
+                if let Ok(key_tuple) = tuple.project_with_schema(index.key_schema.clone()) {
+                    index.insert(&key_tuple, rid)?;
+                }
+            }
+
             self.insert_rows
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         }

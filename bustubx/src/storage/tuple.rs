@@ -15,6 +15,22 @@ impl Tuple {
         Self { schema, data }
     }
 
+    pub fn project_with_schema(&self, projected_schema: SchemaRef) -> BustubxResult<Self> {
+        let indices = projected_schema
+            .columns
+            .iter()
+            .map(|col| {
+                self.schema
+                    .index_of(col.relation.as_ref(), col.name.as_str())
+            })
+            .collect::<BustubxResult<Vec<usize>>>()?;
+        let projected_data = indices
+            .iter()
+            .map(|idx| self.data[*idx].clone())
+            .collect::<Vec<ScalarValue>>();
+        Ok(Self::new(projected_schema, projected_data))
+    }
+
     pub fn empty(schema: SchemaRef) -> Self {
         let mut data = vec![];
         for col in schema.columns.iter() {

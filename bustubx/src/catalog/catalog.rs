@@ -112,6 +112,10 @@ impl Catalog {
             )))
     }
 
+    pub fn table_indexes(&self, table_ref: &TableReference) -> Vec<Arc<BPlusTreeIndex>> {
+        vec![]
+    }
+
     pub fn create_index(
         &mut self,
         index_name: String,
