@@ -97,7 +97,7 @@ impl BPlusTreeIndex {
                 .set_data(page_bytes_to_array(&BPlusTreePageCodec::encode(
                     &curr_tree_page,
                 )));
-            self.buffer_pool.unpin_page(curr_page.clone(), true)?;
+            self.buffer_pool.unpin_page(curr_page.clone())?;
 
             let curr_page_id = curr_page.read().unwrap().page_id;
             if let Some(parent_page_id) = context.read_set.pop_back() {
@@ -107,7 +107,7 @@ impl BPlusTreeIndex {
                     parent_page.read().unwrap().data(),
                     self.key_schema.clone(),
                 )?;
-                self.buffer_pool.unpin_page(parent_page.clone(), false)?;
+                self.buffer_pool.unpin_page(parent_page.clone())?;
                 parent_tree_page.insert_internalkv(internalkv);
 
                 curr_page = parent_page;
@@ -129,7 +129,7 @@ impl BPlusTreeIndex {
                 new_root_page.write().unwrap().set_data(page_bytes_to_array(
                     &BPlusTreeInternalPageCodec::encode(&new_root_internal_page),
                 ));
-                self.buffer_pool.unpin_page(new_root_page.clone(), true)?;
+                self.buffer_pool.unpin_page(new_root_page.clone())?;
 
                 // 更新root page id
                 self.root_page_id.store(new_root_page_id, Ordering::SeqCst);
@@ -145,7 +145,7 @@ impl BPlusTreeIndex {
             .set_data(page_bytes_to_array(&BPlusTreePageCodec::encode(
                 &curr_tree_page,
             )));
-        self.buffer_pool.unpin_page(curr_page, true)?;
+        self.buffer_pool.unpin_page(curr_page)?;
 
         Ok(())
     }
@@ -248,7 +248,7 @@ impl BPlusTreeIndex {
         // 更新root page id
         self.root_page_id.store(new_page_id, Ordering::SeqCst);
 
-        self.buffer_pool.unpin_page_id(new_page_id, true)?;
+        self.buffer_pool.unpin_page_id(new_page_id)?;
         Ok(())
     }
 
@@ -268,7 +268,7 @@ impl BPlusTreeIndex {
             self.key_schema.clone(),
         )?;
         let result = leaf_tree_page.look_up(key);
-        self.buffer_pool.unpin_page(leaf_page, false)?;
+        self.buffer_pool.unpin_page(leaf_page)?;
         Ok(result)
     }
 
@@ -294,7 +294,7 @@ impl BPlusTreeIndex {
                         .read_set
                         .push_back(curr_page.read().unwrap().page_id);
                     // 释放上一页
-                    self.buffer_pool.unpin_page(curr_page, false)?;
+                    self.buffer_pool.unpin_page(curr_page)?;
                     // 查找下一页
                     let next_page_id = internal_page.look_up(key);
                     let next_page = self.buffer_pool.fetch_page(next_page_id)?;
@@ -306,7 +306,7 @@ impl BPlusTreeIndex {
                     curr_tree_page = next_tree_page;
                 }
                 BPlusTreePage::Leaf(_leaf_page) => {
-                    self.buffer_pool.unpin_page(curr_page.clone(), false)?;
+                    self.buffer_pool.unpin_page(curr_page.clone())?;
                     return Ok(Some(curr_page));
                 }
             }
@@ -333,7 +333,7 @@ impl BPlusTreeIndex {
                 new_page.write().unwrap().set_data(page_bytes_to_array(
                     &BPlusTreeLeafPageCodec::encode(&new_leaf_page),
                 ));
-                self.buffer_pool.unpin_page_id(new_page_id, true)?;
+                self.buffer_pool.unpin_page_id(new_page_id)?;
 
                 Ok((new_leaf_page.key_at(0).clone(), new_page_id))
             }
@@ -348,7 +348,7 @@ impl BPlusTreeIndex {
                 new_page.write().unwrap().set_data(page_bytes_to_array(
                     &BPlusTreeInternalPageCodec::encode(&new_internal_page),
                 ));
-                self.buffer_pool.unpin_page_id(new_page_id, true)?;
+                self.buffer_pool.unpin_page_id(new_page_id)?;
 
                 let min_leafkv = self.find_subtree_min_leafkv(new_page_id)?;
                 Ok((min_leafkv.0, new_page_id))
@@ -445,7 +445,7 @@ impl BPlusTreeIndex {
         page.write()
             .unwrap()
             .set_data(page_bytes_to_array(&BPlusTreePageCodec::encode(&tree_page)));
-        self.buffer_pool.unpin_page_id(page_id, true)?;
+        self.buffer_pool.unpin_page_id(page_id)?;
 
         borrowed_page
             .write()
@@ -453,7 +453,7 @@ impl BPlusTreeIndex {
             .set_data(page_bytes_to_array(&BPlusTreePageCodec::encode(
                 &borrowed_tree_page,
             )));
-        self.buffer_pool.unpin_page_id(borrowed_page_id, true)?;
+        self.buffer_pool.unpin_page_id(borrowed_page_id)?;
 
         // 更新父节点
         let parent_page = self.buffer_pool.fetch_page(parent_page_id)?;
@@ -466,7 +466,7 @@ impl BPlusTreeIndex {
         parent_page.write().unwrap().set_data(page_bytes_to_array(
             &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
         ));
-        self.buffer_pool.unpin_page_id(parent_page_id, true)?;
+        self.buffer_pool.unpin_page_id(parent_page_id)?;
         Ok(true)
     }
 
@@ -480,7 +480,7 @@ impl BPlusTreeIndex {
             parent_page.read().unwrap().data(),
             self.key_schema.clone(),
         )?;
-        self.buffer_pool.unpin_page_id(parent_page_id, false)?;
+        self.buffer_pool.unpin_page_id(parent_page_id)?;
         Ok(parent_page.sibling_page_ids(child_page_id))
     }
 
@@ -532,10 +532,10 @@ impl BPlusTreeIndex {
             .set_data(page_bytes_to_array(&BPlusTreePageCodec::encode(
                 &left_tree_page,
             )));
-        self.buffer_pool.unpin_page_id(left_page_id, true)?;
+        self.buffer_pool.unpin_page_id(left_page_id)?;
 
         // 删除右边页
-        self.buffer_pool.unpin_page_id(right_page_id, false)?;
+        self.buffer_pool.unpin_page_id(right_page_id)?;
         self.buffer_pool.delete_page(right_page_id)?;
 
         // 更新父节点
@@ -552,14 +552,14 @@ impl BPlusTreeIndex {
         {
             self.root_page_id.store(left_page_id, Ordering::SeqCst);
             // 删除旧的根节点
-            self.buffer_pool.unpin_page_id(parent_page_id, false)?;
+            self.buffer_pool.unpin_page_id(parent_page_id)?;
             self.buffer_pool.delete_page(parent_page_id)?;
             Ok(left_page_id)
         } else {
             parent_page.write().unwrap().set_data(page_bytes_to_array(
                 &BPlusTreeInternalPageCodec::encode(&parent_internal_page),
             ));
-            self.buffer_pool.unpin_page_id(parent_page_id, true)?;
+            self.buffer_pool.unpin_page_id(parent_page_id)?;
             Ok(parent_page_id)
         }
     }
@@ -578,7 +578,7 @@ impl BPlusTreeIndex {
         let curr_page = self.buffer_pool.fetch_page(page_id)?;
         let (mut curr_tree_page, _) =
             BPlusTreePageCodec::decode(curr_page.read().unwrap().data(), self.key_schema.clone())?;
-        self.buffer_pool.unpin_page(curr_page.clone(), false)?;
+        self.buffer_pool.unpin_page(curr_page.clone())?;
         loop {
             match curr_tree_page {
                 BPlusTreePage::Internal(internal_page) => {
@@ -594,7 +594,7 @@ impl BPlusTreeIndex {
                         self.key_schema.clone(),
                     )?
                     .0;
-                    self.buffer_pool.unpin_page(next_page, false)?;
+                    self.buffer_pool.unpin_page(next_page)?;
                 }
                 BPlusTreePage::Leaf(leaf_page) => {
                     let index = if min_or_max {
@@ -614,7 +614,7 @@ impl BPlusTreeIndex {
             .fetch_page(self.root_page_id.load(Ordering::SeqCst))?;
         let (mut curr_tree_page, _) =
             BPlusTreePageCodec::decode(curr_page.read().unwrap().data(), self.key_schema.clone())?;
-        self.buffer_pool.unpin_page(curr_page.clone(), false)?;
+        self.buffer_pool.unpin_page(curr_page.clone())?;
         loop {
             match curr_tree_page {
                 BPlusTreePage::Internal(internal_page) => {
@@ -625,7 +625,7 @@ impl BPlusTreeIndex {
                         self.key_schema.clone(),
                     )?
                     .0;
-                    self.buffer_pool.unpin_page(next_page, false)?;
+                    self.buffer_pool.unpin_page(next_page)?;
                 }
                 BPlusTreePage::Leaf(leaf_page) => {
                     return Ok(leaf_page);
@@ -668,9 +668,7 @@ impl TreeIndexIterator {
                 self.index.key_schema.clone(),
             )?
             .0;
-            self.index
-                .buffer_pool
-                .unpin_page(next_page.clone(), false)?;
+            self.index.buffer_pool.unpin_page(next_page.clone())?;
             Ok(true)
         }
     }

@@ -101,7 +101,7 @@ pub(crate) fn pretty_format_index_tree(index: &BPlusTreeIndex) -> BustubxResult<
             let page = index.buffer_pool.fetch_page(page_id)?;
             let (curr_page, _) =
                 BPlusTreePageCodec::decode(page.read().unwrap().data(), index.key_schema.clone())?;
-            index.buffer_pool.unpin_page(page, false)?;
+            index.buffer_pool.unpin_page(page)?;
 
             match curr_page {
                 BPlusTreePage::Internal(internal_page) => {
