@@ -264,9 +264,8 @@ impl BPlusTreeInternalPageHeaderCodec {
 #[cfg(test)]
 mod tests {
     use crate::catalog::{Column, DataType, Schema};
-    use crate::common::rid::Rid;
     use crate::storage::codec::index_page::BPlusTreePageCodec;
-    use crate::storage::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePage};
+    use crate::storage::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePage, RecordId};
     use crate::Tuple;
     use std::sync::Arc;
 
@@ -277,9 +276,9 @@ mod tests {
             Column::new("b", DataType::Int32, true),
         ]));
         let tuple1 = Tuple::new(schema.clone(), vec![1i8.into(), 1i32.into()]);
-        let rid1 = Rid::new(1, 1);
+        let rid1 = RecordId::new(1, 1);
         let tuple2 = Tuple::new(schema.clone(), vec![2i8.into(), 2i32.into()]);
-        let rid2 = Rid::new(2, 2);
+        let rid2 = RecordId::new(2, 2);
 
         let mut leaf_page = BPlusTreeLeafPage::new(schema.clone(), 100);
         leaf_page.insert(tuple1.clone(), rid1);

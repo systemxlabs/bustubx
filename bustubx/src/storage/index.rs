@@ -12,8 +12,7 @@ use crate::storage::codec::{
 use crate::storage::{InternalKV, LeafKV};
 use crate::{
     buffer::BufferPoolManager,
-    common::rid::Rid,
-    storage::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePage},
+    storage::{BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePage, RecordId},
     BustubxError, BustubxResult,
 };
 
@@ -64,7 +63,7 @@ impl BPlusTreeIndex {
         self.root_page_id.load(Ordering::SeqCst) == INVALID_PAGE_ID
     }
 
-    pub fn insert(&self, key: &Tuple, rid: Rid) -> BustubxResult<()> {
+    pub fn insert(&self, key: &Tuple, rid: RecordId) -> BustubxResult<()> {
         if self.is_empty() {
             self.start_new_tree(key, rid)?;
             return Ok(());
@@ -219,7 +218,7 @@ impl BPlusTreeIndex {
         Ok(())
     }
 
-    pub fn scan<R>(&self, range: R) -> Vec<Rid>
+    pub fn scan<R>(&self, range: R) -> Vec<RecordId>
     where
         R: RangeBounds<Tuple>,
     {
@@ -227,7 +226,7 @@ impl BPlusTreeIndex {
         unimplemented!()
     }
 
-    fn start_new_tree(&self, key: &Tuple, rid: Rid) -> BustubxResult<()> {
+    fn start_new_tree(&self, key: &Tuple, rid: RecordId) -> BustubxResult<()> {
         let new_page = self.buffer_pool.new_page()?;
         let new_page_id = new_page.read().unwrap().page_id;
 
@@ -248,7 +247,7 @@ impl BPlusTreeIndex {
     }
 
     // 找到叶子节点上对应的Value
-    pub fn get(&self, key: &Tuple) -> BustubxResult<Option<Rid>> {
+    pub fn get(&self, key: &Tuple) -> BustubxResult<Option<RecordId>> {
         if self.is_empty() {
             return Ok(None);
         }
@@ -645,7 +644,7 @@ impl TreeIndexIterator {
         }
     }
 
-    pub fn next(&mut self) -> BustubxResult<Option<Rid>> {
+    pub fn next(&mut self) -> BustubxResult<Option<RecordId>> {
         if self.started {
             match self.end_bound.as_ref() {
                 Bound::Included(end_tuple) => {
@@ -767,8 +766,7 @@ mod tests {
     use crate::{
         buffer::BufferPoolManager,
         catalog::{Column, DataType, Schema},
-        common::rid::Rid,
-        storage::{DiskManager, Tuple},
+        storage::{DiskManager, RecordId, Tuple},
     };
 
     use super::BPlusTreeIndex;
@@ -788,67 +786,67 @@ mod tests {
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
-                Rid::new(1, 1),
+                RecordId::new(1, 1),
             )
             .unwrap();
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
-                Rid::new(2, 2),
+                RecordId::new(2, 2),
             )
             .unwrap();
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
-                Rid::new(3, 3),
+                RecordId::new(3, 3),
             )
             .unwrap();
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![4i8.into(), 4i16.into()]),
-                Rid::new(4, 4),
+                RecordId::new(4, 4),
             )
             .unwrap();
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![5i8.into(), 5i16.into()]),
-                Rid::new(5, 5),
+                RecordId::new(5, 5),
             )
             .unwrap();
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![6i8.into(), 6i16.into()]),
-                Rid::new(6, 6),
+                RecordId::new(6, 6),
             )
             .unwrap();
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![7i8.into(), 7i16.into()]),
-                Rid::new(7, 7),
+                RecordId::new(7, 7),
             )
             .unwrap();
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![8i8.into(), 8i16.into()]),
-                Rid::new(8, 8),
+                RecordId::new(8, 8),
             )
             .unwrap();
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![9i8.into(), 9i16.into()]),
-                Rid::new(9, 9),
+                RecordId::new(9, 9),
             )
             .unwrap();
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![10i8.into(), 10i16.into()]),
-                Rid::new(10, 10),
+                RecordId::new(10, 10),
             )
             .unwrap();
         index
             .insert(
                 &Tuple::new(key_schema.clone(), vec![11i8.into(), 11i16.into()]),
-                Rid::new(11, 11),
+                RecordId::new(11, 11),
             )
             .unwrap();
         (index, key_schema)
@@ -952,7 +950,7 @@ B+ Tree Level No.2:
                     vec![3i8.into(), 3i16.into()],
                 ))
                 .unwrap(),
-            Some(Rid::new(3, 3))
+            Some(RecordId::new(3, 3))
         );
         assert_eq!(
             index
@@ -961,7 +959,7 @@ B+ Tree Level No.2:
                     vec![10i8.into(), 10i16.into()],
                 ))
                 .unwrap(),
-            Some(Rid::new(10, 10))
+            Some(RecordId::new(10, 10))
         );
     }
 
@@ -972,16 +970,16 @@ B+ Tree Level No.2:
 
         let end_tuple1 = Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]);
         let mut iterator1 = TreeIndexIterator::new(index.clone(), ..end_tuple1);
-        assert_eq!(iterator1.next().unwrap(), Some(Rid::new(1, 1)));
-        assert_eq!(iterator1.next().unwrap(), Some(Rid::new(2, 2)));
+        assert_eq!(iterator1.next().unwrap(), Some(RecordId::new(1, 1)));
+        assert_eq!(iterator1.next().unwrap(), Some(RecordId::new(2, 2)));
         assert_eq!(iterator1.next().unwrap(), None);
 
         let start_tuple2 = Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]);
         let end_tuple2 = Tuple::new(key_schema.clone(), vec![5i8.into(), 5i16.into()]);
         let mut iterator2 = TreeIndexIterator::new(index.clone(), start_tuple2..=end_tuple2);
-        assert_eq!(iterator2.next().unwrap(), Some(Rid::new(3, 3)));
-        assert_eq!(iterator2.next().unwrap(), Some(Rid::new(4, 4)));
-        assert_eq!(iterator2.next().unwrap(), Some(Rid::new(5, 5)));
+        assert_eq!(iterator2.next().unwrap(), Some(RecordId::new(3, 3)));
+        assert_eq!(iterator2.next().unwrap(), Some(RecordId::new(4, 4)));
+        assert_eq!(iterator2.next().unwrap(), Some(RecordId::new(5, 5)));
         assert_eq!(iterator2.next().unwrap(), None);
 
         let start_tuple3 = Tuple::new(key_schema.clone(), vec![6i8.into(), 6i16.into()]);
@@ -990,13 +988,13 @@ B+ Tree Level No.2:
             index.clone(),
             (Bound::Excluded(start_tuple3), Bound::Excluded(end_tuple3)),
         );
-        assert_eq!(iterator3.next().unwrap(), Some(Rid::new(7, 7)));
+        assert_eq!(iterator3.next().unwrap(), Some(RecordId::new(7, 7)));
 
         let start_tuple4 = Tuple::new(key_schema.clone(), vec![9i8.into(), 9i16.into()]);
         let mut iterator4 = TreeIndexIterator::new(index.clone(), start_tuple4..);
-        assert_eq!(iterator4.next().unwrap(), Some(Rid::new(9, 9)));
-        assert_eq!(iterator4.next().unwrap(), Some(Rid::new(10, 10)));
-        assert_eq!(iterator4.next().unwrap(), Some(Rid::new(11, 11)));
+        assert_eq!(iterator4.next().unwrap(), Some(RecordId::new(9, 9)));
+        assert_eq!(iterator4.next().unwrap(), Some(RecordId::new(10, 10)));
+        assert_eq!(iterator4.next().unwrap(), Some(RecordId::new(11, 11)));
         assert_eq!(iterator4.next().unwrap(), None);
         assert_eq!(iterator4.next().unwrap(), None);
     }

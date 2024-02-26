@@ -1,5 +1,4 @@
 use crate::{BustubxError, BustubxResult};
-use itertools::Itertools;
 use std::collections::HashSet;
 
 use crate::catalog::Column;

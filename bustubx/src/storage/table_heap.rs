@@ -1,10 +1,9 @@
 use crate::buffer::{AtomicPageId, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
-use crate::common::rid::INVALID_RID;
 use crate::common::util::page_bytes_to_array;
 use crate::storage::codec::TablePageCodec;
-use crate::storage::{TablePage, TupleMeta};
-use crate::{buffer::BufferPoolManager, common::rid::Rid, BustubxResult};
+use crate::storage::{RecordId, TablePage, TupleMeta, INVALID_RID};
+use crate::{buffer::BufferPoolManager, BustubxResult};
 use std::collections::Bound;
 use std::ops::RangeBounds;
 use std::sync::atomic::Ordering;
@@ -51,7 +50,7 @@ impl TableHeap {
     ///
     /// Returns:
     /// An `Option` containing the `Rid` of the inserted tuple if successful, otherwise `None`.
-    pub fn insert_tuple(&self, meta: &TupleMeta, tuple: &Tuple) -> BustubxResult<Rid> {
+    pub fn insert_tuple(&self, meta: &TupleMeta, tuple: &Tuple) -> BustubxResult<RecordId> {
         let mut last_page_id = self.last_page_id.load(Ordering::SeqCst);
         let last_page = self.buffer_pool.fetch_page(last_page_id)?;
 
@@ -107,10 +106,10 @@ impl TableHeap {
             )));
 
         // Map the slot_id to a Rid and return
-        Ok(Rid::new(last_page_id, slot_id as u32))
+        Ok(RecordId::new(last_page_id, slot_id as u32))
     }
 
-    pub fn update_tuple_meta(&self, meta: &TupleMeta, rid: Rid) -> BustubxResult<()> {
+    pub fn update_tuple_meta(&self, meta: &TupleMeta, rid: RecordId) -> BustubxResult<()> {
         let page = self.buffer_pool.fetch_page(rid.page_id)?;
         let (mut table_page, _) =
             TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
@@ -123,7 +122,7 @@ impl TableHeap {
     }
 
     // FIXME
-    pub fn tuple(&self, rid: Rid) -> BustubxResult<(TupleMeta, Tuple)> {
+    pub fn tuple(&self, rid: RecordId) -> BustubxResult<(TupleMeta, Tuple)> {
         let page = self.buffer_pool.fetch_page(rid.page_id)?;
         let (table_page, _) =
             TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
@@ -131,7 +130,7 @@ impl TableHeap {
         Ok(result)
     }
 
-    pub fn tuple_meta(&self, rid: Rid) -> BustubxResult<TupleMeta> {
+    pub fn tuple_meta(&self, rid: RecordId) -> BustubxResult<TupleMeta> {
         let page = self.buffer_pool.fetch_page(rid.page_id)?;
         let (table_page, _) =
             TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
@@ -139,7 +138,7 @@ impl TableHeap {
         Ok(result)
     }
 
-    pub fn get_first_rid(&self) -> BustubxResult<Option<Rid>> {
+    pub fn get_first_rid(&self) -> BustubxResult<Option<RecordId>> {
         let first_page_id = self.first_page_id.load(Ordering::SeqCst);
         let page = self.buffer_pool.fetch_page(first_page_id)?;
         let (table_page, _) =
@@ -148,11 +147,11 @@ impl TableHeap {
             // TODO 忽略删除的tuple
             Ok(None)
         } else {
-            Ok(Some(Rid::new(first_page_id, 0)))
+            Ok(Some(RecordId::new(first_page_id, 0)))
         }
     }
 
-    pub fn get_next_rid(&self, rid: Rid) -> BustubxResult<Option<Rid>> {
+    pub fn get_next_rid(&self, rid: RecordId) -> BustubxResult<Option<RecordId>> {
         let page = self.buffer_pool.fetch_page(rid.page_id)?;
         let (table_page, _) =
             TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
@@ -173,7 +172,7 @@ impl TableHeap {
             // TODO 忽略删除的tuple
             Ok(None)
         } else {
-            Ok(Some(Rid::new(table_page.header.next_page_id, 0)))
+            Ok(Some(RecordId::new(table_page.header.next_page_id, 0)))
         }
     }
 }
@@ -181,15 +180,15 @@ impl TableHeap {
 #[derive(Debug)]
 pub struct TableIterator {
     heap: Arc<TableHeap>,
-    start_bound: Bound<Rid>,
-    end_bound: Bound<Rid>,
-    cursor: Rid,
+    start_bound: Bound<RecordId>,
+    end_bound: Bound<RecordId>,
+    cursor: RecordId,
     started: bool,
     ended: bool,
 }
 
 impl TableIterator {
-    pub fn new<R: RangeBounds<Rid>>(heap: Arc<TableHeap>, range: R) -> Self {
+    pub fn new<R: RangeBounds<RecordId>>(heap: Arc<TableHeap>, range: R) -> Self {
         Self {
             heap,
             start_bound: range.start_bound().cloned(),

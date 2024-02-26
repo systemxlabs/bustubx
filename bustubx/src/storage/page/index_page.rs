@@ -1,6 +1,7 @@
 use crate::buffer::{PageId, INVALID_PAGE_ID};
 use crate::catalog::{Schema, SchemaRef};
-use crate::{common::rid::Rid, Tuple};
+use crate::storage::RecordId;
+use crate::Tuple;
 use std::sync::Arc;
 
 pub const BPLUS_INTERNAL_PAGE_MAX_SIZE: usize = 10;
@@ -49,7 +50,7 @@ pub enum BPlusTreePageType {
 }
 
 pub type InternalKV = (Tuple, PageId);
-pub type LeafKV = (Tuple, Rid);
+pub type LeafKV = (Tuple, RecordId);
 
 /**
  * Internal page format (keys are stored in increasing order):
@@ -336,7 +337,7 @@ impl BPlusTreeLeafPage {
     }
 
     // TODO 可以通过二分查找来插入
-    pub fn insert(&mut self, key: Tuple, rid: Rid) {
+    pub fn insert(&mut self, key: Tuple, rid: RecordId) {
         self.array.push((key, rid));
         self.header.current_size += 1;
         self.array.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
@@ -373,7 +374,7 @@ impl BPlusTreeLeafPage {
     }
 
     // 查找key对应的rid
-    pub fn look_up(&self, key: &Tuple) -> Option<Rid> {
+    pub fn look_up(&self, key: &Tuple) -> Option<RecordId> {
         let key_index = self.key_index(key);
         key_index.map(|index| self.array[index].1)
     }
@@ -420,8 +421,7 @@ mod tests {
     use crate::storage::{BPlusTreeInternalPage, BPlusTreeLeafPage};
     use crate::{
         catalog::{Column, DataType, Schema},
-        common::rid::Rid,
-        storage::Tuple,
+        storage::{RecordId, Tuple},
     };
     use std::sync::Arc;
 
@@ -462,23 +462,23 @@ mod tests {
         let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 3);
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
-            Rid::new(2, 2),
+            RecordId::new(2, 2),
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
-            Rid::new(1, 1),
+            RecordId::new(1, 1),
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
-            Rid::new(3, 3),
+            RecordId::new(3, 3),
         );
         assert_eq!(leaf_page.header.current_size, 3);
         assert_eq!(leaf_page.array[0].0.data, vec![1i8.into(), 1i16.into()]);
-        assert_eq!(leaf_page.array[0].1, Rid::new(1, 1));
+        assert_eq!(leaf_page.array[0].1, RecordId::new(1, 1));
         assert_eq!(leaf_page.array[1].0.data, vec![2i8.into(), 2i16.into()]);
-        assert_eq!(leaf_page.array[1].1, Rid::new(2, 2));
+        assert_eq!(leaf_page.array[1].1, RecordId::new(2, 2));
         assert_eq!(leaf_page.array[2].0.data, vec![3i8.into(), 3i16.into()]);
-        assert_eq!(leaf_page.array[2].1, Rid::new(3, 3));
+        assert_eq!(leaf_page.array[2].1, RecordId::new(3, 3));
     }
 
     #[test]
@@ -567,23 +567,23 @@ mod tests {
         let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 5);
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
-            Rid::new(2, 2),
+            RecordId::new(2, 2),
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
-            Rid::new(1, 1),
+            RecordId::new(1, 1),
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
-            Rid::new(3, 3),
+            RecordId::new(3, 3),
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![5i8.into(), 5i16.into()]),
-            Rid::new(5, 5),
+            RecordId::new(5, 5),
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![4i8.into(), 4i16.into()]),
-            Rid::new(4, 4),
+            RecordId::new(4, 4),
         );
         assert_eq!(
             leaf_page.look_up(&Tuple::new(
@@ -597,14 +597,14 @@ mod tests {
                 key_schema.clone(),
                 vec![2i8.into(), 2i16.into()]
             ),),
-            Some(Rid::new(2, 2))
+            Some(RecordId::new(2, 2))
         );
         assert_eq!(
             leaf_page.look_up(&Tuple::new(
                 key_schema.clone(),
                 vec![3i8.into(), 3i16.into()]
             ),),
-            Some(Rid::new(3, 3))
+            Some(RecordId::new(3, 3))
         );
         assert_eq!(
             leaf_page.look_up(&Tuple::new(
@@ -617,11 +617,11 @@ mod tests {
         let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 2);
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
-            Rid::new(2, 2),
+            RecordId::new(2, 2),
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
-            Rid::new(1, 1),
+            RecordId::new(1, 1),
         );
         assert_eq!(
             leaf_page.look_up(&Tuple::new(
@@ -635,14 +635,14 @@ mod tests {
                 key_schema.clone(),
                 vec![1i8.into(), 1i16.into()]
             ),),
-            Some(Rid::new(1, 1))
+            Some(RecordId::new(1, 1))
         );
         assert_eq!(
             leaf_page.look_up(&Tuple::new(
                 key_schema.clone(),
                 vec![2i8.into(), 2i16.into()]
             ),),
-            Some(Rid::new(2, 2))
+            Some(RecordId::new(2, 2))
         );
         assert_eq!(
             leaf_page.look_up(&Tuple::new(
@@ -725,23 +725,23 @@ mod tests {
         let mut leaf_page = BPlusTreeLeafPage::new(key_schema.clone(), 5);
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![2i8.into(), 2i16.into()]),
-            Rid::new(2, 2),
+            RecordId::new(2, 2),
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![1i8.into(), 1i16.into()]),
-            Rid::new(1, 1),
+            RecordId::new(1, 1),
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![3i8.into(), 3i16.into()]),
-            Rid::new(3, 3),
+            RecordId::new(3, 3),
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![5i8.into(), 5i16.into()]),
-            Rid::new(5, 5),
+            RecordId::new(5, 5),
         );
         leaf_page.insert(
             Tuple::new(key_schema.clone(), vec![4i8.into(), 4i16.into()]),
-            Rid::new(4, 4),
+            RecordId::new(4, 4),
         );
 
         leaf_page.delete(&Tuple::new(
@@ -750,13 +750,13 @@ mod tests {
         ));
         assert_eq!(leaf_page.header.current_size, 4);
         assert_eq!(leaf_page.array[0].0.data, vec![1i8.into(), 1i16.into()]);
-        assert_eq!(leaf_page.array[0].1, Rid::new(1, 1));
+        assert_eq!(leaf_page.array[0].1, RecordId::new(1, 1));
         assert_eq!(leaf_page.array[1].0.data, vec![3i8.into(), 3i16.into()]);
-        assert_eq!(leaf_page.array[1].1, Rid::new(3, 3));
+        assert_eq!(leaf_page.array[1].1, RecordId::new(3, 3));
         assert_eq!(leaf_page.array[2].0.data, vec![4i8.into(), 4i16.into()]);
-        assert_eq!(leaf_page.array[2].1, Rid::new(4, 4));
+        assert_eq!(leaf_page.array[2].1, RecordId::new(4, 4));
         assert_eq!(leaf_page.array[3].0.data, vec![5i8.into(), 5i16.into()]);
-        assert_eq!(leaf_page.array[3].1, Rid::new(5, 5));
+        assert_eq!(leaf_page.array[3].1, RecordId::new(5, 5));
         leaf_page.delete(&Tuple::new(
             key_schema.clone(),
             vec![3i8.into(), 3i16.into()],
@@ -773,7 +773,7 @@ mod tests {
         ));
         assert_eq!(leaf_page.header.current_size, 1);
         assert_eq!(leaf_page.array[0].0.data, vec![4i8.into(), 4i16.into()]);
-        assert_eq!(leaf_page.array[0].1, Rid::new(4, 4));
+        assert_eq!(leaf_page.array[0].1, RecordId::new(4, 4));
         leaf_page.delete(&Tuple::new(
             key_schema.clone(),
             vec![4i8.into(), 4i16.into()],

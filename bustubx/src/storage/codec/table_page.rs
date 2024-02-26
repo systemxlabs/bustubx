@@ -1,9 +1,8 @@
 use crate::buffer::BUSTUBX_PAGE_SIZE;
 use crate::catalog::SchemaRef;
-use crate::common::rid::Rid;
 use crate::common::util::page_bytes_to_array;
 use crate::storage::codec::{CommonCodec, DecodedData};
-use crate::storage::{TablePage, TablePageHeader, TupleInfo, TupleMeta};
+use crate::storage::{RecordId, TablePage, TablePageHeader, TupleInfo, TupleMeta};
 use crate::{BustubxError, BustubxResult};
 
 pub struct TablePageCodec;
@@ -123,14 +122,14 @@ impl TablePageHeaderTupleInfoCodec {
 pub struct RidCodec;
 
 impl RidCodec {
-    pub fn encode(rid: &Rid) -> Vec<u8> {
+    pub fn encode(rid: &RecordId) -> Vec<u8> {
         let mut bytes = vec![];
         bytes.extend(CommonCodec::encode_u32(rid.page_id));
         bytes.extend(CommonCodec::encode_u32(rid.slot_num));
         bytes
     }
 
-    pub fn decode(bytes: &[u8]) -> BustubxResult<DecodedData<Rid>> {
+    pub fn decode(bytes: &[u8]) -> BustubxResult<DecodedData<RecordId>> {
         let mut left_bytes = bytes;
 
         let (page_id, offset) = CommonCodec::decode_u32(left_bytes)?;
@@ -139,7 +138,10 @@ impl RidCodec {
         let (slot_num, offset) = CommonCodec::decode_u32(left_bytes)?;
         left_bytes = &left_bytes[offset..];
 
-        Ok((Rid::new(page_id, slot_num), bytes.len() - left_bytes.len()))
+        Ok((
+            RecordId::new(page_id, slot_num),
+            bytes.len() - left_bytes.len(),
+        ))
     }
 }
 

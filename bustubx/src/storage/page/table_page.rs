@@ -1,6 +1,5 @@
-use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE};
+use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
-use crate::common::rid::Rid;
 use crate::common::TransactionId;
 use crate::storage::codec::{TablePageHeaderCodec, TablePageHeaderTupleInfoCodec, TupleCodec};
 use crate::{BustubxError, BustubxResult, Tuple};
@@ -63,6 +62,17 @@ pub struct TupleMeta {
     pub insert_txn_id: TransactionId,
     pub delete_txn_id: TransactionId,
     pub is_deleted: bool,
+}
+
+pub const INVALID_RID: RecordId = RecordId {
+    page_id: INVALID_PAGE_ID,
+    slot_num: 0,
+};
+
+#[derive(derive_new::new, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RecordId {
+    pub page_id: PageId,
+    pub slot_num: u32,
 }
 
 impl TablePage {
@@ -185,14 +195,14 @@ impl TablePage {
         Ok(self.header.tuple_infos[slot_num as usize].meta)
     }
 
-    pub fn get_next_rid(&self, rid: &Rid) -> Option<Rid> {
+    pub fn get_next_rid(&self, rid: &RecordId) -> Option<RecordId> {
         // TODO 忽略删除的tuple
         let tuple_id = rid.slot_num;
         if tuple_id + 1 >= self.header.num_tuples as u32 {
             return None;
         }
 
-        Some(Rid::new(rid.page_id, tuple_id + 1))
+        Some(RecordId::new(rid.page_id, tuple_id + 1))
     }
 }
 
