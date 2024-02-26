@@ -8,7 +8,7 @@ impl<'a> LogicalPlanner<'a> {
         &self,
         index_name: &sqlparser::ast::ObjectName,
         table_name: &sqlparser::ast::ObjectName,
-        columns: &Vec<sqlparser::ast::OrderByExpr>,
+        columns: &[sqlparser::ast::OrderByExpr],
     ) -> BustubxResult<LogicalPlan> {
         let index_name = index_name.0.first().map_or(
             Err(BustubxError::Plan(format!(

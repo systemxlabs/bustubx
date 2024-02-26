@@ -5,7 +5,6 @@ use super::buffer_pool::FrameId;
 
 #[derive(Debug)]
 struct LRUKNode {
-    frame_id: FrameId,
     k: usize,
     // 该frame最近k次被访问的时间
     history: LinkedList<u64>,
@@ -13,9 +12,8 @@ struct LRUKNode {
     is_evictable: bool,
 }
 impl LRUKNode {
-    pub fn new(frame_id: FrameId, k: usize) -> Self {
+    pub fn new(k: usize) -> Self {
         Self {
-            frame_id,
             k,
             history: LinkedList::new(),
             is_evictable: false,
@@ -87,7 +85,7 @@ impl LRUKReplacer {
                     "frame size exceeds the limit".to_string(),
                 ));
             }
-            let mut node = LRUKNode::new(frame_id, self.k);
+            let mut node = LRUKNode::new(self.k);
             node.record_access(self.current_timestamp);
             self.current_timestamp += 1;
             self.node_store.insert(frame_id, node);

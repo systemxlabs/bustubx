@@ -60,9 +60,9 @@ impl Page {
 }
 
 pub struct PageRef {
-    page: Arc<RwLock<Page>>,
-    page_table: Arc<DashMap<PageId, FrameId>>,
-    replacer: Arc<RwLock<LRUKReplacer>>,
+    pub page: Arc<RwLock<Page>>,
+    pub page_table: Arc<DashMap<PageId, FrameId>>,
+    pub replacer: Arc<RwLock<LRUKReplacer>>,
 }
 
 impl Deref for PageRef {

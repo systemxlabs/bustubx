@@ -43,6 +43,7 @@ impl DiskManager {
                 .create(true)
                 .open(db_path)?;
             let meta_page = MetaPage::try_new()?;
+            #[allow(clippy::unused_io_amount)]
             db_file.write(&MetaPageCodec::encode(&meta_page))?;
             (db_file, meta_page)
         };

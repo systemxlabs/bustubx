@@ -33,7 +33,7 @@ impl LogicalPlanner<'_> {
         &self,
         input: LogicalPlan,
         project: &Vec<sqlparser::ast::SelectItem>,
-        group_by: &Vec<sqlparser::ast::Expr>,
+        group_by: &[sqlparser::ast::Expr],
     ) -> BustubxResult<LogicalPlan> {
         let mut exprs = vec![];
         for select_item in project {
