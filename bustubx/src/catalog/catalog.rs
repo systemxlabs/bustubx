@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::catalog::{
     SchemaRef, COLUMNS_SCHMEA, INFORMATION_SCHEMA_COLUMNS, INFORMATION_SCHEMA_NAME,
-    INFORMATION_SCHEMA_TABLES, TABLES_SCHMEA,
+    INFORMATION_SCHEMA_SCHEMAS, INFORMATION_SCHEMA_TABLES, SCHEMAS_SCHMEA, TABLES_SCHMEA,
 };
 use crate::common::TableReference;
 use crate::storage::{TupleMeta, BPLUS_INTERNAL_PAGE_MAX_SIZE, BPLUS_LEAF_PAGE_MAX_SIZE};
@@ -17,11 +17,13 @@ use crate::{
 pub static DEFAULT_CATALOG_NAME: &str = "bustubx";
 pub static DEFAULT_SCHEMA_NAME: &str = "public";
 
+#[derive(Debug)]
 pub struct Catalog {
     pub schemas: HashMap<String, CatalogSchema>,
     pub buffer_pool: Arc<BufferPoolManager>,
 }
 
+#[derive(Debug)]
 pub struct CatalogSchema {
     pub name: String,
     pub tables: HashMap<String, CatalogTable>,
@@ -36,6 +38,7 @@ impl CatalogSchema {
     }
 }
 
+#[derive(Debug)]
 pub struct CatalogTable {
     pub name: String,
     pub table: Arc<TableHeap>,
@@ -54,29 +57,50 @@ impl CatalogTable {
 
 impl Catalog {
     pub fn new(buffer_pool: Arc<BufferPoolManager>) -> Self {
-        // TODO should load from disk
-        let mut schemas = HashMap::new();
-        schemas.insert(
-            DEFAULT_SCHEMA_NAME.to_string(),
-            CatalogSchema {
-                name: DEFAULT_SCHEMA_NAME.to_string(),
-                tables: HashMap::new(),
-            },
-        );
         Self {
-            schemas,
+            schemas: HashMap::new(),
             buffer_pool,
         }
     }
 
-    pub fn create_schema(&mut self, scheme_name: String) -> BustubxResult<()> {
-        if self.schemas.contains_key(&scheme_name) {
+    pub fn create_schema(&mut self, schema_name: impl Into<String>) -> BustubxResult<()> {
+        let schema_name = schema_name.into();
+        if self.schemas.contains_key(&schema_name) {
             return Err(BustubxError::Storage(
                 "Cannot create duplicated schema".to_string(),
             ));
         }
         self.schemas
-            .insert(scheme_name.clone(), CatalogSchema::new(scheme_name));
+            .insert(schema_name.clone(), CatalogSchema::new(schema_name.clone()));
+
+        // update system table
+        let Some(information_schema) = self.schemas.get_mut(INFORMATION_SCHEMA_NAME) else {
+            return Err(BustubxError::Internal(
+                "catalog schema information_schema not created yet".to_string(),
+            ));
+        };
+        let Some(schemas_table) = information_schema
+            .tables
+            .get_mut(INFORMATION_SCHEMA_SCHEMAS)
+        else {
+            return Err(BustubxError::Internal(
+                "table information_schema.schemas not created yet".to_string(),
+            ));
+        };
+
+        let tuple_meta = TupleMeta {
+            insert_txn_id: 0,
+            delete_txn_id: 0,
+            is_deleted: false,
+        };
+        let tuple = Tuple::new(
+            SCHEMAS_SCHMEA.clone(),
+            vec![
+                DEFAULT_CATALOG_NAME.to_string().into(),
+                schema_name.clone().into(),
+            ],
+        );
+        schemas_table.table.insert_tuple(&tuple_meta, &tuple)?;
         Ok(())
     }
 
@@ -317,13 +341,10 @@ impl Catalog {
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
-    use tempfile::TempDir;
 
     use crate::common::TableReference;
     use crate::{
-        buffer::BufferPoolManager,
         catalog::{Column, DataType, Schema},
-        storage::DiskManager,
         Database,
     };
 
@@ -364,12 +385,7 @@ mod tests {
 
     #[test]
     pub fn test_catalog_create_index() {
-        let temp_dir = TempDir::new().unwrap();
-        let temp_path = temp_dir.path().join("test.db");
-
-        let disk_manager = DiskManager::try_new(temp_path).unwrap();
-        let buffer_pool = Arc::new(BufferPoolManager::new(1000, Arc::new(disk_manager)));
-        let mut catalog = super::Catalog::new(buffer_pool);
+        let mut db = Database::new_temp().unwrap();
 
         let table_ref = TableReference::bare("test_table1");
         let schema = Arc::new(Schema::new(vec![
@@ -377,23 +393,26 @@ mod tests {
             Column::new("b", DataType::Int16, true),
             Column::new("c", DataType::Int32, true),
         ]));
-        let _ = catalog.create_table(table_ref.clone(), schema.clone());
+        let _ = db.catalog.create_table(table_ref.clone(), schema.clone());
 
         let index_name1 = "test_index1".to_string();
         let key_schema1 = schema.project(&[0, 2]).unwrap();
-        let index1 = catalog
+        let index1 = db
+            .catalog
             .create_index(index_name1.clone(), &table_ref, key_schema1.clone())
             .unwrap();
         assert_eq!(index1.key_schema, key_schema1);
 
         let index_name2 = "test_index2".to_string();
         let key_schema2 = schema.project(&[1]).unwrap();
-        let index2 = catalog
+        let index2 = db
+            .catalog
             .create_index(index_name2.clone(), &table_ref, key_schema2.clone())
             .unwrap();
         assert_eq!(index2.key_schema, key_schema2);
 
-        let index3 = catalog
+        let index3 = db
+            .catalog
             .index(&table_ref, index_name1.as_str())
             .unwrap()
             .unwrap();

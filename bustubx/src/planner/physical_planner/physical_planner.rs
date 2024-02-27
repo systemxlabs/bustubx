@@ -96,7 +96,6 @@ impl PhysicalPlanner<'_> {
                     .get(table_ref.table())
                 {
                     if !catalog_table.indexes.is_empty() {
-                        println!("LWZTEST create index scan");
                         PhysicalPlan::IndexScan(PhysicalIndexScan::new(
                             table_ref.clone(),
                             catalog_table.indexes.keys().next().unwrap().clone(),

@@ -1,6 +1,8 @@
 use crate::buffer::{AtomicPageId, PageId, INVALID_PAGE_ID};
 use crate::catalog::catalog::{CatalogSchema, CatalogTable};
-use crate::catalog::{Catalog, Column, DataType, Schema, SchemaRef, DEFAULT_CATALOG_NAME};
+use crate::catalog::{
+    Catalog, Column, DataType, Schema, SchemaRef, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME,
+};
 use crate::common::{ScalarValue, TableReference};
 use crate::storage::codec::TablePageCodec;
 use crate::storage::TableHeap;
@@ -9,10 +11,16 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 pub static INFORMATION_SCHEMA_NAME: &str = "information_schema";
+pub static INFORMATION_SCHEMA_SCHEMAS: &str = "schemas";
 pub static INFORMATION_SCHEMA_TABLES: &str = "tables";
 pub static INFORMATION_SCHEMA_COLUMNS: &str = "columns";
 
 lazy_static::lazy_static! {
+    pub static ref SCHEMAS_SCHMEA: SchemaRef = Arc::new(Schema::new(vec![
+        Column::new("catalog", DataType::Varchar(None), false),
+        Column::new("schema", DataType::Varchar(None), false),
+    ]));
+
     pub static ref TABLES_SCHMEA: SchemaRef = Arc::new(Schema::new(vec![
         Column::new("table_catalog", DataType::Varchar(None), false),
         Column::new("table_schema", DataType::Varchar(None), false),
@@ -45,7 +53,101 @@ lazy_static::lazy_static! {
 
 pub fn load_catalog_data(db: &mut Database) -> BustubxResult<()> {
     load_information_schema(&mut db.catalog)?;
+    load_schemas(db)?;
+    create_default_schema_if_not_exists(&mut db.catalog)?;
     load_user_tables(db)?;
+    Ok(())
+}
+
+fn create_default_schema_if_not_exists(catalog: &mut Catalog) -> BustubxResult<()> {
+    if !catalog.schemas.contains_key(DEFAULT_SCHEMA_NAME) {
+        catalog.create_schema(DEFAULT_SCHEMA_NAME)?;
+    }
+    Ok(())
+}
+
+fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
+    let meta = catalog.buffer_pool.disk_manager.meta.read().unwrap();
+    let information_schema_schemas_first_page_id = meta.information_schema_schemas_first_page_id;
+    let information_schema_tables_first_page_id = meta.information_schema_tables_first_page_id;
+    let information_schema_columns_first_page_id = meta.information_schema_columns_first_page_id;
+    drop(meta);
+
+    // load last page id
+    let information_schema_schemas_last_page_id = load_table_last_page_id(
+        catalog,
+        information_schema_schemas_first_page_id,
+        SCHEMAS_SCHMEA.clone(),
+    )?;
+    let information_schema_tables_last_page_id = load_table_last_page_id(
+        catalog,
+        information_schema_tables_first_page_id,
+        TABLES_SCHMEA.clone(),
+    )?;
+    let information_schema_columns_last_page_id = load_table_last_page_id(
+        catalog,
+        information_schema_columns_first_page_id,
+        COLUMNS_SCHMEA.clone(),
+    )?;
+
+    let mut information_schema = CatalogSchema::new(INFORMATION_SCHEMA_NAME);
+
+    let schemas_table = TableHeap {
+        schema: SCHEMAS_SCHMEA.clone(),
+        buffer_pool: catalog.buffer_pool.clone(),
+        first_page_id: AtomicPageId::new(information_schema_schemas_first_page_id),
+        last_page_id: AtomicPageId::new(information_schema_schemas_last_page_id),
+    };
+    information_schema.tables.insert(
+        INFORMATION_SCHEMA_SCHEMAS.to_string(),
+        CatalogTable::new(INFORMATION_SCHEMA_SCHEMAS, Arc::new(schemas_table)),
+    );
+
+    let tables_table = TableHeap {
+        schema: TABLES_SCHMEA.clone(),
+        buffer_pool: catalog.buffer_pool.clone(),
+        first_page_id: AtomicPageId::new(information_schema_tables_first_page_id),
+        last_page_id: AtomicPageId::new(information_schema_tables_last_page_id),
+    };
+    information_schema.tables.insert(
+        INFORMATION_SCHEMA_TABLES.to_string(),
+        CatalogTable::new(INFORMATION_SCHEMA_TABLES, Arc::new(tables_table)),
+    );
+
+    let columns_table = TableHeap {
+        schema: COLUMNS_SCHMEA.clone(),
+        buffer_pool: catalog.buffer_pool.clone(),
+        first_page_id: AtomicPageId::new(information_schema_columns_first_page_id),
+        last_page_id: AtomicPageId::new(information_schema_columns_last_page_id),
+    };
+    information_schema.tables.insert(
+        INFORMATION_SCHEMA_COLUMNS.to_string(),
+        CatalogTable::new(INFORMATION_SCHEMA_COLUMNS, Arc::new(columns_table)),
+    );
+
+    catalog.load_schema(INFORMATION_SCHEMA_NAME, information_schema);
+    Ok(())
+}
+
+fn load_schemas(db: &mut Database) -> BustubxResult<()> {
+    let schema_tuples = db.run(&format!(
+        "select * from {}.{}",
+        INFORMATION_SCHEMA_NAME, INFORMATION_SCHEMA_SCHEMAS
+    ))?;
+    for schema_tuple in schema_tuples.into_iter() {
+        let error = Err(BustubxError::Internal(format!(
+            "Failed to decode schema tuple: {:?}",
+            schema_tuple,
+        )));
+        let ScalarValue::Varchar(Some(_catalog)) = schema_tuple.value(0)? else {
+            return error;
+        };
+        let ScalarValue::Varchar(Some(schema_name)) = schema_tuple.value(1)? else {
+            return error;
+        };
+        db.catalog
+            .load_schema(schema_name, CatalogSchema::new(schema_name));
+    }
     Ok(())
 }
 
@@ -97,83 +199,17 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
         }
         let schema = Arc::new(Schema::new(columns));
 
-        let Some(catalog_schema) = db.catalog.schemas.get_mut(catalog.as_str()) else {
-            return Err(BustubxError::Storage(format!(
-                "catalog schema {} not created yet",
-                catalog
-            )));
-        };
         let table_heap = TableHeap {
             schema: schema.clone(),
             buffer_pool: db.buffer_pool.clone(),
             first_page_id: AtomicPageId::new(*first_page_id),
             last_page_id: AtomicPageId::new(*last_page_id),
         };
-        let catalog_table = CatalogTable {
-            name: table_name.clone(),
-            table: Arc::new(table_heap),
-            indexes: HashMap::new(),
-        };
-        catalog_schema
-            .tables
-            .insert(table_name.clone(), catalog_table);
+        db.catalog.load_table(
+            TableReference::full(catalog, table_schema, table_name),
+            CatalogTable::new(table_name, Arc::new(table_heap)),
+        )?;
     }
-    Ok(())
-}
-
-fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
-    let meta = catalog.buffer_pool.disk_manager.meta.read().unwrap();
-    let information_schema_tables_first_page_id = meta.information_schema_tables_first_page_id;
-    let information_schema_columns_first_page_id = meta.information_schema_columns_first_page_id;
-    drop(meta);
-
-    // load last page id
-    let information_schema_tables_last_page_id = load_table_last_page_id(
-        catalog,
-        information_schema_tables_first_page_id,
-        TABLES_SCHMEA.clone(),
-    )?;
-    let information_schema_columns_last_page_id = load_table_last_page_id(
-        catalog,
-        information_schema_columns_first_page_id,
-        COLUMNS_SCHMEA.clone(),
-    )?;
-
-    let mut information_schema = CatalogSchema::new(INFORMATION_SCHEMA_NAME);
-
-    let tables_table = TableHeap {
-        schema: TABLES_SCHMEA.clone(),
-        buffer_pool: catalog.buffer_pool.clone(),
-        first_page_id: AtomicPageId::new(information_schema_tables_first_page_id),
-        last_page_id: AtomicPageId::new(information_schema_tables_last_page_id),
-    };
-    let catalog_table = CatalogTable {
-        name: INFORMATION_SCHEMA_TABLES.to_string(),
-        table: Arc::new(tables_table),
-        indexes: HashMap::new(),
-    };
-    information_schema
-        .tables
-        .insert(INFORMATION_SCHEMA_TABLES.to_string(), catalog_table);
-
-    let columns_table = TableHeap {
-        schema: COLUMNS_SCHMEA.clone(),
-        buffer_pool: catalog.buffer_pool.clone(),
-        first_page_id: AtomicPageId::new(information_schema_columns_first_page_id),
-        last_page_id: AtomicPageId::new(information_schema_columns_last_page_id),
-    };
-    let catalog_table = CatalogTable {
-        name: INFORMATION_SCHEMA_TABLES.to_string(),
-        table: Arc::new(columns_table),
-        indexes: HashMap::new(),
-    };
-    information_schema
-        .tables
-        .insert(INFORMATION_SCHEMA_COLUMNS.to_string(), catalog_table);
-
-    catalog.load_schema(INFORMATION_SCHEMA_NAME, information_schema);
-
-    // TODO load schemas
     Ok(())
 }
 
