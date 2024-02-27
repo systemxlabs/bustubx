@@ -7,7 +7,7 @@ use crate::catalog::{
     INFORMATION_SCHEMA_SCHEMAS, INFORMATION_SCHEMA_TABLES, SCHEMAS_SCHMEA, TABLES_SCHMEA,
 };
 use crate::common::TableReference;
-use crate::storage::{TupleMeta, BPLUS_INTERNAL_PAGE_MAX_SIZE, BPLUS_LEAF_PAGE_MAX_SIZE};
+use crate::storage::{BPLUS_INTERNAL_PAGE_MAX_SIZE, BPLUS_LEAF_PAGE_MAX_SIZE, EMPTY_TUPLE_META};
 use crate::{
     buffer::BufferPoolManager,
     storage::{index::BPlusTreeIndex, TableHeap},
@@ -88,11 +88,6 @@ impl Catalog {
             ));
         };
 
-        let tuple_meta = TupleMeta {
-            insert_txn_id: 0,
-            delete_txn_id: 0,
-            is_deleted: false,
-        };
         let tuple = Tuple::new(
             SCHEMAS_SCHMEA.clone(),
             vec![
@@ -100,7 +95,9 @@ impl Catalog {
                 schema_name.clone().into(),
             ],
         );
-        schemas_table.table.insert_tuple(&tuple_meta, &tuple)?;
+        schemas_table
+            .table
+            .insert_tuple(&EMPTY_TUPLE_META, &tuple)?;
         Ok(())
     }
 
@@ -156,11 +153,6 @@ impl Catalog {
             ));
         };
 
-        let tuple_meta = TupleMeta {
-            insert_txn_id: 0,
-            delete_txn_id: 0,
-            is_deleted: false,
-        };
         let tuple = Tuple::new(
             TABLES_SCHMEA.clone(),
             vec![
@@ -171,7 +163,7 @@ impl Catalog {
                 (table_heap.last_page_id.load(Ordering::SeqCst)).into(),
             ],
         );
-        tables_table.table.insert_tuple(&tuple_meta, &tuple)?;
+        tables_table.table.insert_tuple(&EMPTY_TUPLE_META, &tuple)?;
 
         let Some(columns_table) = information_schema
             .tables
@@ -194,7 +186,9 @@ impl Catalog {
                     col.nullable.into(),
                 ],
             );
-            columns_table.table.insert_tuple(&tuple_meta, &tuple)?;
+            columns_table
+                .table
+                .insert_tuple(&EMPTY_TUPLE_META, &tuple)?;
         }
 
         Ok(table_heap)

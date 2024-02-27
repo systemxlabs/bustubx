@@ -275,7 +275,7 @@ mod tests {
     use tempfile::TempDir;
 
     use crate::catalog::{Column, DataType, Schema};
-    use crate::storage::TableIterator;
+    use crate::storage::{TableIterator, EMPTY_TUPLE_META};
     use crate::{
         buffer::BufferPoolManager,
         storage::{table_heap::TableHeap, DiskManager, Tuple},
@@ -293,27 +293,22 @@ mod tests {
         let disk_manager = DiskManager::try_new(temp_path).unwrap();
         let buffer_pool = Arc::new(BufferPoolManager::new(1000, Arc::new(disk_manager)));
         let table_heap = TableHeap::try_new(schema.clone(), buffer_pool).unwrap();
-        let meta = super::TupleMeta {
-            insert_txn_id: 0,
-            delete_txn_id: 0,
-            is_deleted: false,
-        };
 
         let _rid1 = table_heap
             .insert_tuple(
-                &meta,
+                &EMPTY_TUPLE_META,
                 &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
             )
             .unwrap();
         let rid2 = table_heap
             .insert_tuple(
-                &meta,
+                &EMPTY_TUPLE_META,
                 &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
             )
             .unwrap();
         let _rid3 = table_heap
             .insert_tuple(
-                &meta,
+                &EMPTY_TUPLE_META,
                 &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
             )
             .unwrap();

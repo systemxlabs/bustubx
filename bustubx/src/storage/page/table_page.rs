@@ -4,15 +4,17 @@ use crate::storage::codec::{TablePageHeaderCodec, TablePageHeaderTupleInfoCodec,
 use crate::transaction::TransactionId;
 use crate::{BustubxError, BustubxResult, Tuple};
 
+pub static EMPTY_TUPLE_META: TupleMeta = TupleMeta {
+    insert_txn_id: 0,
+    delete_txn_id: 0,
+    is_deleted: false,
+};
+
 lazy_static::lazy_static! {
     pub static ref EMPTY_TUPLE_INFO: TupleInfo = TupleInfo {
         offset: 0,
         size: 0,
-        meta: TupleMeta {
-            insert_txn_id: 0,
-            delete_txn_id: 0,
-            is_deleted: false,
-        }
+        meta: EMPTY_TUPLE_META,
     };
 }
 
@@ -209,7 +211,7 @@ impl TablePage {
 #[cfg(test)]
 mod tests {
     use crate::catalog::{Column, DataType, Schema};
-    use crate::storage::Tuple;
+    use crate::storage::{Tuple, EMPTY_TUPLE_META};
     use std::sync::Arc;
 
     #[test]
@@ -219,35 +221,30 @@ mod tests {
             Column::new("b", DataType::Int16, false),
         ]));
         let mut table_page = super::TablePage::new(schema.clone(), 0);
-        let meta = super::TupleMeta {
-            insert_txn_id: 0,
-            delete_txn_id: 0,
-            is_deleted: false,
-        };
         let tuple_id = table_page
             .insert_tuple(
-                &meta,
+                &EMPTY_TUPLE_META,
                 &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
             )
             .unwrap();
         assert_eq!(tuple_id, 0);
         let tuple_id = table_page
             .insert_tuple(
-                &meta,
+                &EMPTY_TUPLE_META,
                 &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
             )
             .unwrap();
         assert_eq!(tuple_id, 1);
         let tuple_id = table_page
             .insert_tuple(
-                &meta,
+                &EMPTY_TUPLE_META,
                 &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
             )
             .unwrap();
         assert_eq!(tuple_id, 2);
 
         let (tuple_meta, tuple) = table_page.tuple(0).unwrap();
-        assert_eq!(tuple_meta, meta);
+        assert_eq!(tuple_meta, EMPTY_TUPLE_META);
         assert_eq!(tuple.data, vec![1i8.into(), 1i16.into()]);
         let (_tuple_meta, tuple) = table_page.tuple(1).unwrap();
         assert_eq!(tuple.data, vec![2i8.into(), 2i16.into()]);
@@ -262,26 +259,21 @@ mod tests {
             Column::new("b", DataType::Int16, false),
         ]));
         let mut table_page = super::TablePage::new(schema.clone(), 0);
-        let meta = super::TupleMeta {
-            insert_txn_id: 0,
-            delete_txn_id: 0,
-            is_deleted: false,
-        };
         let _tuple_id = table_page
             .insert_tuple(
-                &meta,
+                &EMPTY_TUPLE_META,
                 &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
             )
             .unwrap();
         let _tuple_id = table_page
             .insert_tuple(
-                &meta,
+                &EMPTY_TUPLE_META,
                 &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
             )
             .unwrap();
         let _tuple_id = table_page
             .insert_tuple(
-                &meta,
+                &EMPTY_TUPLE_META,
                 &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
             )
             .unwrap();

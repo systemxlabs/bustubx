@@ -7,7 +7,7 @@ use crate::common::{ScalarValue, TableReference};
 use crate::storage::codec::TablePageCodec;
 use crate::storage::TableHeap;
 use crate::{BustubxError, BustubxResult, Database};
-use std::collections::HashMap;
+
 use std::sync::Arc;
 
 pub static INFORMATION_SCHEMA_NAME: &str = "information_schema";

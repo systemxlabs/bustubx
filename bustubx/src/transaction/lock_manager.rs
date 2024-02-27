@@ -26,30 +26,35 @@ pub struct LockManager {
 }
 
 impl LockManager {
-    pub fn lock_table(&self, txn: Transaction, mode: LockMode, table_ref: TableReference) -> bool {
+    pub fn lock_table(
+        &self,
+        _txn: Transaction,
+        _mode: LockMode,
+        _table_ref: TableReference,
+    ) -> bool {
         todo!()
     }
 
-    pub fn unlock_table(&self, txn: Transaction, table_ref: TableReference) -> bool {
+    pub fn unlock_table(&self, _txn: Transaction, _table_ref: TableReference) -> bool {
         todo!()
     }
 
     pub fn lock_row(
         &self,
-        txn: Transaction,
-        mode: LockMode,
-        table_ref: TableReference,
-        rid: RecordId,
+        _txn: Transaction,
+        _mode: LockMode,
+        _table_ref: TableReference,
+        _rid: RecordId,
     ) -> bool {
         todo!()
     }
 
     pub fn unlock_row(
         &self,
-        txn: Transaction,
-        table_ref: TableReference,
-        rid: RecordId,
-        force: bool,
+        _txn: Transaction,
+        _table_ref: TableReference,
+        _rid: RecordId,
+        _force: bool,
     ) -> bool {
         todo!()
     }

@@ -9,15 +9,15 @@ pub enum IsolationLevel {
 pub struct TransactionManager {}
 
 impl TransactionManager {
-    pub fn begin(&self, isolation_level: IsolationLevel) -> Transaction {
+    pub fn begin(&self, _isolation_level: IsolationLevel) -> Transaction {
         todo!()
     }
 
-    pub fn commit(&self, txn: Transaction) -> bool {
+    pub fn commit(&self, _txn: Transaction) -> bool {
         todo!()
     }
 
-    pub fn abort(&self, txn: Transaction) {
+    pub fn abort(&self, _txn: Transaction) {
         todo!()
     }
 }
