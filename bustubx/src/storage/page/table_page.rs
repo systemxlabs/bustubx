@@ -1,7 +1,7 @@
 use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
 use crate::catalog::SchemaRef;
-use crate::common::TransactionId;
 use crate::storage::codec::{TablePageHeaderCodec, TablePageHeaderTupleInfoCodec, TupleCodec};
+use crate::transaction::TransactionId;
 use crate::{BustubxError, BustubxResult, Tuple};
 
 lazy_static::lazy_static! {

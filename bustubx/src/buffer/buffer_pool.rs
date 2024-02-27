@@ -58,8 +58,7 @@ impl BufferPoolManager {
         // 从磁盘分配一个页
         let new_page_id = self.disk_manager.allocate_page().unwrap();
         self.page_table.insert(new_page_id, frame_id);
-        let mut new_page = Page::new(new_page_id);
-        new_page.pin_count = 1;
+        let new_page = Page::new(new_page_id).with_pin_count(1u32);
         self.pool[frame_id].write().unwrap().replace(new_page);
 
         self.replacer.write().unwrap().record_access(frame_id)?;

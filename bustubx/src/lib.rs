@@ -10,6 +10,7 @@ mod optimizer;
 mod parser;
 mod planner;
 mod storage;
+mod transaction;
 
 pub use common::util::pretty_format_tuples;
 pub use database::Database;

@@ -1,4 +1,4 @@
-use crate::catalog::{Catalog, Schema};
+use crate::catalog::{Catalog, Schema, DEFAULT_SCHEMA_NAME};
 use std::sync::Arc;
 
 use crate::planner::logical_plan::{
@@ -87,12 +87,19 @@ impl PhysicalPlanner<'_> {
                 limit: _,
             }) => {
                 // TODO fix testing
-                if let Some(indexes) = self.catalog.table_indexes.get(&table_ref.extend_to_full()) {
-                    if !indexes.is_empty() {
+                if let Some(catalog_table) = self
+                    .catalog
+                    .schemas
+                    .get(table_ref.schema().unwrap_or(DEFAULT_SCHEMA_NAME))
+                    .unwrap()
+                    .tables
+                    .get(table_ref.table())
+                {
+                    if !catalog_table.indexes.is_empty() {
                         println!("LWZTEST create index scan");
                         PhysicalPlan::IndexScan(PhysicalIndexScan::new(
                             table_ref.clone(),
-                            indexes.iter().next().cloned().unwrap(),
+                            catalog_table.indexes.keys().next().unwrap().clone(),
                             table_schema.clone(),
                             ..,
                         ))

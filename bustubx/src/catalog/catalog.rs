@@ -1,11 +1,12 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use crate::catalog::{
-    SchemaRef, COLUMNS_SCHMEA, COLUMNS_TABLE_REF, TABLES_SCHMEA, TABLES_TABLE_REF,
+    SchemaRef, COLUMNS_SCHMEA, INFORMATION_SCHEMA_COLUMNS, INFORMATION_SCHEMA_NAME,
+    INFORMATION_SCHEMA_TABLES, TABLES_SCHMEA,
 };
-use crate::common::{FullTableRef, TableReference};
+use crate::common::TableReference;
 use crate::storage::{TupleMeta, BPLUS_INTERNAL_PAGE_MAX_SIZE, BPLUS_LEAF_PAGE_MAX_SIZE};
 use crate::{
     buffer::BufferPoolManager,
@@ -16,24 +17,67 @@ use crate::{
 pub static DEFAULT_CATALOG_NAME: &str = "bustubx";
 pub static DEFAULT_SCHEMA_NAME: &str = "public";
 
-/// catalog, schema, table, index
-pub type FullIndexRef = (String, String, String, String);
-
 pub struct Catalog {
-    pub tables: HashMap<FullTableRef, Arc<TableHeap>>,
-    pub indexes: HashMap<FullIndexRef, Arc<BPlusTreeIndex>>,
-    pub table_indexes: HashMap<FullTableRef, HashSet<String>>,
+    pub schemas: HashMap<String, CatalogSchema>,
     pub buffer_pool: Arc<BufferPoolManager>,
+}
+
+pub struct CatalogSchema {
+    pub name: String,
+    pub tables: HashMap<String, CatalogTable>,
+}
+
+impl CatalogSchema {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            tables: HashMap::new(),
+        }
+    }
+}
+
+pub struct CatalogTable {
+    pub name: String,
+    pub table: Arc<TableHeap>,
+    pub indexes: HashMap<String, Arc<BPlusTreeIndex>>,
+}
+
+impl CatalogTable {
+    pub fn new(name: impl Into<String>, table: Arc<TableHeap>) -> Self {
+        Self {
+            name: name.into(),
+            table,
+            indexes: HashMap::new(),
+        }
+    }
 }
 
 impl Catalog {
     pub fn new(buffer_pool: Arc<BufferPoolManager>) -> Self {
+        // TODO should load from disk
+        let mut schemas = HashMap::new();
+        schemas.insert(
+            DEFAULT_SCHEMA_NAME.to_string(),
+            CatalogSchema {
+                name: DEFAULT_SCHEMA_NAME.to_string(),
+                tables: HashMap::new(),
+            },
+        );
         Self {
-            tables: HashMap::new(),
-            indexes: HashMap::new(),
-            table_indexes: HashMap::new(),
+            schemas,
             buffer_pool,
         }
+    }
+
+    pub fn create_schema(&mut self, scheme_name: String) -> BustubxResult<()> {
+        if self.schemas.contains_key(&scheme_name) {
+            return Err(BustubxError::Storage(
+                "Cannot create duplicated schema".to_string(),
+            ));
+        }
+        self.schemas
+            .insert(scheme_name.clone(), CatalogSchema::new(scheme_name));
+        Ok(())
     }
 
     pub fn create_table(
@@ -41,9 +85,23 @@ impl Catalog {
         table_ref: TableReference,
         schema: SchemaRef,
     ) -> BustubxResult<Arc<TableHeap>> {
-        // TODO fail if database not created
-        let full_table_ref = table_ref.extend_to_full();
-        if self.tables.contains_key(&full_table_ref) {
+        let catalog_name = table_ref
+            .catalog()
+            .unwrap_or(DEFAULT_CATALOG_NAME)
+            .to_string();
+        let catalog_schema_name = table_ref
+            .schema()
+            .unwrap_or(DEFAULT_SCHEMA_NAME)
+            .to_string();
+        let table_name = table_ref.table().to_string();
+
+        let Some(catalog_schema) = self.schemas.get_mut(&catalog_schema_name) else {
+            return Err(BustubxError::Storage(format!(
+                "catalog schema {} not created yet",
+                catalog_schema_name
+            )));
+        };
+        if catalog_schema.tables.contains_key(table_ref.table()) {
             return Err(BustubxError::Storage(
                 "Cannot create duplicated table".to_string(),
             ));
@@ -52,18 +110,28 @@ impl Catalog {
             schema.clone(),
             self.buffer_pool.clone(),
         )?);
-        self.tables
-            .insert(full_table_ref.clone(), table_heap.clone());
-        self.table_indexes
-            .insert(full_table_ref.clone(), HashSet::new());
+        let catalog_table = CatalogTable {
+            name: table_name.clone(),
+            table: table_heap.clone(),
+            indexes: HashMap::new(),
+        };
+        catalog_schema
+            .tables
+            .insert(table_name.clone(), catalog_table);
 
         // update system table
-        let tables_table = self
-            .tables
-            .get_mut(&TABLES_TABLE_REF.extend_to_full())
-            .ok_or(BustubxError::Internal(
-                "Cannot find tables table".to_string(),
-            ))?;
+        let Some(information_schema) = self.schemas.get_mut(INFORMATION_SCHEMA_NAME) else {
+            return Err(BustubxError::Internal(
+                "catalog schema information_schema not created yet".to_string(),
+            ));
+        };
+        let Some(tables_table) = information_schema.tables.get_mut(INFORMATION_SCHEMA_TABLES)
+        else {
+            return Err(BustubxError::Internal(
+                "table information_schema.tables not created yet".to_string(),
+            ));
+        };
+
         let tuple_meta = TupleMeta {
             insert_txn_id: 0,
             delete_txn_id: 0,
@@ -72,77 +140,87 @@ impl Catalog {
         let tuple = Tuple::new(
             TABLES_SCHMEA.clone(),
             vec![
-                full_table_ref.0.clone().into(),
-                full_table_ref.1.clone().into(),
-                full_table_ref.2.clone().into(),
+                catalog_name.clone().into(),
+                catalog_schema_name.clone().into(),
+                table_name.clone().into(),
                 (table_heap.first_page_id.load(Ordering::SeqCst)).into(),
                 (table_heap.last_page_id.load(Ordering::SeqCst)).into(),
             ],
         );
-        tables_table.insert_tuple(&tuple_meta, &tuple)?;
+        tables_table.table.insert_tuple(&tuple_meta, &tuple)?;
 
-        let columns_table = self
+        let Some(columns_table) = information_schema
             .tables
-            .get_mut(&COLUMNS_TABLE_REF.extend_to_full())
-            .ok_or(BustubxError::Internal(
-                "Cannot find columns table".to_string(),
-            ))?;
+            .get_mut(INFORMATION_SCHEMA_COLUMNS)
+        else {
+            return Err(BustubxError::Internal(
+                "table information_schema.columns not created yet".to_string(),
+            ));
+        };
         for col in schema.columns.iter() {
             let sql_type: sqlparser::ast::DataType = (&col.data_type).into();
             let tuple = Tuple::new(
                 COLUMNS_SCHMEA.clone(),
                 vec![
-                    full_table_ref.0.clone().into(),
-                    full_table_ref.1.clone().into(),
-                    full_table_ref.2.clone().into(),
+                    catalog_name.clone().into(),
+                    catalog_schema_name.clone().into(),
+                    table_name.clone().into(),
                     col.name.clone().into(),
                     format!("{sql_type}").into(),
                     col.nullable.into(),
                 ],
             );
-            columns_table.insert_tuple(&tuple_meta, &tuple)?;
+            columns_table.table.insert_tuple(&tuple_meta, &tuple)?;
         }
 
         Ok(table_heap)
     }
 
     pub fn table_heap(&self, table_ref: &TableReference) -> BustubxResult<Arc<TableHeap>> {
-        self.tables
-            .get(&table_ref.extend_to_full())
-            .cloned()
-            .ok_or(BustubxError::Internal(format!(
-                "Not found the table {}",
-                table_ref
-            )))
+        let catalog_schema_name = table_ref
+            .schema()
+            .unwrap_or(DEFAULT_SCHEMA_NAME)
+            .to_string();
+        let table_name = table_ref.table().to_string();
+
+        let Some(catalog_schema) = self.schemas.get(&catalog_schema_name) else {
+            return Err(BustubxError::Storage(format!(
+                "catalog schema {} not created yet",
+                catalog_schema_name
+            )));
+        };
+        let Some(catalog_table) = catalog_schema.tables.get(&table_name) else {
+            return Err(BustubxError::Storage(format!(
+                "table {} not created yet",
+                table_name
+            )));
+        };
+        Ok(catalog_table.table.clone())
     }
 
     pub fn table_indexes(
         &self,
         table_ref: &TableReference,
     ) -> BustubxResult<Vec<Arc<BPlusTreeIndex>>> {
-        let full_table_ref = table_ref.extend_to_full();
-        if let Some(indexes) = self.table_indexes.get(&full_table_ref) {
-            indexes
-                .iter()
-                .map(|name| {
-                    let full_index_ref = (
-                        full_table_ref.0.clone(),
-                        full_table_ref.1.clone(),
-                        full_table_ref.2.clone(),
-                        name.clone(),
-                    );
-                    self.indexes
-                        .get(&full_index_ref)
-                        .cloned()
-                        .ok_or(BustubxError::Storage(format!(
-                            "Index name {} should be valid",
-                            name
-                        )))
-                })
-                .collect::<BustubxResult<Vec<Arc<BPlusTreeIndex>>>>()
-        } else {
-            Ok(vec![])
-        }
+        let catalog_schema_name = table_ref
+            .schema()
+            .unwrap_or(DEFAULT_SCHEMA_NAME)
+            .to_string();
+        let table_name = table_ref.table().to_string();
+
+        let Some(catalog_schema) = self.schemas.get(&catalog_schema_name) else {
+            return Err(BustubxError::Storage(format!(
+                "catalog schema {} not created yet",
+                catalog_schema_name
+            )));
+        };
+        let Some(catalog_table) = catalog_schema.tables.get(&table_name) else {
+            return Err(BustubxError::Storage(format!(
+                "table {} not created yet",
+                table_name
+            )));
+        };
+        Ok(catalog_table.indexes.values().cloned().collect())
     }
 
     pub fn create_index(
@@ -151,13 +229,29 @@ impl Catalog {
         table_ref: &TableReference,
         key_schema: SchemaRef,
     ) -> BustubxResult<Arc<BPlusTreeIndex>> {
-        let full_table_ref = table_ref.extend_to_full();
-        let full_index_ref = (
-            full_table_ref.0.clone(),
-            full_table_ref.1.clone(),
-            full_table_ref.2.clone(),
-            index_name.clone(),
-        );
+        let catalog_schema_name = table_ref
+            .schema()
+            .unwrap_or(DEFAULT_SCHEMA_NAME)
+            .to_string();
+        let table_name = table_ref.table().to_string();
+
+        let Some(catalog_schema) = self.schemas.get_mut(&catalog_schema_name) else {
+            return Err(BustubxError::Storage(format!(
+                "catalog schema {} not created yet",
+                catalog_schema_name
+            )));
+        };
+        let Some(catalog_table) = catalog_schema.tables.get_mut(&table_name) else {
+            return Err(BustubxError::Storage(format!(
+                "table {} not created yet",
+                table_name
+            )));
+        };
+        if catalog_table.indexes.contains_key(&index_name) {
+            return Err(BustubxError::Storage(
+                "Cannot create duplicated index".to_string(),
+            ));
+        }
 
         let b_plus_tree_index = Arc::new(BPlusTreeIndex::new(
             key_schema.clone(),
@@ -165,27 +259,58 @@ impl Catalog {
             BPLUS_LEAF_PAGE_MAX_SIZE as u32,
             BPLUS_INTERNAL_PAGE_MAX_SIZE as u32,
         ));
+        catalog_table
+            .indexes
+            .insert(index_name, b_plus_tree_index.clone());
 
-        self.indexes
-            .insert(full_index_ref.clone(), b_plus_tree_index.clone());
-        if let Some(indexes) = self.table_indexes.get_mut(&full_table_ref) {
-            indexes.insert(index_name);
-        } else {
-            return Err(BustubxError::Storage(
-                "Cannot find table_indexes map".to_string(),
-            ));
-        }
         Ok(b_plus_tree_index)
     }
 
-    pub fn get_index_by_name(
+    pub fn index(
         &self,
         table_ref: &TableReference,
         index_name: &str,
-    ) -> Option<Arc<BPlusTreeIndex>> {
-        let (catalog, schema, table) = table_ref.extend_to_full();
-        let full_index_ref = (catalog, schema, table, index_name.to_string());
-        self.indexes.get(&full_index_ref).cloned()
+    ) -> BustubxResult<Option<Arc<BPlusTreeIndex>>> {
+        let catalog_schema_name = table_ref
+            .schema()
+            .unwrap_or(DEFAULT_SCHEMA_NAME)
+            .to_string();
+        let table_name = table_ref.table().to_string();
+
+        let Some(catalog_schema) = self.schemas.get(&catalog_schema_name) else {
+            return Err(BustubxError::Storage(format!(
+                "catalog schema {} not created yet",
+                catalog_schema_name
+            )));
+        };
+        let Some(catalog_table) = catalog_schema.tables.get(&table_name) else {
+            return Err(BustubxError::Storage(format!(
+                "table {} not created yet",
+                table_name
+            )));
+        };
+        Ok(catalog_table.indexes.get(index_name).cloned())
+    }
+
+    pub fn load_schema(&mut self, name: impl Into<String>, schema: CatalogSchema) {
+        self.schemas.insert(name.into(), schema);
+    }
+
+    pub fn load_table(
+        &mut self,
+        table_ref: TableReference,
+        table: CatalogTable,
+    ) -> BustubxResult<()> {
+        let catalog_schema_name = table_ref.schema().unwrap_or(DEFAULT_SCHEMA_NAME);
+        let table_name = table_ref.table().to_string();
+        let Some(catalog_schema) = self.schemas.get_mut(catalog_schema_name) else {
+            return Err(BustubxError::Storage(format!(
+                "catalog schema {} not created yet",
+                catalog_schema_name
+            )));
+        };
+        catalog_schema.tables.insert(table_name, table);
+        Ok(())
     }
 }
 
@@ -269,7 +394,8 @@ mod tests {
         assert_eq!(index2.key_schema, key_schema2);
 
         let index3 = catalog
-            .get_index_by_name(&table_ref, index_name1.as_str())
+            .index(&table_ref, index_name1.as_str())
+            .unwrap()
             .unwrap();
         assert_eq!(index3.key_schema, key_schema1);
     }

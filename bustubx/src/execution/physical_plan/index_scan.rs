@@ -38,7 +38,7 @@ impl VolcanoExecutor for PhysicalIndexScan {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         let index = context
             .catalog
-            .get_index_by_name(&self.table_ref, &self.index_name)
+            .index(&self.table_ref, &self.index_name)?
             .unwrap();
         *self.iterator.lock().unwrap() = Some(TreeIndexIterator::new(
             index,

@@ -1,5 +1,3 @@
-use crate::catalog::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum TableReference {
     /// An unqualified table reference, e.g. "table"
@@ -24,9 +22,6 @@ pub enum TableReference {
         table: String,
     },
 }
-
-/// catalog, schema, table
-pub type FullTableRef = (String, String, String);
 
 impl TableReference {
     pub fn bare(table: impl Into<String>) -> Self {
@@ -89,26 +84,6 @@ impl TableReference {
                     && other.schema().map_or(true, |s| s == schema)
                     && other.catalog().map_or(true, |c| c == catalog)
             }
-        }
-    }
-
-    pub fn extend_to_full(&self) -> FullTableRef {
-        match self {
-            TableReference::Bare { table } => (
-                DEFAULT_CATALOG_NAME.to_string(),
-                DEFAULT_SCHEMA_NAME.to_string(),
-                table.clone(),
-            ),
-            TableReference::Partial { schema, table } => (
-                DEFAULT_CATALOG_NAME.to_string(),
-                schema.clone(),
-                table.clone(),
-            ),
-            TableReference::Full {
-                catalog,
-                schema,
-                table,
-            } => (catalog.clone(), schema.clone(), table.clone()),
         }
     }
 }

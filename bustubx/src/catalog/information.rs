@@ -1,9 +1,11 @@
 use crate::buffer::{AtomicPageId, PageId, INVALID_PAGE_ID};
+use crate::catalog::catalog::{CatalogSchema, CatalogTable};
 use crate::catalog::{Catalog, Column, DataType, Schema, SchemaRef, DEFAULT_CATALOG_NAME};
 use crate::common::{ScalarValue, TableReference};
 use crate::storage::codec::TablePageCodec;
 use crate::storage::TableHeap;
 use crate::{BustubxError, BustubxResult, Database};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub static INFORMATION_SCHEMA_NAME: &str = "information_schema";
@@ -95,16 +97,26 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
         }
         let schema = Arc::new(Schema::new(columns));
 
+        let Some(catalog_schema) = db.catalog.schemas.get_mut(catalog.as_str()) else {
+            return Err(BustubxError::Storage(format!(
+                "catalog schema {} not created yet",
+                catalog
+            )));
+        };
         let table_heap = TableHeap {
             schema: schema.clone(),
             buffer_pool: db.buffer_pool.clone(),
             first_page_id: AtomicPageId::new(*first_page_id),
             last_page_id: AtomicPageId::new(*last_page_id),
         };
-        let table_ref = TableReference::full(catalog, table_schema, table_name);
-        db.catalog
+        let catalog_table = CatalogTable {
+            name: table_name.clone(),
+            table: Arc::new(table_heap),
+            indexes: HashMap::new(),
+        };
+        catalog_schema
             .tables
-            .insert(table_ref.extend_to_full(), Arc::new(table_heap));
+            .insert(table_name.clone(), catalog_table);
     }
     Ok(())
 }
@@ -127,15 +139,22 @@ fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
         COLUMNS_SCHMEA.clone(),
     )?;
 
+    let mut information_schema = CatalogSchema::new(INFORMATION_SCHEMA_NAME);
+
     let tables_table = TableHeap {
         schema: TABLES_SCHMEA.clone(),
         buffer_pool: catalog.buffer_pool.clone(),
         first_page_id: AtomicPageId::new(information_schema_tables_first_page_id),
         last_page_id: AtomicPageId::new(information_schema_tables_last_page_id),
     };
-    catalog
+    let catalog_table = CatalogTable {
+        name: INFORMATION_SCHEMA_TABLES.to_string(),
+        table: Arc::new(tables_table),
+        indexes: HashMap::new(),
+    };
+    information_schema
         .tables
-        .insert(TABLES_TABLE_REF.extend_to_full(), Arc::new(tables_table));
+        .insert(INFORMATION_SCHEMA_TABLES.to_string(), catalog_table);
 
     let columns_table = TableHeap {
         schema: COLUMNS_SCHMEA.clone(),
@@ -143,9 +162,18 @@ fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
         first_page_id: AtomicPageId::new(information_schema_columns_first_page_id),
         last_page_id: AtomicPageId::new(information_schema_columns_last_page_id),
     };
-    catalog
+    let catalog_table = CatalogTable {
+        name: INFORMATION_SCHEMA_TABLES.to_string(),
+        table: Arc::new(columns_table),
+        indexes: HashMap::new(),
+    };
+    information_schema
         .tables
-        .insert(COLUMNS_TABLE_REF.extend_to_full(), Arc::new(columns_table));
+        .insert(INFORMATION_SCHEMA_COLUMNS.to_string(), catalog_table);
+
+    catalog.load_schema(INFORMATION_SCHEMA_NAME, information_schema);
+
+    // TODO load schemas
     Ok(())
 }
 
