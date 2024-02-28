@@ -3,8 +3,9 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 use crate::catalog::{
-    SchemaRef, COLUMNS_SCHMEA, INFORMATION_SCHEMA_COLUMNS, INFORMATION_SCHEMA_NAME,
-    INFORMATION_SCHEMA_SCHEMAS, INFORMATION_SCHEMA_TABLES, SCHEMAS_SCHMEA, TABLES_SCHMEA,
+    key_schema_to_varchar, SchemaRef, COLUMNS_SCHMEA, INDEXES_SCHMEA, INFORMATION_SCHEMA_COLUMNS,
+    INFORMATION_SCHEMA_INDEXES, INFORMATION_SCHEMA_NAME, INFORMATION_SCHEMA_SCHEMAS,
+    INFORMATION_SCHEMA_TABLES, SCHEMAS_SCHMEA, TABLES_SCHMEA,
 };
 use crate::common::TableReference;
 use crate::storage::{BPLUS_INTERNAL_PAGE_MAX_SIZE, BPLUS_LEAF_PAGE_MAX_SIZE, EMPTY_TUPLE_META};
@@ -246,6 +247,10 @@ impl Catalog {
         table_ref: &TableReference,
         key_schema: SchemaRef,
     ) -> BustubxResult<Arc<BPlusTreeIndex>> {
+        let catalog_name = table_ref
+            .catalog()
+            .unwrap_or(DEFAULT_CATALOG_NAME)
+            .to_string();
         let catalog_schema_name = table_ref
             .schema()
             .unwrap_or(DEFAULT_SCHEMA_NAME)
@@ -273,12 +278,45 @@ impl Catalog {
         let b_plus_tree_index = Arc::new(BPlusTreeIndex::new(
             key_schema.clone(),
             self.buffer_pool.clone(),
-            BPLUS_LEAF_PAGE_MAX_SIZE as u32,
             BPLUS_INTERNAL_PAGE_MAX_SIZE as u32,
+            BPLUS_LEAF_PAGE_MAX_SIZE as u32,
         ));
         catalog_table
             .indexes
-            .insert(index_name, b_plus_tree_index.clone());
+            .insert(index_name.clone(), b_plus_tree_index.clone());
+
+        // update system table
+        let Some(information_schema) = self.schemas.get_mut(INFORMATION_SCHEMA_NAME) else {
+            return Err(BustubxError::Internal(
+                "catalog schema information_schema not created yet".to_string(),
+            ));
+        };
+        let Some(indexes_table) = information_schema
+            .tables
+            .get_mut(INFORMATION_SCHEMA_INDEXES)
+        else {
+            return Err(BustubxError::Internal(
+                "table information_schema.indexes not created yet".to_string(),
+            ));
+        };
+
+        let tuple = Tuple::new(
+            INDEXES_SCHMEA.clone(),
+            vec![
+                catalog_name.clone().into(),
+                catalog_schema_name.clone().into(),
+                table_name.clone().into(),
+                index_name.clone().into(),
+                key_schema_to_varchar(&b_plus_tree_index.key_schema).into(),
+                b_plus_tree_index.internal_max_size.into(),
+                b_plus_tree_index.leaf_max_size.into(),
+                b_plus_tree_index.root_page_id.load(Ordering::SeqCst).into(),
+            ],
+        );
+        println!("LWZTEST tuple: {:?}", tuple);
+        indexes_table
+            .table
+            .insert_tuple(&EMPTY_TUPLE_META, &tuple)?;
 
         Ok(b_plus_tree_index)
     }
@@ -327,6 +365,30 @@ impl Catalog {
             )));
         };
         catalog_schema.tables.insert(table_name, table);
+        Ok(())
+    }
+
+    pub fn load_index(
+        &mut self,
+        table_ref: TableReference,
+        index_name: impl Into<String>,
+        index: Arc<BPlusTreeIndex>,
+    ) -> BustubxResult<()> {
+        let catalog_schema_name = table_ref.schema().unwrap_or(DEFAULT_SCHEMA_NAME);
+        let table_name = table_ref.table().to_string();
+        let Some(catalog_schema) = self.schemas.get_mut(catalog_schema_name) else {
+            return Err(BustubxError::Storage(format!(
+                "catalog schema {} not created yet",
+                catalog_schema_name
+            )));
+        };
+        let Some(catalog_table) = catalog_schema.tables.get_mut(&table_name) else {
+            return Err(BustubxError::Storage(format!(
+                "catalog table {} not created yet",
+                table_name
+            )));
+        };
+        catalog_table.indexes.insert(index_name.into(), index);
         Ok(())
     }
 }
@@ -389,7 +451,7 @@ mod tests {
         let _ = db.catalog.create_table(table_ref.clone(), schema.clone());
 
         let index_name1 = "test_index1".to_string();
-        let key_schema1 = schema.project(&[0, 2]).unwrap();
+        let key_schema1 = Arc::new(schema.project(&[0, 2]).unwrap());
         let index1 = db
             .catalog
             .create_index(index_name1.clone(), &table_ref, key_schema1.clone())
@@ -397,7 +459,7 @@ mod tests {
         assert_eq!(index1.key_schema, key_schema1);
 
         let index_name2 = "test_index2".to_string();
-        let key_schema2 = schema.project(&[1]).unwrap();
+        let key_schema2 = Arc::new(schema.project(&[1]).unwrap());
         let index2 = db
             .catalog
             .create_index(index_name2.clone(), &table_ref, key_schema2.clone())

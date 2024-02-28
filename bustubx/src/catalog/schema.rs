@@ -39,14 +39,14 @@ impl Schema {
         Ok(Self { columns })
     }
 
-    pub fn project(&self, indices: &[usize]) -> BustubxResult<SchemaRef> {
+    pub fn project(&self, indices: &[usize]) -> BustubxResult<Schema> {
         let new_columns = indices
             .iter()
             .map(|i| self.column_with_index(*i))
             .collect::<BustubxResult<Vec<ColumnRef>>>()?;
-        Ok(Arc::new(Schema {
+        Ok(Schema {
             columns: new_columns,
-        }))
+        })
     }
 
     pub fn column_with_name(

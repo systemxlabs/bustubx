@@ -74,6 +74,7 @@ impl DiskManager {
             let information_schema_schemas_first_page_id = disk_manager.allocate_page()?;
             let information_schema_tables_first_page_id = disk_manager.allocate_page()?;
             let information_schema_columns_first_page_id = disk_manager.allocate_page()?;
+            let information_schema_indexes_first_page_id = disk_manager.allocate_page()?;
 
             let mut meta = disk_manager.meta.write().unwrap();
             meta.freelist_page_id = freelist_page_id;
@@ -82,6 +83,8 @@ impl DiskManager {
             meta.information_schema_tables_first_page_id = information_schema_tables_first_page_id;
             meta.information_schema_columns_first_page_id =
                 information_schema_columns_first_page_id;
+            meta.information_schema_indexes_first_page_id =
+                information_schema_indexes_first_page_id;
             drop(meta);
             disk_manager.write_meta_page()?;
         }
@@ -249,7 +252,7 @@ mod tests {
         let disk_manager = super::DiskManager::try_new(temp_path).unwrap();
 
         let page_id1 = disk_manager.allocate_page().unwrap();
-        assert_eq!(page_id1, 5);
+        assert_eq!(page_id1, 6);
         let mut page1 = vec![1, 2, 3];
         page1.extend(vec![0; BUSTUBX_PAGE_SIZE - 3]);
         disk_manager.write_page(page_id1, &page1).unwrap();
@@ -257,7 +260,7 @@ mod tests {
         assert_eq!(page, page1.as_slice());
 
         let page_id2 = disk_manager.allocate_page().unwrap();
-        assert_eq!(page_id2, 6);
+        assert_eq!(page_id2, 7);
         let mut page2 = vec![0; BUSTUBX_PAGE_SIZE - 3];
         page2.extend(vec![4, 5, 6]);
         disk_manager.write_page(page_id2, &page2).unwrap();
@@ -267,7 +270,7 @@ mod tests {
         let db_file_len = disk_manager.db_file_len().unwrap();
         assert_eq!(
             db_file_len as usize,
-            BUSTUBX_PAGE_SIZE * 6 + MetaPageCodec::encode(&EMPTY_META_PAGE).len()
+            BUSTUBX_PAGE_SIZE * 7 + MetaPageCodec::encode(&EMPTY_META_PAGE).len()
         );
     }
 

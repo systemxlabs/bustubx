@@ -8,12 +8,14 @@ use crate::storage::codec::TablePageCodec;
 use crate::storage::TableHeap;
 use crate::{BustubxError, BustubxResult, Database};
 
+use crate::storage::index::BPlusTreeIndex;
 use std::sync::Arc;
 
 pub static INFORMATION_SCHEMA_NAME: &str = "information_schema";
 pub static INFORMATION_SCHEMA_SCHEMAS: &str = "schemas";
 pub static INFORMATION_SCHEMA_TABLES: &str = "tables";
 pub static INFORMATION_SCHEMA_COLUMNS: &str = "columns";
+pub static INFORMATION_SCHEMA_INDEXES: &str = "indexes";
 
 lazy_static::lazy_static! {
     pub static ref SCHEMAS_SCHMEA: SchemaRef = Arc::new(Schema::new(vec![
@@ -36,6 +38,17 @@ lazy_static::lazy_static! {
         Column::new("data_type", DataType::Varchar(None), false),
         Column::new("nullable", DataType::Boolean, false),
     ]));
+
+    pub static ref INDEXES_SCHMEA: SchemaRef = Arc::new(Schema::new(vec![
+        Column::new("table_catalog", DataType::Varchar(None), false),
+        Column::new("table_schema", DataType::Varchar(None), false),
+        Column::new("table_name", DataType::Varchar(None), false),
+        Column::new("index_name", DataType::Varchar(None), false),
+        Column::new("key_schema", DataType::Varchar(None), false),
+        Column::new("internal_max_size", DataType::UInt32, false),
+        Column::new("leaf_max_size", DataType::UInt32, false),
+        Column::new("root_page_id", DataType::UInt32, false),
+    ]));
 }
 
 pub fn load_catalog_data(db: &mut Database) -> BustubxResult<()> {
@@ -43,6 +56,7 @@ pub fn load_catalog_data(db: &mut Database) -> BustubxResult<()> {
     load_schemas(db)?;
     create_default_schema_if_not_exists(&mut db.catalog)?;
     load_user_tables(db)?;
+    load_user_indexes(db)?;
     Ok(())
 }
 
@@ -58,6 +72,7 @@ fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
     let information_schema_schemas_first_page_id = meta.information_schema_schemas_first_page_id;
     let information_schema_tables_first_page_id = meta.information_schema_tables_first_page_id;
     let information_schema_columns_first_page_id = meta.information_schema_columns_first_page_id;
+    let information_schema_indexes_first_page_id = meta.information_schema_indexes_first_page_id;
     drop(meta);
 
     // load last page id
@@ -75,6 +90,11 @@ fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
         catalog,
         information_schema_columns_first_page_id,
         COLUMNS_SCHMEA.clone(),
+    )?;
+    let information_schema_indexes_last_page_id = load_table_last_page_id(
+        catalog,
+        information_schema_indexes_first_page_id,
+        INDEXES_SCHMEA.clone(),
     )?;
 
     let mut information_schema = CatalogSchema::new(INFORMATION_SCHEMA_NAME);
@@ -110,6 +130,17 @@ fn load_information_schema(catalog: &mut Catalog) -> BustubxResult<()> {
     information_schema.tables.insert(
         INFORMATION_SCHEMA_COLUMNS.to_string(),
         CatalogTable::new(INFORMATION_SCHEMA_COLUMNS, Arc::new(columns_table)),
+    );
+
+    let indexes_table = TableHeap {
+        schema: INDEXES_SCHMEA.clone(),
+        buffer_pool: catalog.buffer_pool.clone(),
+        first_page_id: AtomicPageId::new(information_schema_indexes_first_page_id),
+        last_page_id: AtomicPageId::new(information_schema_indexes_last_page_id),
+    };
+    information_schema.tables.insert(
+        INFORMATION_SCHEMA_INDEXES.to_string(),
+        CatalogTable::new(INFORMATION_SCHEMA_INDEXES, Arc::new(indexes_table)),
     );
 
     catalog.load_schema(INFORMATION_SCHEMA_NAME, information_schema);
@@ -200,6 +231,61 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
     Ok(())
 }
 
+fn load_user_indexes(db: &mut Database) -> BustubxResult<()> {
+    let index_tuples = db.run(&format!(
+        "select * from {}.{}",
+        INFORMATION_SCHEMA_NAME, INFORMATION_SCHEMA_INDEXES
+    ))?;
+    for index_tuple in index_tuples.into_iter() {
+        let error = Err(BustubxError::Internal(format!(
+            "Failed to decode index tuple: {:?}",
+            index_tuple
+        )));
+        let ScalarValue::Varchar(Some(catalog_name)) = index_tuple.value(0)? else {
+            return error;
+        };
+        let ScalarValue::Varchar(Some(table_schema_name)) = index_tuple.value(1)? else {
+            return error;
+        };
+        let ScalarValue::Varchar(Some(table_name)) = index_tuple.value(2)? else {
+            return error;
+        };
+        let ScalarValue::Varchar(Some(index_name)) = index_tuple.value(3)? else {
+            return error;
+        };
+        let ScalarValue::Varchar(Some(key_schema_str)) = index_tuple.value(4)? else {
+            return error;
+        };
+        let ScalarValue::UInt32(Some(internal_max_size)) = index_tuple.value(5)? else {
+            return error;
+        };
+        let ScalarValue::UInt32(Some(leaf_max_size)) = index_tuple.value(6)? else {
+            return error;
+        };
+        let ScalarValue::UInt32(Some(root_page_id)) = index_tuple.value(7)? else {
+            return error;
+        };
+
+        let table_ref = TableReference::full(catalog_name, table_schema_name, table_name);
+        let table_schema = db.catalog.table_heap(&table_ref)?.schema.clone();
+        let key_schema = Arc::new(parse_key_schema_from_varchar(
+            key_schema_str.as_str(),
+            table_schema,
+        )?);
+
+        let b_plus_tree_index = BPlusTreeIndex {
+            key_schema,
+            buffer_pool: db.buffer_pool.clone(),
+            internal_max_size: *internal_max_size,
+            leaf_max_size: *leaf_max_size,
+            root_page_id: AtomicPageId::new(*root_page_id),
+        };
+        db.catalog
+            .load_index(table_ref, index_name, Arc::new(b_plus_tree_index))?;
+    }
+    Ok(())
+}
+
 fn load_table_last_page_id(
     catalog: &mut Catalog,
     first_page_id: PageId,
@@ -216,4 +302,26 @@ fn load_table_last_page_id(
             page_id = table_page.header.next_page_id;
         }
     }
+}
+
+pub fn key_schema_to_varchar(key_schema: &Schema) -> String {
+    key_schema
+        .columns
+        .iter()
+        .map(|col| col.name.as_str())
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn parse_key_schema_from_varchar(varchar: &str, table_schema: SchemaRef) -> BustubxResult<Schema> {
+    let column_names = varchar
+        .split(",")
+        .into_iter()
+        .map(|name| name.trim())
+        .collect::<Vec<&str>>();
+    let indices = column_names
+        .into_iter()
+        .map(|name| table_schema.index_of(None, name))
+        .collect::<BustubxResult<Vec<usize>>>()?;
+    table_schema.project(&indices)
 }

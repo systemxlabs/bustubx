@@ -28,7 +28,7 @@ impl<'a> LogicalPlanner<'a> {
                 .map(|name| table_schema.index_of(Some(&table), name.as_str()))
                 .collect::<BustubxResult<Vec<usize>>>()?;
 
-            table_schema.project(&indices)?
+            Arc::new(table_schema.project(&indices)?)
         };
 
         Ok(LogicalPlan::Insert(Insert {

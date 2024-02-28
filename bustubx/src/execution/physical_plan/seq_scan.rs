@@ -34,6 +34,7 @@ impl VolcanoExecutor for PhysicalSeqScan {
     }
 
     fn next(&self, _context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
+        println!("LWZTEST seq_scan");
         let Some(iterator) = &mut *self.iterator.lock().unwrap() else {
             return Err(BustubxError::Execution(
                 "table iterator not created".to_string(),

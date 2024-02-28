@@ -13,6 +13,13 @@ pub struct Tuple {
 impl Tuple {
     pub fn new(schema: SchemaRef, data: Vec<ScalarValue>) -> Self {
         debug_assert_eq!(schema.columns.len(), data.len());
+        // TODO enable
+        // debug_assert!(schema
+        //     .columns
+        //     .iter()
+        //     .zip(data.iter())
+        //     .find(|(col, val)| ScalarValue::new_empty(col.data_type).data_type() != val.data_type())
+        //     .is_none());
         Self { schema, data }
     }
 
@@ -37,7 +44,7 @@ impl Tuple {
         for col in schema.columns.iter() {
             data.push(ScalarValue::new_empty(col.data_type));
         }
-        Self { schema, data }
+        Self::new(schema, data)
     }
 
     pub fn try_merge(tuples: impl IntoIterator<Item = Self>) -> BustubxResult<Self> {
@@ -47,10 +54,7 @@ impl Tuple {
             data.extend(tuple.data);
             merged_schema = Schema::try_merge(vec![merged_schema, tuple.schema.as_ref().clone()])?;
         }
-        Ok(Self {
-            schema: Arc::new(merged_schema),
-            data,
-        })
+        Ok(Self::new(Arc::new(merged_schema), data))
     }
 
     pub fn is_null(&self) -> bool {

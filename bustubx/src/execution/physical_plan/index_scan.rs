@@ -48,6 +48,7 @@ impl VolcanoExecutor for PhysicalIndexScan {
     }
 
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
+        println!("LWZTEST index_scan");
         let mut guard = self.iterator.lock().unwrap();
         let Some(iterator) = &mut *guard else {
             return Err(BustubxError::Execution(

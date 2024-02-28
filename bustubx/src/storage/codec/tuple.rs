@@ -63,10 +63,11 @@ mod tests {
             Column::new("a", DataType::Boolean, true),
             Column::new("b", DataType::Int32, true),
             Column::new("c", DataType::UInt64, true),
+            Column::new("d", DataType::Varchar(None), true),
         ]));
         let tuple = Tuple::new(
             schema.clone(),
-            vec![true.into(), ScalarValue::Int32(None), 1234u64.into()],
+            vec![true.into(), ScalarValue::Int32(None), 1234u64.into(), "aabb".to_string().into()],
         );
         let new_tuple = TupleCodec::decode(&TupleCodec::encode(&tuple), schema)
             .unwrap()

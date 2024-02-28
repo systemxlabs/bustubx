@@ -7,6 +7,7 @@ use crate::{
     storage::Tuple,
     BustubxError, BustubxResult,
 };
+use std::sync::Arc;
 
 #[derive(Debug, derive_new::new)]
 pub struct PhysicalCreateIndex {
@@ -32,7 +33,7 @@ impl VolcanoExecutor for PhysicalCreateIndex {
                 }
             }
         }
-        let key_schema = self.table_schema.project(&key_indices)?;
+        let key_schema = Arc::new(self.table_schema.project(&key_indices)?);
         context
             .catalog
             .create_index(self.name.clone(), &self.table, key_schema)?;
