@@ -26,14 +26,7 @@ lazy_static::lazy_static! {
         Column::new("table_schema", DataType::Varchar(None), false),
         Column::new("table_name", DataType::Varchar(None), false),
         Column::new("first_page_id", DataType::UInt32, false),
-        Column::new("last_page_id", DataType::UInt32, false),
     ]));
-
-    pub static ref TABLES_TABLE_REF: TableReference = TableReference::full(
-        DEFAULT_CATALOG_NAME,
-        INFORMATION_SCHEMA_NAME,
-        INFORMATION_SCHEMA_TABLES,
-    );
 
     pub static ref COLUMNS_SCHMEA: SchemaRef = Arc::new(Schema::new(vec![
         Column::new("table_catalog", DataType::Varchar(None), false),
@@ -43,12 +36,6 @@ lazy_static::lazy_static! {
         Column::new("data_type", DataType::Varchar(None), false),
         Column::new("nullable", DataType::Boolean, false),
     ]));
-
-    pub static ref COLUMNS_TABLE_REF: TableReference = TableReference::full(
-        DEFAULT_CATALOG_NAME,
-        INFORMATION_SCHEMA_NAME,
-        INFORMATION_SCHEMA_COLUMNS,
-    );
 }
 
 pub fn load_catalog_data(db: &mut Database) -> BustubxResult<()> {
@@ -173,9 +160,6 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
         let ScalarValue::UInt32(Some(first_page_id)) = table_tuple.value(3)? else {
             return error;
         };
-        let ScalarValue::UInt32(Some(last_page_id)) = table_tuple.value(4)? else {
-            return error;
-        };
 
         let column_tuples = db.run(&format!("select * from {}.{} where table_catalog = '{}' and table_schema = '{}' and table_name = '{}'",
                                             INFORMATION_SCHEMA_NAME, INFORMATION_SCHEMA_COLUMNS, catalog, table_schema, table_name))?;
@@ -199,11 +183,14 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
         }
         let schema = Arc::new(Schema::new(columns));
 
+        // load last page id
+        let last_page_id =
+            load_table_last_page_id(&mut db.catalog, *first_page_id, schema.clone())?;
         let table_heap = TableHeap {
             schema: schema.clone(),
             buffer_pool: db.buffer_pool.clone(),
             first_page_id: AtomicPageId::new(*first_page_id),
-            last_page_id: AtomicPageId::new(*last_page_id),
+            last_page_id: AtomicPageId::new(last_page_id),
         };
         db.catalog.load_table(
             TableReference::full(catalog, table_schema, table_name),

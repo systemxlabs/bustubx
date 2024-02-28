@@ -160,7 +160,6 @@ impl Catalog {
                 catalog_schema_name.clone().into(),
                 table_name.clone().into(),
                 (table_heap.first_page_id.load(Ordering::SeqCst)).into(),
-                (table_heap.last_page_id.load(Ordering::SeqCst)).into(),
             ],
         );
         tables_table.table.insert_tuple(&EMPTY_TUPLE_META, &tuple)?;
