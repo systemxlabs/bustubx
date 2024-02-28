@@ -20,6 +20,9 @@ impl ScalarValueCodec {
             ScalarValue::Float32(Some(v)) => CommonCodec::encode_f32(*v),
             ScalarValue::Float64(Some(v)) => CommonCodec::encode_f64(*v),
             ScalarValue::Varchar(Some(v)) => {
+                if v.len() > u16::MAX as usize {
+                    panic!("Varchar length is greater than u16::Max")
+                }
                 let mut bytes = vec![];
                 bytes.extend(CommonCodec::encode_u16(v.len() as u16));
                 bytes.extend(CommonCodec::encode_string(v));

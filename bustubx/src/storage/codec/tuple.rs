@@ -25,7 +25,7 @@ impl TupleCodec {
     pub fn decode(bytes: &[u8], schema: SchemaRef) -> BustubxResult<DecodedData<Tuple>> {
         let mut total_offset = 0;
 
-        let null_map_bytes = (schema.column_count() >> 3) + 1;
+        let null_map_bytes = schema.column_count().div_ceil(8);
         let null_map = DynamicBitmap::from_bytes(&bytes[0..null_map_bytes]);
         total_offset += null_map_bytes;
         let mut bytes = &bytes[null_map_bytes..];
@@ -67,7 +67,12 @@ mod tests {
         ]));
         let tuple = Tuple::new(
             schema.clone(),
-            vec![true.into(), ScalarValue::Int32(None), 1234u64.into(), "aabb".to_string().into()],
+            vec![
+                true.into(),
+                ScalarValue::Int32(None),
+                1234u64.into(),
+                "aabb".to_string().into(),
+            ],
         );
         let new_tuple = TupleCodec::decode(&TupleCodec::encode(&tuple), schema)
             .unwrap()

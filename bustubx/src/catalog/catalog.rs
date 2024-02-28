@@ -313,7 +313,6 @@ impl Catalog {
                 b_plus_tree_index.root_page_id.load(Ordering::SeqCst).into(),
             ],
         );
-        println!("LWZTEST tuple: {:?}", tuple);
         indexes_table
             .table
             .insert_tuple(&EMPTY_TUPLE_META, &tuple)?;
