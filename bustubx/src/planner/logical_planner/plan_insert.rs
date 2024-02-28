@@ -1,7 +1,7 @@
 use crate::BustubxResult;
 use std::sync::Arc;
 
-use crate::planner::logical_plan::{Insert, LogicalPlan};
+use crate::planner::logical_plan::{Insert, LogicalPlan, Values};
 
 use super::LogicalPlanner;
 
@@ -12,7 +12,7 @@ impl<'a> LogicalPlanner<'a> {
         columns_ident: &Vec<sqlparser::ast::Ident>,
         source: &sqlparser::ast::Query,
     ) -> BustubxResult<LogicalPlan> {
-        let values = self.plan_set_expr(source.body.as_ref())?;
+        let mut input = self.plan_set_expr(source.body.as_ref())?;
         let table = self.bind_table_name(table_name)?;
         let table_schema = self.context.catalog.table_heap(&table)?.schema.clone();
 
@@ -31,11 +31,18 @@ impl<'a> LogicalPlanner<'a> {
             Arc::new(table_schema.project(&indices)?)
         };
 
+        if let LogicalPlan::Values(Values { values, .. }) = input {
+            input = LogicalPlan::Values(Values {
+                values,
+                schema: projected_schema.clone(),
+            })
+        }
+
         Ok(LogicalPlan::Insert(Insert {
             table,
             table_schema,
             projected_schema,
-            input: Arc::new(values),
+            input: Arc::new(input),
         }))
     }
 }

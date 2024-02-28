@@ -43,8 +43,7 @@ impl VolcanoExecutor for PhysicalInsert {
     fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         debug!("init insert executor");
         self.input.init(context)?;
-        self.insert_rows
-            .store(0, std::sync::atomic::Ordering::SeqCst);
+        self.insert_rows.store(0, Ordering::SeqCst);
         Ok(())
     }
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
@@ -52,12 +51,11 @@ impl VolcanoExecutor for PhysicalInsert {
             let next_tuple = self.input.next(context)?;
             if next_tuple.is_none() {
                 // only return insert_rows when input exhausted
-                return if self.insert_rows.load(std::sync::atomic::Ordering::SeqCst) == 0 {
+                return if self.insert_rows.load(Ordering::SeqCst) == 0 {
                     Ok(None)
                 } else {
-                    let insert_rows = self.insert_rows.load(std::sync::atomic::Ordering::SeqCst);
-                    self.insert_rows
-                        .store(0, std::sync::atomic::Ordering::SeqCst);
+                    let insert_rows = self.insert_rows.load(Ordering::SeqCst);
+                    self.insert_rows.store(0, Ordering::SeqCst);
                     Ok(Some(Tuple::new(
                         self.output_schema(),
                         vec![ScalarValue::Int32(Some(insert_rows as i32))],
@@ -85,7 +83,12 @@ impl VolcanoExecutor for PhysicalInsert {
             let indexes = context.catalog.table_indexes(&self.table)?;
             for index in indexes {
                 if let Ok(key_tuple) = tuple.project_with_schema(index.key_schema.clone()) {
+                    let root_page_id = index.root_page_id.load(Ordering::SeqCst);
                     index.insert(&key_tuple, rid)?;
+                    let new_root_page_id = index.root_page_id.load(Ordering::SeqCst);
+                    if new_root_page_id != root_page_id {
+                        // TODO update system table
+                    }
                 }
             }
 

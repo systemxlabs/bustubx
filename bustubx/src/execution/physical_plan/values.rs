@@ -37,7 +37,15 @@ impl VolcanoExecutor for PhysicalValues {
                 .iter()
                 .map(|e| e.evaluate(&Tuple::empty(Arc::new(Schema::empty()))))
                 .collect::<BustubxResult<Vec<ScalarValue>>>()?;
-            Ok(Some(Tuple::new(self.output_schema(), values)))
+            debug_assert_eq!(self.schema.column_count(), values.len());
+
+            let casted_values = values
+                .iter()
+                .zip(self.schema.columns.iter())
+                .map(|(val, col)| val.cast_to(&col.data_type))
+                .collect::<BustubxResult<Vec<ScalarValue>>>()?;
+
+            Ok(Some(Tuple::new(self.output_schema(), casted_values)))
         } else {
             Ok(None)
         }

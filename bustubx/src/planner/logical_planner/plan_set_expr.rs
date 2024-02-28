@@ -300,26 +300,10 @@ impl LogicalPlanner<'_> {
             }
             result.push(record);
         }
-        if result.is_empty() {
-            return Ok(LogicalPlan::Values(Values {
-                schema: Arc::new(Schema::empty()),
-                values: vec![],
-            }));
-        }
 
-        // parse schema
-        let first_row = &result[0];
-        let mut columns = vec![];
-        for (idx, item) in first_row.iter().enumerate() {
-            columns.push(Column::new(
-                idx.to_string(),
-                item.data_type(&EMPTY_SCHEMA_REF)?,
-                item.nullable(&EMPTY_SCHEMA_REF)?,
-            ))
-        }
-
+        // schema will be replaced later
         Ok(LogicalPlan::Values(Values {
-            schema: Arc::new(Schema::new(columns)),
+            schema: Arc::new(Schema::empty()),
             values: result,
         }))
     }

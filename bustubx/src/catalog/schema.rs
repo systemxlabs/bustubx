@@ -21,9 +21,23 @@ pub struct Schema {
 
 impl Schema {
     pub fn new(columns: Vec<Column>) -> Self {
-        Self {
-            columns: columns.into_iter().map(Arc::new).collect(),
+        Self::new_with_check(columns.into_iter().map(Arc::new).collect())
+    }
+
+    fn new_with_check(columns: Vec<ColumnRef>) -> Self {
+        for (idx1, col1) in columns.iter().enumerate() {
+            for idx2 in idx1 + 1..columns.len() {
+                let col2 = &columns[idx2];
+                match (&col1.relation, &col2.relation) {
+                    (Some(rel1), Some(rel2)) => {
+                        assert_ne!(rel1.resolved_eq(rel2) && col1.name == col2.name, true)
+                    }
+                    (None, None) => assert_ne!(col1.name, col2.name),
+                    (Some(_), None) | (None, Some(_)) => {}
+                }
+            }
         }
+        Self { columns }
     }
 
     pub fn empty() -> Self {
@@ -31,12 +45,11 @@ impl Schema {
     }
 
     pub fn try_merge(schemas: impl IntoIterator<Item = Self>) -> BustubxResult<Self> {
-        // TODO check column conflict
         let mut columns = Vec::new();
         for schema in schemas {
             columns.extend(schema.columns);
         }
-        Ok(Self { columns })
+        Ok(Self::new_with_check(columns))
     }
 
     pub fn project(&self, indices: &[usize]) -> BustubxResult<Schema> {
@@ -44,9 +57,7 @@ impl Schema {
             .iter()
             .map(|i| self.column_with_index(*i))
             .collect::<BustubxResult<Vec<ColumnRef>>>()?;
-        Ok(Schema {
-            columns: new_columns,
-        })
+        Ok(Schema::new_with_check(new_columns))
     }
 
     pub fn column_with_name(
