@@ -130,11 +130,13 @@ impl TablePage {
         // Get the offset for the next tuple insertion.
         let tuple_offset = self.next_tuple_offset(tuple)?;
         let tuple_id = self.header.num_tuples;
+        let tuple_bytes = TupleCodec::encode(tuple);
+        debug_assert!(tuple_bytes.len() < u16::MAX as usize);
 
         // Store tuple information including offset, length, and metadata.
         self.header.tuple_infos.push(TupleInfo {
             offset: tuple_offset as u16,
-            size: TupleCodec::encode(tuple).len() as u16,
+            size: tuple_bytes.len() as u16,
             meta: *meta,
         });
 
@@ -147,8 +149,7 @@ impl TablePage {
         }
 
         // Copy the tuple's data into the appropriate position within the page's data buffer.
-        self.data[tuple_offset..tuple_offset + TupleCodec::encode(tuple).len()]
-            .copy_from_slice(&TupleCodec::encode(tuple));
+        self.data[tuple_offset..tuple_offset + tuple_bytes.len()].copy_from_slice(&tuple_bytes);
         Ok(tuple_id)
     }
 
@@ -181,7 +182,25 @@ impl TablePage {
             self.data[offset..(offset + size)].copy_from_slice(&tuple_bytes);
         } else {
             // need move other tuples
-            todo!()
+            let mut full_tuples = vec![];
+            for info in self.header.tuple_infos.iter() {
+                full_tuples.push((
+                    info.meta,
+                    TupleCodec::decode(
+                        &self.data[info.offset as usize..(info.offset + info.size) as usize],
+                        self.schema.clone(),
+                    )?
+                    .0,
+                ));
+            }
+            full_tuples[slot_num as usize].1 = tuple;
+
+            let mut new_page = TablePage::new(self.schema.clone(), self.header.next_page_id);
+            for (meta, tuple) in full_tuples.iter() {
+                new_page.insert_tuple(meta, tuple)?;
+            }
+            self.header = new_page.header;
+            self.data = new_page.data;
         }
         Ok(())
     }
