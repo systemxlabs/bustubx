@@ -3,9 +3,10 @@ use crate::common::{ScalarValue, TableReference};
 use crate::execution::{ExecutionContext, VolcanoExecutor};
 use crate::expression::{Expr, ExprTrait};
 use crate::storage::{TableIterator, EMPTY_TUPLE};
-use crate::{BustubxResult, Tuple};
+use crate::{BustubxError, BustubxResult, Tuple};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Mutex;
 
 #[derive(Debug)]
 pub struct PhysicalUpdate {
@@ -15,6 +16,7 @@ pub struct PhysicalUpdate {
     pub selection: Option<Expr>,
 
     update_rows: AtomicU32,
+    table_iterator: Mutex<Option<TableIterator>>,
 }
 
 impl PhysicalUpdate {
@@ -30,20 +32,28 @@ impl PhysicalUpdate {
             assignments,
             selection,
             update_rows: AtomicU32::new(0),
+            table_iterator: Mutex::new(None),
         }
     }
 }
 
 impl VolcanoExecutor for PhysicalUpdate {
-    fn init(&self, _context: &mut ExecutionContext) -> BustubxResult<()> {
+    fn init(&self, context: &mut ExecutionContext) -> BustubxResult<()> {
         self.update_rows.store(0, Ordering::SeqCst);
+        let table_heap = context.catalog.table_heap(&self.table)?;
+        *self.table_iterator.lock().unwrap() = Some(TableIterator::new(table_heap.clone(), ..));
         Ok(())
     }
 
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
         // TODO may scan index
+        let Some(table_iterator) = &mut *self.table_iterator.lock().unwrap() else {
+            return Err(BustubxError::Execution(
+                "table iterator not created".to_string(),
+            ));
+        };
         let table_heap = context.catalog.table_heap(&self.table)?;
-        let mut table_iterator = TableIterator::new(table_heap.clone(), ..);
+
         loop {
             if let Some((rid, mut tuple)) = table_iterator.next()? {
                 if let Some(selection) = &self.selection {
@@ -53,8 +63,9 @@ impl VolcanoExecutor for PhysicalUpdate {
                 }
                 // update tuple data
                 for (col_name, value_expr) in self.assignments.iter() {
-                    let new_value = value_expr.evaluate(&EMPTY_TUPLE)?;
                     let index = tuple.schema.index_of(None, &col_name)?;
+                    let col_datatype = tuple.schema.columns[index].data_type;
+                    let new_value = value_expr.evaluate(&EMPTY_TUPLE)?.cast_to(&col_datatype)?;
                     tuple.data[index] = new_value;
                 }
                 table_heap.update_tuple(rid, tuple)?;
