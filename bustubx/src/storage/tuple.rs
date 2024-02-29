@@ -1,8 +1,12 @@
-use crate::catalog::SchemaRef;
+use crate::catalog::{SchemaRef, EMPTY_SCHEMA_REF};
 use crate::common::TableReference;
 use crate::{catalog::Schema, common::ScalarValue, BustubxError, BustubxResult};
 use std::cmp::Ordering;
 use std::sync::Arc;
+
+lazy_static::lazy_static! {
+    pub static ref EMPTY_TUPLE: Tuple = Tuple::empty(EMPTY_SCHEMA_REF.clone());
+}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Tuple {

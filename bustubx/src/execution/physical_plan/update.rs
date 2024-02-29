@@ -1,7 +1,8 @@
 use crate::catalog::{SchemaRef, UPDATE_OUTPUT_SCHEMA_REF};
-use crate::common::TableReference;
+use crate::common::{ScalarValue, TableReference};
 use crate::execution::{ExecutionContext, VolcanoExecutor};
-use crate::expression::Expr;
+use crate::expression::{Expr, ExprTrait};
+use crate::storage::{TableIterator, EMPTY_TUPLE};
 use crate::{BustubxResult, Tuple};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -40,8 +41,36 @@ impl VolcanoExecutor for PhysicalUpdate {
     }
 
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
-        // TODO implementation
-        Ok(None)
+        // TODO may scan index
+        let table_heap = context.catalog.table_heap(&self.table)?;
+        let mut table_iterator = TableIterator::new(table_heap.clone(), ..);
+        loop {
+            if let Some((rid, mut tuple)) = table_iterator.next()? {
+                if let Some(selection) = &self.selection {
+                    if !selection.evaluate(&tuple)?.as_boolean()?.unwrap_or(false) {
+                        continue;
+                    }
+                }
+                // update tuple data
+                for (col_name, value_expr) in self.assignments.iter() {
+                    let new_value = value_expr.evaluate(&EMPTY_TUPLE)?;
+                    let index = tuple.schema.index_of(None, &col_name)?;
+                    tuple.data[index] = new_value;
+                }
+                table_heap.update_tuple(rid, tuple)?;
+                self.update_rows.fetch_add(1, Ordering::SeqCst);
+            } else {
+                return if self.update_rows.load(Ordering::SeqCst) == 0 {
+                    Ok(None)
+                } else {
+                    let update_rows = self.update_rows.swap(0, Ordering::SeqCst);
+                    Ok(Some(Tuple::new(
+                        self.output_schema(),
+                        vec![ScalarValue::Int32(Some(update_rows as i32))],
+                    )))
+                };
+            }
+        }
     }
 
     fn output_schema(&self) -> SchemaRef {

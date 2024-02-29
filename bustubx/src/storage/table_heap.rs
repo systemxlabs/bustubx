@@ -109,7 +109,19 @@ impl TableHeap {
         Ok(RecordId::new(last_page_id, slot_id as u32))
     }
 
-    pub fn update_tuple_meta(&self, meta: &TupleMeta, rid: RecordId) -> BustubxResult<()> {
+    pub fn update_tuple(&self, rid: RecordId, tuple: Tuple) -> BustubxResult<()> {
+        let page = self.buffer_pool.fetch_page(rid.page_id)?;
+        let (mut table_page, _) =
+            TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
+        table_page.update_tuple(tuple, rid.slot_num as u16)?;
+
+        page.write()
+            .unwrap()
+            .set_data(page_bytes_to_array(&TablePageCodec::encode(&table_page)));
+        Ok(())
+    }
+
+    pub fn update_tuple_meta(&self, meta: TupleMeta, rid: RecordId) -> BustubxResult<()> {
         let page = self.buffer_pool.fetch_page(rid.page_id)?;
         let (mut table_page, _) =
             TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
@@ -121,8 +133,7 @@ impl TableHeap {
         Ok(())
     }
 
-    // FIXME
-    pub fn tuple(&self, rid: RecordId) -> BustubxResult<(TupleMeta, Tuple)> {
+    pub fn full_tuple(&self, rid: RecordId) -> BustubxResult<(TupleMeta, Tuple)> {
         let page = self.buffer_pool.fetch_page(rid.page_id)?;
         let (table_page, _) =
             TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
@@ -130,12 +141,14 @@ impl TableHeap {
         Ok(result)
     }
 
+    pub fn tuple(&self, rid: RecordId) -> BustubxResult<Tuple> {
+        let (_meta, tuple) = self.full_tuple(rid)?;
+        Ok(tuple)
+    }
+
     pub fn tuple_meta(&self, rid: RecordId) -> BustubxResult<TupleMeta> {
-        let page = self.buffer_pool.fetch_page(rid.page_id)?;
-        let (table_page, _) =
-            TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
-        let result = table_page.tuple_meta(rid.slot_num as u16)?;
-        Ok(result)
+        let (meta, _tuple) = self.full_tuple(rid)?;
+        Ok(meta)
     }
 
     pub fn get_first_rid(&self) -> BustubxResult<Option<RecordId>> {
@@ -199,7 +212,7 @@ impl TableIterator {
         }
     }
 
-    pub fn next(&mut self) -> BustubxResult<Option<(TupleMeta, Tuple)>> {
+    pub fn next(&mut self) -> BustubxResult<Option<(RecordId, Tuple)>> {
         if self.ended {
             return Ok(None);
         }
@@ -212,7 +225,11 @@ impl TableIterator {
                             self.ended = true;
                         }
                         self.cursor = next_rid;
-                        Ok(self.heap.tuple(self.cursor).ok())
+                        Ok(self
+                            .heap
+                            .tuple(self.cursor)
+                            .ok()
+                            .map(|tuple| (self.cursor, tuple)))
                     } else {
                         Ok(None)
                     }
@@ -223,7 +240,11 @@ impl TableIterator {
                             Ok(None)
                         } else {
                             self.cursor = next_rid;
-                            Ok(self.heap.tuple(self.cursor).ok())
+                            Ok(self
+                                .heap
+                                .tuple(self.cursor)
+                                .ok()
+                                .map(|tuple| (self.cursor, tuple)))
                         }
                     } else {
                         Ok(None)
@@ -232,7 +253,11 @@ impl TableIterator {
                 Bound::Unbounded => {
                     if let Some(next_rid) = self.heap.get_next_rid(self.cursor)? {
                         self.cursor = next_rid;
-                        Ok(self.heap.tuple(self.cursor).ok())
+                        Ok(self
+                            .heap
+                            .tuple(self.cursor)
+                            .ok()
+                            .map(|tuple| (self.cursor, tuple)))
                     } else {
                         Ok(None)
                     }
@@ -243,12 +268,20 @@ impl TableIterator {
             match self.start_bound {
                 Bound::Included(rid) => {
                     self.cursor = rid;
-                    Ok(Some(self.heap.tuple(rid).unwrap()))
+                    Ok(self
+                        .heap
+                        .tuple(self.cursor)
+                        .ok()
+                        .map(|tuple| (self.cursor, tuple)))
                 }
                 Bound::Excluded(rid) => {
                     if let Some(next_rid) = self.heap.get_next_rid(rid)? {
                         self.cursor = next_rid;
-                        Ok(self.heap.tuple(self.cursor).ok())
+                        Ok(self
+                            .heap
+                            .tuple(self.cursor)
+                            .ok()
+                            .map(|tuple| (self.cursor, tuple)))
                     } else {
                         self.ended = true;
                         Ok(None)
@@ -257,7 +290,11 @@ impl TableIterator {
                 Bound::Unbounded => {
                     if let Some(first_rid) = self.heap.get_first_rid()? {
                         self.cursor = first_rid;
-                        Ok(self.heap.tuple(self.cursor).ok())
+                        Ok(self
+                            .heap
+                            .tuple(self.cursor)
+                            .ok()
+                            .map(|tuple| (self.cursor, tuple)))
                     } else {
                         self.ended = true;
                         Ok(None)
@@ -317,7 +354,7 @@ mod tests {
         meta.insert_txn_id = 1;
         meta.delete_txn_id = 2;
         meta.is_deleted = true;
-        table_heap.update_tuple_meta(&meta, rid2).unwrap();
+        table_heap.update_tuple_meta(meta, rid2).unwrap();
 
         let meta = table_heap.tuple_meta(rid2).unwrap();
         assert_eq!(meta.insert_txn_id, 1);
@@ -372,15 +409,15 @@ mod tests {
             )
             .unwrap();
 
-        let (meta, tuple) = table_heap.tuple(rid1).unwrap();
+        let (meta, tuple) = table_heap.full_tuple(rid1).unwrap();
         assert_eq!(meta, meta1);
         assert_eq!(tuple.data, vec![1i8.into(), 1i16.into()]);
 
-        let (meta, tuple) = table_heap.tuple(rid2).unwrap();
+        let (meta, tuple) = table_heap.full_tuple(rid2).unwrap();
         assert_eq!(meta, meta2);
         assert_eq!(tuple.data, vec![2i8.into(), 2i16.into()]);
 
-        let (meta, tuple) = table_heap.tuple(rid3).unwrap();
+        let (meta, tuple) = table_heap.full_tuple(rid3).unwrap();
         assert_eq!(meta, meta3);
         assert_eq!(tuple.data, vec![3i8.into(), 3i16.into()]);
     }
@@ -404,7 +441,7 @@ mod tests {
             delete_txn_id: 1,
             is_deleted: false,
         };
-        let _rid1 = table_heap
+        let rid1 = table_heap
             .insert_tuple(
                 &meta1,
                 &Tuple::new(schema.clone(), vec![1i8.into(), 1i16.into()]),
@@ -415,7 +452,7 @@ mod tests {
             delete_txn_id: 2,
             is_deleted: false,
         };
-        let _rid2 = table_heap
+        let rid2 = table_heap
             .insert_tuple(
                 &meta2,
                 &Tuple::new(schema.clone(), vec![2i8.into(), 2i16.into()]),
@@ -426,7 +463,7 @@ mod tests {
             delete_txn_id: 3,
             is_deleted: false,
         };
-        let _rid3 = table_heap
+        let rid3 = table_heap
             .insert_tuple(
                 &meta3,
                 &Tuple::new(schema.clone(), vec![3i8.into(), 3i16.into()]),
@@ -435,16 +472,16 @@ mod tests {
 
         let mut iterator = TableIterator::new(table_heap.clone(), ..);
 
-        let (meta, tuple) = iterator.next().unwrap().unwrap();
-        assert_eq!(meta, meta1);
+        let (rid, tuple) = iterator.next().unwrap().unwrap();
+        assert_eq!(rid, rid1);
         assert_eq!(tuple.data, vec![1i8.into(), 1i16.into()]);
 
-        let (meta, tuple) = iterator.next().unwrap().unwrap();
-        assert_eq!(meta, meta2);
+        let (rid, tuple) = iterator.next().unwrap().unwrap();
+        assert_eq!(rid, rid2);
         assert_eq!(tuple.data, vec![2i8.into(), 2i16.into()]);
 
-        let (meta, tuple) = iterator.next().unwrap().unwrap();
-        assert_eq!(meta, meta3);
+        let (rid, tuple) = iterator.next().unwrap().unwrap();
+        assert_eq!(rid, rid3);
         assert_eq!(tuple.data, vec![3i8.into(), 3i16.into()]);
 
         assert!(iterator.next().unwrap().is_none());

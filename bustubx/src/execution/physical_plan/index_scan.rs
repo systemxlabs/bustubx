@@ -56,8 +56,7 @@ impl VolcanoExecutor for PhysicalIndexScan {
         };
         let table_heap = context.catalog.table_heap(&self.table_ref)?;
         if let Some(rid) = iterator.next()? {
-            let (_, tuple) = table_heap.tuple(rid)?;
-            Ok(Some(tuple))
+            Ok(Some(table_heap.tuple(rid)?))
         } else {
             Ok(None)
         }

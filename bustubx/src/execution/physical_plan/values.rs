@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::catalog::SchemaRef;
 use crate::common::ScalarValue;
 use crate::expression::{Expr, ExprTrait};
+use crate::storage::EMPTY_TUPLE;
 use crate::{
     catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
@@ -35,7 +36,7 @@ impl VolcanoExecutor for PhysicalValues {
         if cursor < self.rows.len() {
             let values = self.rows[cursor]
                 .iter()
-                .map(|e| e.evaluate(&Tuple::empty(Arc::new(Schema::empty()))))
+                .map(|e| e.evaluate(&EMPTY_TUPLE))
                 .collect::<BustubxResult<Vec<ScalarValue>>>()?;
             debug_assert_eq!(self.schema.column_count(), values.len());
 

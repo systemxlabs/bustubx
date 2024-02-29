@@ -8,4 +8,4 @@ mod tuple;
 pub use disk_manager::DiskManager;
 pub use page::*;
 pub use table_heap::{TableHeap, TableIterator};
-pub use tuple::Tuple;
+pub use tuple::*;

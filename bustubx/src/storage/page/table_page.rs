@@ -152,7 +152,7 @@ impl TablePage {
         Ok(tuple_id)
     }
 
-    pub fn update_tuple_meta(&mut self, meta: &TupleMeta, slot_num: u16) -> BustubxResult<()> {
+    pub fn update_tuple_meta(&mut self, meta: TupleMeta, slot_num: u16) -> BustubxResult<()> {
         if slot_num >= self.header.num_tuples {
             return Err(BustubxError::Storage(format!(
                 "tuple_id {} out of range",
@@ -163,7 +163,26 @@ impl TablePage {
             self.header.num_deleted_tuples += 1;
         }
 
-        self.header.tuple_infos[slot_num as usize].meta = *meta;
+        self.header.tuple_infos[slot_num as usize].meta = meta;
+        Ok(())
+    }
+
+    pub fn update_tuple(&mut self, tuple: Tuple, slot_num: u16) -> BustubxResult<()> {
+        if slot_num >= self.header.num_tuples {
+            return Err(BustubxError::Storage(format!(
+                "tuple_id {} out of range",
+                slot_num
+            )));
+        }
+        let offset = self.header.tuple_infos[slot_num as usize].offset as usize;
+        let size = self.header.tuple_infos[slot_num as usize].size as usize;
+        let tuple_bytes = TupleCodec::encode(&tuple);
+        if tuple_bytes.len() == size {
+            self.data[offset..(offset + size)].copy_from_slice(&tuple_bytes);
+        } else {
+            // need move other tuples
+            todo!()
+        }
         Ok(())
     }
 
@@ -283,7 +302,7 @@ mod tests {
         tuple_meta.delete_txn_id = 1;
         tuple_meta.insert_txn_id = 2;
 
-        table_page.update_tuple_meta(&tuple_meta, 0).unwrap();
+        table_page.update_tuple_meta(tuple_meta, 0).unwrap();
         let tuple_meta = table_page.tuple_meta(0).unwrap();
         assert!(tuple_meta.is_deleted);
         assert_eq!(tuple_meta.delete_txn_id, 1);

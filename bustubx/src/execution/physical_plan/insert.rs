@@ -54,8 +54,7 @@ impl VolcanoExecutor for PhysicalInsert {
                 return if self.insert_rows.load(Ordering::SeqCst) == 0 {
                     Ok(None)
                 } else {
-                    let insert_rows = self.insert_rows.load(Ordering::SeqCst);
-                    self.insert_rows.store(0, Ordering::SeqCst);
+                    let insert_rows = self.insert_rows.swap(0, Ordering::SeqCst);
                     Ok(Some(Tuple::new(
                         self.output_schema(),
                         vec![ScalarValue::Int32(Some(insert_rows as i32))],
