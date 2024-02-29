@@ -1,0 +1,13 @@
+statement ok
+create table t1 (a tinyint, b integer)
+
+statement ok
+insert into t1 values (1, 2)
+
+statement ok
+update t1 set b = 3 where a = 1;
+
+# query II
+# select * from t1
+# ----
+# 1 3

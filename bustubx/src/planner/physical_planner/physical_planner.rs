@@ -3,10 +3,9 @@ use std::sync::Arc;
 
 use crate::planner::logical_plan::{
     Aggregate, CreateIndex, CreateTable, EmptyRelation, Filter, Insert, Join, Limit, LogicalPlan,
-    Project, Sort, TableScan, Values,
+    Project, Sort, TableScan, Update, Values,
 };
 
-use crate::execution::physical_plan::PhysicalInsert;
 use crate::execution::physical_plan::PhysicalLimit;
 use crate::execution::physical_plan::PhysicalNestedLoopJoin;
 use crate::execution::physical_plan::PhysicalPlan;
@@ -17,6 +16,7 @@ use crate::execution::physical_plan::PhysicalValues;
 use crate::execution::physical_plan::{PhysicalAggregate, PhysicalCreateTable};
 use crate::execution::physical_plan::{PhysicalCreateIndex, PhysicalEmpty};
 use crate::execution::physical_plan::{PhysicalFilter, PhysicalIndexScan};
+use crate::execution::physical_plan::{PhysicalInsert, PhysicalUpdate};
 
 pub struct PhysicalPlanner<'a> {
     pub catalog: &'a Catalog,
@@ -177,6 +177,17 @@ impl PhysicalPlanner<'_> {
                     schema.clone(),
                 ))
             }
+            LogicalPlan::Update(Update {
+                table,
+                table_schema,
+                assignments,
+                selection,
+            }) => PhysicalPlan::Update(PhysicalUpdate::new(
+                table.clone(),
+                table_schema.clone(),
+                assignments.clone(),
+                selection.clone(),
+            )),
         };
         plan
     }

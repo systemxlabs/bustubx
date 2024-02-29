@@ -9,6 +9,7 @@ mod limit;
 mod project;
 mod sort;
 mod table_scan;
+mod update;
 mod util;
 mod values;
 
@@ -23,10 +24,13 @@ pub use limit::Limit;
 pub use project::Project;
 pub use sort::{OrderByExpr, Sort};
 pub use table_scan::TableScan;
+pub use update::Update;
 pub use util::*;
 pub use values::Values;
 
-use crate::catalog::{SchemaRef, EMPTY_SCHEMA_REF, INSERT_OUTPUT_SCHEMA_REF};
+use crate::catalog::{
+    SchemaRef, EMPTY_SCHEMA_REF, INSERT_OUTPUT_SCHEMA_REF, UPDATE_OUTPUT_SCHEMA_REF,
+};
 use crate::{BustubxError, BustubxResult};
 use std::sync::Arc;
 
@@ -44,6 +48,7 @@ pub enum LogicalPlan {
     Values(Values),
     EmptyRelation(EmptyRelation),
     Aggregate(Aggregate),
+    Update(Update),
 }
 
 impl LogicalPlan {
@@ -61,6 +66,7 @@ impl LogicalPlan {
             LogicalPlan::Values(Values { schema, .. }) => schema,
             LogicalPlan::EmptyRelation(EmptyRelation { schema, .. }) => schema,
             LogicalPlan::Aggregate(Aggregate { schema, .. }) => schema,
+            LogicalPlan::Update(_) => &UPDATE_OUTPUT_SCHEMA_REF,
         }
     }
 
@@ -77,6 +83,7 @@ impl LogicalPlan {
             | LogicalPlan::CreateIndex(_)
             | LogicalPlan::TableScan(_)
             | LogicalPlan::Values(_)
+            | LogicalPlan::Update(_)
             | LogicalPlan::EmptyRelation(_) => vec![],
         }
     }
@@ -224,6 +231,7 @@ impl LogicalPlan {
             | LogicalPlan::CreateIndex(_)
             | LogicalPlan::TableScan(_)
             | LogicalPlan::Values(_)
+            | LogicalPlan::Update(_)
             | LogicalPlan::EmptyRelation(_) => Ok(self.clone()),
         }
     }
@@ -244,6 +252,7 @@ impl std::fmt::Display for LogicalPlan {
             LogicalPlan::Values(v) => write!(f, "{v}"),
             LogicalPlan::EmptyRelation(v) => write!(f, "{v}"),
             LogicalPlan::Aggregate(v) => write!(f, "{v}"),
+            LogicalPlan::Update(v) => write!(f, "{v}"),
         }
     }
 }

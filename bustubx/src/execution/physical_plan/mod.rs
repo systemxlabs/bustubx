@@ -10,6 +10,7 @@ mod nested_loop_join;
 mod project;
 mod seq_scan;
 mod sort;
+mod update;
 mod values;
 
 pub use aggregate::PhysicalAggregate;
@@ -24,6 +25,7 @@ pub use nested_loop_join::PhysicalNestedLoopJoin;
 pub use project::PhysicalProject;
 pub use seq_scan::PhysicalSeqScan;
 pub use sort::PhysicalSort;
+pub use update::PhysicalUpdate;
 pub use values::PhysicalValues;
 
 use crate::catalog::SchemaRef;
@@ -48,6 +50,7 @@ pub enum PhysicalPlan {
     NestedLoopJoin(PhysicalNestedLoopJoin),
     Sort(PhysicalSort),
     Aggregate(PhysicalAggregate),
+    Update(PhysicalUpdate),
 }
 
 impl PhysicalPlan {
@@ -69,6 +72,7 @@ impl PhysicalPlan {
             | PhysicalPlan::CreateIndex(_)
             | PhysicalPlan::SeqScan(_)
             | PhysicalPlan::IndexScan(_)
+            | PhysicalPlan::Update(_)
             | PhysicalPlan::Values(_) => vec![],
         }
     }
@@ -90,6 +94,7 @@ impl VolcanoExecutor for PhysicalPlan {
             PhysicalPlan::NestedLoopJoin(op) => op.init(context),
             PhysicalPlan::Sort(op) => op.init(context),
             PhysicalPlan::Aggregate(op) => op.init(context),
+            PhysicalPlan::Update(op) => op.init(context),
         }
     }
 
@@ -108,6 +113,7 @@ impl VolcanoExecutor for PhysicalPlan {
             PhysicalPlan::NestedLoopJoin(op) => op.next(context),
             PhysicalPlan::Sort(op) => op.next(context),
             PhysicalPlan::Aggregate(op) => op.next(context),
+            PhysicalPlan::Update(op) => op.next(context),
         }
     }
 
@@ -126,6 +132,7 @@ impl VolcanoExecutor for PhysicalPlan {
             Self::NestedLoopJoin(op) => op.output_schema(),
             Self::Sort(op) => op.output_schema(),
             Self::Aggregate(op) => op.output_schema(),
+            Self::Update(op) => op.output_schema(),
         }
     }
 }
@@ -146,6 +153,7 @@ impl std::fmt::Display for PhysicalPlan {
             Self::NestedLoopJoin(op) => write!(f, "{op}"),
             Self::Sort(op) => write!(f, "{op}"),
             Self::Aggregate(op) => write!(f, "{op}"),
+            Self::Update(op) => write!(f, "{op}"),
         }
     }
 }

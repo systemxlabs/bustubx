@@ -30,6 +30,12 @@ impl<'a> LogicalPlanner<'a> {
                 source,
                 ..
             } => self.plan_insert(table_name, columns, source),
+            sqlparser::ast::Statement::Update {
+                table,
+                assignments,
+                selection,
+                ..
+            } => self.plan_update(table, assignments, selection),
             _ => unimplemented!(),
         }
     }

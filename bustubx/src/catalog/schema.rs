@@ -12,6 +12,9 @@ lazy_static::lazy_static! {
     pub static ref INSERT_OUTPUT_SCHEMA_REF: SchemaRef = Arc::new(Schema::new(
         vec![Column::new("insert_rows", DataType::Int32, false)]
     ));
+    pub static ref UPDATE_OUTPUT_SCHEMA_REF: SchemaRef = Arc::new(Schema::new(
+        vec![Column::new("update_rows", DataType::Int32, false)]
+    ));
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]

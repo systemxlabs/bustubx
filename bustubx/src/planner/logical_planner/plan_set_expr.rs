@@ -1,4 +1,4 @@
-use crate::catalog::{Column, Schema, EMPTY_SCHEMA_REF};
+use crate::catalog::{Column, Schema};
 use crate::expression::{columnize_expr, Alias, ColumnExpr, Expr, ExprTrait};
 use crate::planner::logical_plan::{
     build_join_schema, project_schema, EmptyRelation, Filter, Join, LogicalPlan, Project,

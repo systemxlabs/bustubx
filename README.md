@@ -16,6 +16,7 @@
 - [ ] Two Phase Locking
 - [ ] Multi-Version Concurrency Control
 - [ ] Crash Recovery
+- [ ] WASM
 
 P.S. See [here](tests/sqllogictest/slt) to know which sql statements are supported already.
 

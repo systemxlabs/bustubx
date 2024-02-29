@@ -10,7 +10,9 @@ pub trait VolcanoExecutor {
     fn init(&self, _context: &mut ExecutionContext) -> BustubxResult<()> {
         Ok(())
     }
+
     fn next(&self, context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>>;
+
     fn output_schema(&self) -> SchemaRef;
 }
 

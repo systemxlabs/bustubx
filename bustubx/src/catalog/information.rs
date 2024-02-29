@@ -1,8 +1,6 @@
 use crate::buffer::{AtomicPageId, PageId, INVALID_PAGE_ID};
 use crate::catalog::catalog::{CatalogSchema, CatalogTable};
-use crate::catalog::{
-    Catalog, Column, DataType, Schema, SchemaRef, DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME,
-};
+use crate::catalog::{Catalog, Column, DataType, Schema, SchemaRef, DEFAULT_SCHEMA_NAME};
 use crate::common::{ScalarValue, TableReference};
 use crate::storage::codec::TablePageCodec;
 use crate::storage::TableHeap;
