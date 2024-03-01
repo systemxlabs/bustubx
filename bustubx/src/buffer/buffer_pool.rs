@@ -5,7 +5,13 @@ use std::{collections::VecDeque, sync::Arc};
 use crate::buffer::page::{Page, PageId};
 
 use crate::buffer::PageRef;
-use crate::storage::DiskManager;
+use crate::catalog::SchemaRef;
+use crate::storage::codec::{
+    BPlusTreeInternalPageCodec, BPlusTreeLeafPageCodec, BPlusTreePageCodec, TablePageCodec,
+};
+use crate::storage::{
+    BPlusTreeInternalPage, BPlusTreeLeafPage, BPlusTreePage, DiskManager, TablePage,
+};
 use crate::{BustubxError, BustubxResult};
 
 use super::replacer::LRUKReplacer;
@@ -110,6 +116,49 @@ impl BufferPoolManager {
                 replacer: self.replacer.clone(),
             })
         }
+    }
+
+    pub fn fetch_table_page(
+        &self,
+        page_id: PageId,
+        schema: SchemaRef,
+    ) -> BustubxResult<(PageRef, TablePage)> {
+        let page = self.fetch_page(page_id)?;
+        let (table_page, _) = TablePageCodec::decode(page.read().unwrap().data(), schema.clone())?;
+        Ok((page, table_page))
+    }
+
+    pub fn fetch_tree_page(
+        &self,
+        page_id: PageId,
+        key_schema: SchemaRef,
+    ) -> BustubxResult<(PageRef, BPlusTreePage)> {
+        let page = self.fetch_page(page_id)?;
+        let (tree_page, _) =
+            BPlusTreePageCodec::decode(page.read().unwrap().data(), key_schema.clone())?;
+        Ok((page, tree_page))
+    }
+
+    pub fn fetch_tree_internal_page(
+        &self,
+        page_id: PageId,
+        key_schema: SchemaRef,
+    ) -> BustubxResult<(PageRef, BPlusTreeInternalPage)> {
+        let page = self.fetch_page(page_id)?;
+        let (tree_internal_page, _) =
+            BPlusTreeInternalPageCodec::decode(page.read().unwrap().data(), key_schema.clone())?;
+        Ok((page, tree_internal_page))
+    }
+
+    pub fn fetch_tree_leaf_page(
+        &self,
+        page_id: PageId,
+        key_schema: SchemaRef,
+    ) -> BustubxResult<(PageRef, BPlusTreeLeafPage)> {
+        let page = self.fetch_page(page_id)?;
+        let (tree_leaf_page, _) =
+            BPlusTreeLeafPageCodec::decode(page.read().unwrap().data(), key_schema.clone())?;
+        Ok((page, tree_leaf_page))
     }
 
     // 将缓冲池中指定页写回磁盘

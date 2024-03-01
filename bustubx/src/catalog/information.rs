@@ -291,8 +291,9 @@ fn load_table_last_page_id(
 ) -> BustubxResult<PageId> {
     let mut page_id = first_page_id;
     loop {
-        let page = catalog.buffer_pool.fetch_page(page_id)?;
-        let (table_page, _) = TablePageCodec::decode(page.read().unwrap().data(), schema.clone())?;
+        let (_, table_page) = catalog
+            .buffer_pool
+            .fetch_table_page(page_id, schema.clone())?;
 
         if table_page.header.next_page_id == INVALID_PAGE_ID {
             return Ok(page_id);

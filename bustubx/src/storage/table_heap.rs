@@ -52,11 +52,11 @@ impl TableHeap {
     /// An `Option` containing the `Rid` of the inserted tuple if successful, otherwise `None`.
     pub fn insert_tuple(&self, meta: &TupleMeta, tuple: &Tuple) -> BustubxResult<RecordId> {
         let mut last_page_id = self.last_page_id.load(Ordering::SeqCst);
-        let last_page = self.buffer_pool.fetch_page(last_page_id)?;
+        let (last_page, mut last_table_page) = self
+            .buffer_pool
+            .fetch_table_page(last_page_id, self.schema.clone())?;
 
         // Loop until a suitable page is found for inserting the tuple
-        let (mut last_table_page, _) =
-            TablePageCodec::decode(last_page.read().unwrap().data(), self.schema.clone())?;
         loop {
             if last_table_page.next_tuple_offset(tuple).is_ok() {
                 break;
@@ -110,9 +110,9 @@ impl TableHeap {
     }
 
     pub fn update_tuple(&self, rid: RecordId, tuple: Tuple) -> BustubxResult<()> {
-        let page = self.buffer_pool.fetch_page(rid.page_id)?;
-        let (mut table_page, _) =
-            TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
+        let (page, mut table_page) = self
+            .buffer_pool
+            .fetch_table_page(rid.page_id, self.schema.clone())?;
         table_page.update_tuple(tuple, rid.slot_num as u16)?;
 
         page.write()
@@ -122,9 +122,9 @@ impl TableHeap {
     }
 
     pub fn update_tuple_meta(&self, meta: TupleMeta, rid: RecordId) -> BustubxResult<()> {
-        let page = self.buffer_pool.fetch_page(rid.page_id)?;
-        let (mut table_page, _) =
-            TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
+        let (page, mut table_page) = self
+            .buffer_pool
+            .fetch_table_page(rid.page_id, self.schema.clone())?;
         table_page.update_tuple_meta(meta, rid.slot_num as u16)?;
 
         page.write()
@@ -134,9 +134,9 @@ impl TableHeap {
     }
 
     pub fn full_tuple(&self, rid: RecordId) -> BustubxResult<(TupleMeta, Tuple)> {
-        let page = self.buffer_pool.fetch_page(rid.page_id)?;
-        let (table_page, _) =
-            TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
+        let (_, table_page) = self
+            .buffer_pool
+            .fetch_table_page(rid.page_id, self.schema.clone())?;
         let result = table_page.tuple(rid.slot_num as u16)?;
         Ok(result)
     }
@@ -153,9 +153,9 @@ impl TableHeap {
 
     pub fn get_first_rid(&self) -> BustubxResult<Option<RecordId>> {
         let first_page_id = self.first_page_id.load(Ordering::SeqCst);
-        let page = self.buffer_pool.fetch_page(first_page_id)?;
-        let (table_page, _) =
-            TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
+        let (_, table_page) = self
+            .buffer_pool
+            .fetch_table_page(first_page_id, self.schema.clone())?;
         if table_page.header.num_tuples == 0 {
             // TODO 忽略删除的tuple
             Ok(None)
@@ -165,9 +165,9 @@ impl TableHeap {
     }
 
     pub fn get_next_rid(&self, rid: RecordId) -> BustubxResult<Option<RecordId>> {
-        let page = self.buffer_pool.fetch_page(rid.page_id)?;
-        let (table_page, _) =
-            TablePageCodec::decode(page.read().unwrap().data(), self.schema.clone())?;
+        let (_, table_page) = self
+            .buffer_pool
+            .fetch_table_page(rid.page_id, self.schema.clone())?;
         let next_rid = table_page.get_next_rid(&rid);
         if next_rid.is_some() {
             return Ok(next_rid);
@@ -176,11 +176,9 @@ impl TableHeap {
         if table_page.header.next_page_id == INVALID_PAGE_ID {
             return Ok(None);
         }
-        let next_page = self
+        let (_, next_table_page) = self
             .buffer_pool
-            .fetch_page(table_page.header.next_page_id)?;
-        let (next_table_page, _) =
-            TablePageCodec::decode(next_page.read().unwrap().data(), self.schema.clone())?;
+            .fetch_table_page(table_page.header.next_page_id, self.schema.clone())?;
         if next_table_page.header.num_tuples == 0 {
             // TODO 忽略删除的tuple
             Ok(None)

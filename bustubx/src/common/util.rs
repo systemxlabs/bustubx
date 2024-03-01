@@ -98,9 +98,9 @@ pub(crate) fn pretty_format_index_tree(index: &BPlusTreeIndex) -> BustubxResult<
         let mut level_row = vec![];
 
         while let Some(page_id) = curr_queue.pop_front() {
-            let page = index.buffer_pool.fetch_page(page_id)?;
-            let (curr_page, _) =
-                BPlusTreePageCodec::decode(page.read().unwrap().data(), index.key_schema.clone())?;
+            let (_, curr_page) = index
+                .buffer_pool
+                .fetch_tree_page(page_id, index.key_schema.clone())?;
 
             match curr_page {
                 BPlusTreePage::Internal(internal_page) => {
