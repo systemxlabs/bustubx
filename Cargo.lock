@@ -99,7 +99,7 @@ dependencies = [
 
 [[package]]
 name = "bustubx"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "comfy-table",
  "dashmap",
@@ -116,7 +116,7 @@ dependencies = [
 
 [[package]]
 name = "bustubx-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bustubx",
  "clap",

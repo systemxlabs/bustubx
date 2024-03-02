@@ -11,7 +11,7 @@ homepage.workspace = true
 readme = "../README.md"
 
 [dependencies]
-bustubx = { path = "../bustubx", version = "0.2.0" }
+bustubx = { path = "../bustubx", version = "0.3.0" }
 log = "0.4.19"
 env_logger = "0.10.0"
 rustyline = "13.0.0"
