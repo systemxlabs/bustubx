@@ -2,7 +2,7 @@ use derive_with::With;
 use std::sync::Arc;
 
 use crate::catalog::DataType;
-use crate::common::TableReference;
+use crate::common::{ScalarValue, TableReference};
 
 pub type ColumnRef = Arc<Column>;
 
@@ -12,6 +12,7 @@ pub struct Column {
     pub name: String,
     pub data_type: DataType,
     pub nullable: bool,
+    pub default: ScalarValue,
 }
 
 impl PartialEq for Column {
@@ -29,6 +30,7 @@ impl Column {
             name: name.into(),
             data_type,
             nullable,
+            default: ScalarValue::new_empty(data_type),
         }
     }
 }

@@ -189,6 +189,137 @@ impl ScalarValue {
     pub fn wrapping_sub(&self, _other: Self) -> BustubxResult<Self> {
         todo!()
     }
+
+    pub fn from_string(string: &String, data_type: DataType) -> BustubxResult<Self> {
+        let is_null = string.eq_ignore_ascii_case("null");
+        match data_type {
+            DataType::Boolean => {
+                let v = if is_null {
+                    None
+                } else {
+                    let v = string
+                        .parse::<bool>()
+                        .map_err(|_| BustubxError::Internal("Parse bool failed".to_string()))?;
+                    Some(v)
+                };
+                Ok(ScalarValue::Boolean(v))
+            }
+            DataType::Int8 => {
+                let v = if is_null {
+                    None
+                } else {
+                    let v = string
+                        .parse::<i8>()
+                        .map_err(|_| BustubxError::Internal("Parse i8 failed".to_string()))?;
+                    Some(v)
+                };
+                Ok(ScalarValue::Int8(v))
+            }
+            DataType::Int16 => {
+                let v = if is_null {
+                    None
+                } else {
+                    let v = string
+                        .parse::<i16>()
+                        .map_err(|_| BustubxError::Internal("Parse i16 failed".to_string()))?;
+                    Some(v)
+                };
+                Ok(ScalarValue::Int16(v))
+            }
+            DataType::Int32 => {
+                let v = if is_null {
+                    None
+                } else {
+                    let v = string
+                        .parse::<i32>()
+                        .map_err(|_| BustubxError::Internal("Parse i32 failed".to_string()))?;
+                    Some(v)
+                };
+                Ok(ScalarValue::Int32(v))
+            }
+            DataType::Int64 => {
+                let v = if is_null {
+                    None
+                } else {
+                    let v = string
+                        .parse::<i64>()
+                        .map_err(|_| BustubxError::Internal("Parse i64 failed".to_string()))?;
+                    Some(v)
+                };
+                Ok(ScalarValue::Int64(v))
+            }
+            DataType::UInt8 => {
+                let v = if is_null {
+                    None
+                } else {
+                    let v = string
+                        .parse::<u8>()
+                        .map_err(|_| BustubxError::Internal("Parse u8 failed".to_string()))?;
+                    Some(v)
+                };
+                Ok(ScalarValue::UInt8(v))
+            }
+            DataType::UInt16 => {
+                let v = if is_null {
+                    None
+                } else {
+                    let v = string
+                        .parse::<u16>()
+                        .map_err(|_| BustubxError::Internal("Parse u16 failed".to_string()))?;
+                    Some(v)
+                };
+                Ok(ScalarValue::UInt16(v))
+            }
+            DataType::UInt32 => {
+                let v = if is_null {
+                    None
+                } else {
+                    let v = string
+                        .parse::<u32>()
+                        .map_err(|_| BustubxError::Internal("Parse u32 failed".to_string()))?;
+                    Some(v)
+                };
+                Ok(ScalarValue::UInt32(v))
+            }
+            DataType::UInt64 => {
+                let v = if is_null {
+                    None
+                } else {
+                    let v = string
+                        .parse::<u64>()
+                        .map_err(|_| BustubxError::Internal("Parse u64 failed".to_string()))?;
+                    Some(v)
+                };
+                Ok(ScalarValue::UInt64(v))
+            }
+            DataType::Float32 => {
+                let v = if is_null {
+                    None
+                } else {
+                    let v = string
+                        .parse::<f32>()
+                        .map_err(|_| BustubxError::Internal("Parse f32 failed".to_string()))?;
+                    Some(v)
+                };
+                Ok(ScalarValue::Float32(v))
+            }
+            DataType::Float64 => {
+                let v = if is_null {
+                    None
+                } else {
+                    let v = string
+                        .parse::<f64>()
+                        .map_err(|_| BustubxError::Internal("Parse f64 failed".to_string()))?;
+                    Some(v)
+                };
+                Ok(ScalarValue::Float64(v))
+            }
+            DataType::Varchar(_) => {
+                let v = if is_null { None } else { Some(string.clone()) };
+                Ok(ScalarValue::Varchar(v))
+            }
+        }
+    }
 }
 
 impl PartialEq for ScalarValue {

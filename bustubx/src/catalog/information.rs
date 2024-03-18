@@ -2,7 +2,6 @@ use crate::buffer::{AtomicPageId, PageId, INVALID_PAGE_ID};
 use crate::catalog::catalog::{CatalogSchema, CatalogTable};
 use crate::catalog::{Catalog, Column, DataType, Schema, SchemaRef, DEFAULT_SCHEMA_NAME};
 use crate::common::{ScalarValue, TableReference};
-use crate::storage::codec::TablePageCodec;
 use crate::storage::TableHeap;
 use crate::{BustubxError, BustubxResult, Database};
 
@@ -35,6 +34,7 @@ lazy_static::lazy_static! {
         Column::new("column_name", DataType::Varchar(None), false),
         Column::new("data_type", DataType::Varchar(None), false),
         Column::new("nullable", DataType::Boolean, false),
+        Column::new("default", DataType::Varchar(None), false),
     ]));
 
     pub static ref INDEXES_SCHMEA: SchemaRef = Arc::new(Schema::new(vec![
@@ -207,8 +207,13 @@ fn load_user_tables(db: &mut Database) -> BustubxResult<()> {
             let ScalarValue::Boolean(Some(nullable)) = column_tuple.value(5)? else {
                 return error;
             };
+            let ScalarValue::Varchar(Some(default)) = column_tuple.value(6)? else {
+                return error;
+            };
             let data_type: DataType = data_type_str.as_str().try_into()?;
-            columns.push(Column::new(column_name.clone(), data_type, *nullable));
+            let default = ScalarValue::from_string(default, data_type)?;
+            columns
+                .push(Column::new(column_name.clone(), data_type, *nullable).with_default(default));
         }
         let schema = Arc::new(Schema::new(columns));
 

@@ -184,6 +184,7 @@ impl Catalog {
                     col.name.clone().into(),
                     format!("{sql_type}").into(),
                     col.nullable.into(),
+                    format!("{}", col.default).into(),
                 ],
             );
             columns_table

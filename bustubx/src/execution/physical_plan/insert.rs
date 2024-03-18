@@ -67,14 +67,23 @@ impl VolcanoExecutor for PhysicalInsert {
             let mut casted_data = vec![];
             for (idx, value) in tuple.data.iter().enumerate() {
                 let target_type = self.projected_schema.column_with_index(idx)?.data_type;
-                if target_type == value.data_type() {
-                    casted_data.push(value.clone());
+                casted_data.push(value.cast_to(&target_type)?);
+            }
+
+            // fill default values
+            let mut full_data = vec![];
+            for col in self.table_schema.columns.iter() {
+                if let Ok(idx) = self
+                    .projected_schema
+                    .index_of(col.relation.as_ref(), &col.name)
+                {
+                    full_data.push(casted_data[idx].clone());
                 } else {
-                    casted_data.push(value.cast_to(&target_type)?);
+                    full_data.push(col.default.clone())
                 }
             }
-            // TODO fill default values in data
-            let tuple = Tuple::new(self.table_schema.clone(), casted_data);
+
+            let tuple = Tuple::new(self.table_schema.clone(), full_data);
 
             let table_heap = context.catalog.table_heap(&self.table)?;
             let rid = table_heap.insert_tuple(&EMPTY_TUPLE_META, &tuple)?;
