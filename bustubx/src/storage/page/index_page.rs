@@ -125,9 +125,6 @@ impl BPlusTreeInternalPage {
 
     // TODO 可以通过二分查找来插入
     pub fn insert(&mut self, key: Tuple, page_id: PageId) {
-        // if self.header.current_size == 0 && !key.is_null() {
-        //     panic!("First key must be zero");
-        // }
         self.array.push((key, page_id));
         self.header.current_size += 1;
         // 跳过第一个空key

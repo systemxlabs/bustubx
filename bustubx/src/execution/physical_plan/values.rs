@@ -1,12 +1,10 @@
-use std::sync::atomic::AtomicU32;
-use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::catalog::SchemaRef;
 use crate::common::ScalarValue;
 use crate::expression::{Expr, ExprTrait};
 use crate::storage::EMPTY_TUPLE;
 use crate::{
-    catalog::Schema,
     execution::{ExecutionContext, VolcanoExecutor},
     storage::Tuple,
     BustubxResult,
@@ -30,9 +28,7 @@ impl PhysicalValues {
 }
 impl VolcanoExecutor for PhysicalValues {
     fn next(&self, _context: &mut ExecutionContext) -> BustubxResult<Option<Tuple>> {
-        let cursor = self
-            .cursor
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst) as usize;
+        let cursor = self.cursor.fetch_add(1, Ordering::SeqCst) as usize;
         if cursor < self.rows.len() {
             let values = self.rows[cursor]
                 .iter()
