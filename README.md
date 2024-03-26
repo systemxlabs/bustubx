@@ -37,7 +37,7 @@ RUST_LOG=info,bustubx=debug cargo run --bin bustubx-cli
 - [cmu-db/bustub](https://github.com/cmu-db/bustub)
 - [Fedomn/sqlrs](https://github.com/Fedomn/sqlrs) and [blogs](https://frankma.me/categories/sqlrs/)
 - [KipData/KipSQL](https://github.com/KipData/KipSQL)
-- [talent-plan/tinysql](https://github.com/talent-plan/tinysql)
+- [ysj1173886760/TinyDB](https://github.com/ysj1173886760/TinyDB)
 - [arrow-datafusion](https://github.com/apache/arrow-datafusion)
 - [CMU 15-445课程笔记-zhenghe](https://zhenghe.gitbook.io/open-courses/cmu-15-445-645-database-systems/relational-data-model)
 - [CMU15-445 22Fall通关记录 - 知乎](https://www.zhihu.com/column/c_1605901992903004160)
