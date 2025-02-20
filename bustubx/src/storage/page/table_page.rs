@@ -3,6 +3,7 @@ use crate::catalog::SchemaRef;
 use crate::storage::codec::{TablePageHeaderCodec, TablePageHeaderTupleInfoCodec, TupleCodec};
 use crate::transaction::TransactionId;
 use crate::{BustubxError, BustubxResult, Tuple};
+use std::sync::LazyLock;
 
 pub static EMPTY_TUPLE_META: TupleMeta = TupleMeta {
     insert_txn_id: 0,
@@ -10,13 +11,11 @@ pub static EMPTY_TUPLE_META: TupleMeta = TupleMeta {
     is_deleted: false,
 };
 
-lazy_static::lazy_static! {
-    pub static ref EMPTY_TUPLE_INFO: TupleInfo = TupleInfo {
-        offset: 0,
-        size: 0,
-        meta: EMPTY_TUPLE_META,
-    };
-}
+pub static EMPTY_TUPLE_INFO: LazyLock<TupleInfo> = LazyLock::new(|| TupleInfo {
+    offset: 0,
+    size: 0,
+    meta: EMPTY_TUPLE_META,
+});
 
 /**
  * Slotted page format:

@@ -1,6 +1,7 @@
 use crate::buffer::{PageId, INVALID_PAGE_ID};
 use crate::storage::codec::MetaPageCodec;
 use crate::{BustubxError, BustubxResult};
+use std::sync::LazyLock;
 
 pub static EMPTY_META_PAGE: MetaPage = MetaPage {
     major_version: 0,
@@ -12,9 +13,8 @@ pub static EMPTY_META_PAGE: MetaPage = MetaPage {
     information_schema_indexes_first_page_id: 0,
 };
 
-lazy_static::lazy_static! {
-    pub static ref META_PAGE_SIZE: usize = MetaPageCodec::encode(&EMPTY_META_PAGE).len();
-}
+pub static META_PAGE_SIZE: LazyLock<usize> =
+    LazyLock::new(|| MetaPageCodec::encode(&EMPTY_META_PAGE).len());
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct MetaPage {

@@ -15,7 +15,6 @@ doctest = false
 
 [dependencies]
 sqlparser = "0.34.0"
-lazy_static = "1.4.0"
 itertools = "0.11.0"
 comfy-table = "7.0.1"
 derive-new = "0.5.9"

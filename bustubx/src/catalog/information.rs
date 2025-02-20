@@ -6,7 +6,7 @@ use crate::storage::TableHeap;
 use crate::{BustubxError, BustubxResult, Database};
 
 use crate::storage::index::BPlusTreeIndex;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 pub static INFORMATION_SCHEMA_NAME: &str = "information_schema";
 pub static INFORMATION_SCHEMA_SCHEMAS: &str = "schemas";
@@ -14,20 +14,24 @@ pub static INFORMATION_SCHEMA_TABLES: &str = "tables";
 pub static INFORMATION_SCHEMA_COLUMNS: &str = "columns";
 pub static INFORMATION_SCHEMA_INDEXES: &str = "indexes";
 
-lazy_static::lazy_static! {
-    pub static ref SCHEMAS_SCHMEA: SchemaRef = Arc::new(Schema::new(vec![
+pub static SCHEMAS_SCHMEA: LazyLock<SchemaRef> = LazyLock::new(|| {
+    Arc::new(Schema::new(vec![
         Column::new("catalog", DataType::Varchar(None), false),
         Column::new("schema", DataType::Varchar(None), false),
-    ]));
+    ]))
+});
 
-    pub static ref TABLES_SCHMEA: SchemaRef = Arc::new(Schema::new(vec![
+pub static TABLES_SCHMEA: LazyLock<SchemaRef> = LazyLock::new(|| {
+    Arc::new(Schema::new(vec![
         Column::new("table_catalog", DataType::Varchar(None), false),
         Column::new("table_schema", DataType::Varchar(None), false),
         Column::new("table_name", DataType::Varchar(None), false),
         Column::new("first_page_id", DataType::UInt32, false),
-    ]));
+    ]))
+});
 
-    pub static ref COLUMNS_SCHMEA: SchemaRef = Arc::new(Schema::new(vec![
+pub static COLUMNS_SCHMEA: LazyLock<SchemaRef> = LazyLock::new(|| {
+    Arc::new(Schema::new(vec![
         Column::new("table_catalog", DataType::Varchar(None), false),
         Column::new("table_schema", DataType::Varchar(None), false),
         Column::new("table_name", DataType::Varchar(None), false),
@@ -35,9 +39,11 @@ lazy_static::lazy_static! {
         Column::new("data_type", DataType::Varchar(None), false),
         Column::new("nullable", DataType::Boolean, false),
         Column::new("default", DataType::Varchar(None), false),
-    ]));
+    ]))
+});
 
-    pub static ref INDEXES_SCHMEA: SchemaRef = Arc::new(Schema::new(vec![
+pub static INDEXES_SCHMEA: LazyLock<SchemaRef> = LazyLock::new(|| {
+    Arc::new(Schema::new(vec![
         Column::new("table_catalog", DataType::Varchar(None), false),
         Column::new("table_schema", DataType::Varchar(None), false),
         Column::new("table_name", DataType::Varchar(None), false),
@@ -46,8 +52,8 @@ lazy_static::lazy_static! {
         Column::new("internal_max_size", DataType::UInt32, false),
         Column::new("leaf_max_size", DataType::UInt32, false),
         Column::new("root_page_id", DataType::UInt32, false),
-    ]));
-}
+    ]))
+});
 
 pub fn load_catalog_data(db: &mut Database) -> BustubxResult<()> {
     load_information_schema(&mut db.catalog)?;

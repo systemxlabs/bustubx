@@ -3,19 +3,25 @@ use crate::catalog::DataType;
 use crate::common::TableReference;
 use crate::error::BustubxResult;
 use crate::BustubxError;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 pub type SchemaRef = Arc<Schema>;
 
-lazy_static::lazy_static! {
-    pub static ref EMPTY_SCHEMA_REF: SchemaRef = Arc::new(Schema::empty());
-    pub static ref INSERT_OUTPUT_SCHEMA_REF: SchemaRef = Arc::new(Schema::new(
-        vec![Column::new("insert_rows", DataType::Int32, false)]
-    ));
-    pub static ref UPDATE_OUTPUT_SCHEMA_REF: SchemaRef = Arc::new(Schema::new(
-        vec![Column::new("update_rows", DataType::Int32, false)]
-    ));
-}
+pub static EMPTY_SCHEMA_REF: LazyLock<SchemaRef> = LazyLock::new(|| Arc::new(Schema::empty()));
+pub static INSERT_OUTPUT_SCHEMA_REF: LazyLock<SchemaRef> = LazyLock::new(|| {
+    Arc::new(Schema::new(vec![Column::new(
+        "insert_rows",
+        DataType::Int32,
+        false,
+    )]))
+});
+pub static UPDATE_OUTPUT_SCHEMA_REF: LazyLock<SchemaRef> = LazyLock::new(|| {
+    Arc::new(Schema::new(vec![Column::new(
+        "update_rows",
+        DataType::Int32,
+        false,
+    )]))
+});
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Schema {

@@ -1,5 +1,6 @@
 use crate::buffer::{PageId, BUSTUBX_PAGE_SIZE, INVALID_PAGE_ID};
 use crate::storage::codec::{CommonCodec, FreelistPageHeaderCodec};
+use std::sync::LazyLock;
 
 static EMPTY_FREELIST_PAGE_HEADER: FreelistPageHeader = FreelistPageHeader {
     next_page_id: 0,
@@ -7,11 +8,10 @@ static EMPTY_FREELIST_PAGE_HEADER: FreelistPageHeader = FreelistPageHeader {
     max_size: 0,
 };
 
-lazy_static::lazy_static! {
-    pub static ref FREELIST_PAGE_MAX_SIZE: usize =
-        (BUSTUBX_PAGE_SIZE - FreelistPageHeaderCodec::encode(&EMPTY_FREELIST_PAGE_HEADER).len())
-            / CommonCodec::encode_u32(INVALID_PAGE_ID).len();
-}
+pub static FREELIST_PAGE_MAX_SIZE: LazyLock<usize> = LazyLock::new(|| {
+    (BUSTUBX_PAGE_SIZE - FreelistPageHeaderCodec::encode(&EMPTY_FREELIST_PAGE_HEADER).len())
+        / CommonCodec::encode_u32(INVALID_PAGE_ID).len()
+});
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct FreelistPage {
